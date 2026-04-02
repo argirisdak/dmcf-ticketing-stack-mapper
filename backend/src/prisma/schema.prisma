@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum CapabilityState {
+  YES
+  NO
+  UNKNOWN
+}
+
+model Organisation {
+  id                          String          @id @default(uuid())
+  name                        String
+  country                     String
+  organisation_type_id        String
+  ticketing_provider_id       String?
+  crm_platform_id             String?
+  membership_capability       CapabilityState @default(UNKNOWN)
+  donation_capability         CapabilityState @default(UNKNOWN)
+  reserved_seating_capability CapabilityState @default(UNKNOWN)
+  source_reference            String?
+  notes                       String?
+  capacity                    Int?
+  last_updated                DateTime        @default(now())
+  created_at                  DateTime        @default(now())
+  updated_at                  DateTime        @updatedAt
+
+  organisation_type     OrganisationType   @relation(fields: [organisation_type_id], references: [id])
+  ticketing_provider    TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])
+  crm_platform          CrmPlatform?       @relation(fields: [crm_platform_id], references: [id])
+
+  @@map("organisation")
+}
+
+model TicketingProvider {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  organisations Organisation[]
+
+  @@map("ticketing_provider")
+}
+
+model CrmPlatform {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  organisations Organisation[]
+
+  @@map("crm_platform")
+}
+
+model OrganisationType {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  organisations Organisation[]
+
+  @@map("organisation_type")
+}

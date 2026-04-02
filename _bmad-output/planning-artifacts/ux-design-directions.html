@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DMCF Ticketing Stack Mapper — Design Directions</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Capability icon colours */
+    .cap-yes  { color: #059669; }
+    .cap-no   { color: #64748b; }
+    .cap-unk  { color: #cbd5e1; }
+
+    /* Direction panels */
+    .direction-panel { display: none; }
+    .direction-panel.active { display: block; }
+
+    /* Direction tab active */
+    .dir-tab.active {
+      background: #1e293b;
+      color: #fff;
+      border-color: #1e293b;
+    }
+
+    /* Compare bar slide-in */
+    .compare-bar {
+      position: sticky;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 20;
+    }
+
+    /* Hover rows */
+    tbody tr:hover { background-color: #f8fafc; }
+
+    /* Scrollable showcase wrapper */
+    .showcase-frame {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px 0 rgba(30,41,59,0.08);
+    }
+
+    /* Direction 3 compact row */
+    .compact-row td, .compact-row th { padding: 6px 12px !important; }
+
+    /* Direction 4 soft card rows */
+    .soft-card-row { border-radius: 8px; margin-bottom: 4px; }
+  </style>
+</head>
+<body class="bg-slate-100 min-h-screen py-8 px-4">
+
+  <!-- Header -->
+  <div class="max-w-6xl mx-auto mb-8">
+    <div class="mb-1 text-xs font-medium uppercase tracking-widest text-slate-400">UX Design Directions</div>
+    <h1 class="text-2xl font-semibold text-slate-800 mb-1">DMCF Ticketing Stack Mapper</h1>
+    <p class="text-sm text-slate-500">Four layout directions for the organisation list view. Each applies the agreed visual foundation (slate palette, blue-600 accent, Lucide icons, Tailwind tokens) with a different structural approach.</p>
+
+    <!-- Direction tabs -->
+    <div class="flex flex-wrap gap-2 mt-6">
+      <button onclick="showDirection(1)" id="tab-1" class="dir-tab active px-4 py-2 text-sm font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+        1 — Clean Admin <span class="ml-1 text-xs text-blue-600 font-semibold">★ Recommended</span>
+      </button>
+      <button onclick="showDirection(2)" id="tab-2" class="dir-tab px-4 py-2 text-sm font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+        2 — Sidebar Filters
+      </button>
+      <button onclick="showDirection(3)" id="tab-3" class="dir-tab px-4 py-2 text-sm font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+        3 — Compact / Dense
+      </button>
+      <button onclick="showDirection(4)" id="tab-4" class="dir-tab px-4 py-2 text-sm font-medium rounded border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 transition-colors">
+        4 — Airy Research
+      </button>
+    </div>
+  </div>
+
+  <!-- Evaluation guide -->
+  <div class="max-w-6xl mx-auto mb-6 bg-blue-50 border border-blue-200 rounded-lg px-5 py-4">
+    <p class="text-xs font-semibold text-blue-700 uppercase tracking-wider mb-2">When evaluating each direction, consider:</p>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-2 text-xs text-blue-800">
+      <span>✦ Filter controls — discoverable?</span>
+      <span>✦ Active filter state — always visible?</span>
+      <span>✦ Table density — right for the data?</span>
+      <span>✦ Compare affordance — unmissable?</span>
+      <span>✦ Capability states — scannable?</span>
+      <span>✦ Overall register — admin tool feel?</span>
+    </div>
+  </div>
+
+  <!-- ========================================
+       DIRECTION 1: CLEAN ADMIN (Recommended)
+       ======================================== -->
+  <div id="direction-1" class="direction-panel active max-w-6xl mx-auto">
+    <div class="mb-3">
+      <span class="inline-block bg-blue-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Direction 1 — Clean Admin</span>
+      <span class="ml-3 text-sm text-slate-500">Horizontal filter bar above table · active chips · full-width layout · GOV.UK-influenced clarity</span>
+    </div>
+    <div class="showcase-frame">
+      <!-- Top Nav -->
+      <nav class="bg-slate-800 px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <span class="text-white font-semibold text-sm tracking-tight">DMCF Stack Mapper</span>
+          <a href="#" class="text-slate-300 text-sm hover:text-white border-b border-blue-400 pb-0.5 text-white">Organisations</a>
+        </div>
+      </nav>
+
+      <div class="bg-slate-50 min-h-96">
+        <!-- Page header -->
+        <div class="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+          <h1 class="text-xl font-semibold text-slate-800">Organisations</h1>
+          <button class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded hover:bg-blue-700 transition-colors">+ Add organisation</button>
+        </div>
+
+        <!-- Search + Filter bar -->
+        <div class="bg-white border-b border-slate-200 px-6 py-3 flex flex-wrap items-center gap-3">
+          <div class="flex items-center border border-slate-300 rounded bg-white px-3 py-1.5 gap-2 min-w-56">
+            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+            <input class="text-sm text-slate-700 outline-none bg-transparent w-full placeholder-slate-400" placeholder="Search organisations…" value="Tessitura">
+          </div>
+          <select class="border border-slate-300 rounded text-sm text-slate-700 px-3 py-1.5 bg-white">
+            <option>Country: United Kingdom</option>
+          </select>
+          <select class="border border-slate-300 rounded text-sm text-slate-700 px-3 py-1.5 bg-white">
+            <option>Provider: All</option>
+          </select>
+          <select class="border border-slate-300 rounded text-sm text-slate-700 px-3 py-1.5 bg-white">
+            <option>Type: All</option>
+          </select>
+          <select class="border border-slate-300 rounded text-sm text-slate-700 px-3 py-1.5 bg-white">
+            <option>CRM: All</option>
+          </select>
+          <select class="border border-slate-300 rounded text-sm text-slate-700 px-3 py-1.5 bg-white">
+            <option>Capabilities: All</option>
+          </select>
+        </div>
+
+        <!-- Active filter chips -->
+        <div class="bg-slate-50 border-b border-slate-100 px-6 py-2 flex items-center gap-2">
+          <span class="text-xs text-slate-500 mr-1">Active filters:</span>
+          <span class="inline-flex items-center gap-1 bg-blue-50 border border-blue-300 text-blue-700 text-xs font-medium px-2.5 py-1 rounded-full">
+            Country: United Kingdom
+            <button class="ml-1 text-blue-400 hover:text-blue-700">✕</button>
+          </span>
+          <span class="text-xs text-slate-400 ml-auto">4 results</span>
+          <button class="text-xs text-slate-400 hover:text-red-600 ml-2">Clear all</button>
+        </div>
+
+        <!-- Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="bg-white border-b border-slate-200">
+                <th class="w-10 px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Organisation</th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Type</th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Country</th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Ticketing Provider</th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">CRM</th>
+                <th class="text-center px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Membership</th>
+                <th class="text-center px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Donation</th>
+                <th class="text-left px-4 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Last updated</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr class="bg-white">
+                <td class="px-4 py-3"><input type="checkbox" checked class="rounded border-slate-300 accent-blue-600"></td>
+                <td class="px-4 py-3"><a href="#" class="text-blue-600 hover:underline text-sm font-medium">Barbican Centre</a><div class="text-xs text-slate-400">London</div></td>
+                <td class="px-4 py-3"><span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">Venue</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">United Kingdom</td>
+                <td class="px-4 py-3"><span class="inline-block bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">Tessitura</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">Salesforce</td>
+                <td class="px-4 py-3 text-center"><span class="cap-yes text-base" title="Yes">✓</span></td>
+                <td class="px-4 py-3 text-center"><span class="cap-yes text-base" title="Yes">✓</span></td>
+                <td class="px-4 py-3 text-xs text-slate-400">2 days ago</td>
+              </tr>
+              <tr class="bg-white">
+                <td class="px-4 py-3"><input type="checkbox" checked class="rounded border-slate-300 accent-blue-600"></td>
+                <td class="px-4 py-3"><a href="#" class="text-blue-600 hover:underline text-sm font-medium">Sadler's Wells</a><div class="text-xs text-slate-400">London</div></td>
+                <td class="px-4 py-3"><span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">Dance venue</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">United Kingdom</td>
+                <td class="px-4 py-3"><span class="inline-block bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">Tessitura</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">Tessitura CRM</td>
+                <td class="px-4 py-3 text-center"><span class="cap-yes text-base" title="Yes">✓</span></td>
+                <td class="px-4 py-3 text-center"><span class="cap-yes text-base" title="Yes">✓</span></td>
+                <td class="px-4 py-3 text-xs text-slate-400">1 week ago</td>
+              </tr>
+              <tr class="bg-white">
+                <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                <td class="px-4 py-3"><a href="#" class="text-blue-600 hover:underline text-sm font-medium">Scottish Opera</a><div class="text-xs text-slate-400">Glasgow</div></td>
+                <td class="px-4 py-3"><span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">Opera company</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">United Kingdom</td>
+                <td class="px-4 py-3"><span class="inline-block bg-violet-50 text-violet-700 text-xs font-medium px-2 py-0.5 rounded-full">Spektrix</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">HubSpot</td>
+                <td class="px-4 py-3 text-center"><span class="cap-yes text-base" title="Yes">✓</span></td>
+                <td class="px-4 py-3 text-center"><span class="cap-no text-base" title="No">✕</span></td>
+                <td class="px-4 py-3 text-xs text-slate-400">3 weeks ago</td>
+              </tr>
+              <tr class="bg-white">
+                <td class="px-4 py-3"><input type="checkbox" class="rounded border-slate-300"></td>
+                <td class="px-4 py-3"><a href="#" class="text-blue-600 hover:underline text-sm font-medium">National Theatre of Scotland</a><div class="text-xs text-slate-400">Edinburgh</div></td>
+                <td class="px-4 py-3"><span class="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded-full">Theatre</span></td>
+                <td class="px-4 py-3 text-sm text-slate-700">United Kingdom</td>
+                <td class="px-4 py-3"><span class="inline-block bg-rose-50 text-rose-700 text-xs font-medium px-2 py-0.5 rounded-full">Ticketmaster</span></td>
+                <td class="px-4 py-3 text-xs text-slate-300 italic">—</td>
+                <td class="px-4 py-3 text-center"><span class="cap-no text-base" title="No">✕</span></td>
+                <td class="px-4 py-3 text-center"><span class="cap-unk text-base" title="Unknown">–</span></td>
+                <td class="px-4 py-3 text-xs text-slate-400">1 month ago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Compare bar (active, 2 selected) -->
+        <div class="compare-bar bg-slate-800 text-white px-6 py-3 flex items-center justify-between">
+          <span class="text-sm">2 organisations selected</span>
+          <div class="flex items-center gap-3">
+            <button class="text-slate-400 text-sm hover:text-white">Clear selection</button>
+            <button class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium px-5 py-2 rounded transition-colors">Compare selected (2) →</button>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="bg-white border-t border-slate-200 px-6 py-3 flex items-center justify-between">
+          <span class="text-xs text-slate-500">Showing 1–4 of 4 results</span>
+          <div class="flex gap-1">
+            <button class="px-3 py-1 text-sm border border-slate-200 rounded text-slate-400 cursor-not-allowed">←</button>
+            <button class="px-3 py-1 text-sm border border-blue-600 rounded bg-blue-600 text-white">1</button>
+            <button class="px-3 py-1 text-sm border border-slate-200 rounded text-slate-400 cursor-not-allowed">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 text-xs text-slate-500 bg-white border border-slate-200 rounded px-4 py-3">
+      <strong class="text-slate-700">Direction 1 notes:</strong> Horizontal filter bar keeps the full table width available. Active filter chips provide persistent visibility of applied filters. Compare bar appears at the bottom when rows are selected — sticky and impossible to miss. Colour-coded provider badges (blue for Tessitura, violet for Spektrix, rose for Ticketmaster) create fast visual scanning. Capability icons (✓ / ✕ / –) are distinct at a glance. This is the <strong>recommended direction</strong>.
+    </div>
+  </div>
+
+  <!-- ========================================
+       DIRECTION 2: SIDEBAR FILTERS
+       ======================================== -->
+  <div id="direction-2" class="direction-panel max-w-6xl mx-auto">
+    <div class="mb-3">
+      <span class="inline-block bg-slate-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Direction 2 — Sidebar Filters</span>
+      <span class="ml-3 text-sm text-slate-500">Left sidebar for filter controls · main area for table · classic enterprise admin layout</span>
+    </div>
+    <div class="showcase-frame">
+      <!-- Top Nav -->
+      <nav class="bg-slate-800 px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <span class="text-white font-semibold text-sm tracking-tight">DMCF Stack Mapper</span>
+          <a href="#" class="text-slate-300 text-sm hover:text-white text-white">Organisations</a>
+        </div>
+      </nav>
+
+      <div class="flex bg-slate-50 min-h-96">
+        <!-- Sidebar -->
+        <aside class="w-56 flex-shrink-0 bg-white border-r border-slate-200 p-4">
+          <div class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Filters</div>
+
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Country</label>
+            <select class="w-full border border-slate-300 rounded text-xs text-slate-700 px-2 py-1.5 bg-white">
+              <option>United Kingdom</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Ticketing provider</label>
+            <select class="w-full border border-slate-300 rounded text-xs text-slate-700 px-2 py-1.5 bg-white">
+              <option>All providers</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Organisation type</label>
+            <select class="w-full border border-slate-300 rounded text-xs text-slate-700 px-2 py-1.5 bg-white">
+              <option>All types</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-700 mb-1">CRM platform</label>
+            <select class="w-full border border-slate-300 rounded text-xs text-slate-700 px-2 py-1.5 bg-white">
+              <option>All CRMs</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-700 mb-2">Capabilities</label>
+            <label class="flex items-center gap-2 text-xs text-slate-700 mb-1.5"><input type="checkbox" class="accent-blue-600"> Membership</label>
+            <label class="flex items-center gap-2 text-xs text-slate-700 mb-1.5"><input type="checkbox" class="accent-blue-600"> Donation</label>
+            <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" class="accent-blue-600"> Reserved seating</label>
+          </div>
+          <button class="w-full bg-blue-600 text-white text-xs font-medium py-2 rounded hover:bg-blue-700 mt-2">Apply filters</button>
+          <button class="w-full text-slate-400 text-xs mt-2 hover:text-red-600">Clear all</button>
+
+          <div class="mt-6 pt-4 border-t border-slate-100">
+            <div class="text-xs text-slate-400 mb-1">Active filters:</div>
+            <span class="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-700 text-xs px-2 py-0.5 rounded-full">
+              UK <button class="ml-1 text-blue-400">✕</button>
+            </span>
+          </div>
+        </aside>
+
+        <!-- Main content -->
+        <div class="flex-1 overflow-x-auto">
+          <!-- Page header -->
+          <div class="bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between">
+            <div>
+              <h1 class="text-lg font-semibold text-slate-800">Organisations</h1>
+              <p class="text-xs text-slate-500 mt-0.5">4 results — Country: United Kingdom</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="flex items-center border border-slate-300 rounded bg-white px-3 py-1.5 gap-2">
+                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                <input class="text-xs text-slate-700 outline-none bg-transparent w-36 placeholder-slate-400" placeholder="Search…">
+              </div>
+              <button class="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded hover:bg-blue-700">+ Add organisation</button>
+            </div>
+          </div>
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="bg-white border-b border-slate-200">
+                <th class="w-8 px-3 py-3"><input type="checkbox" class="rounded border-slate-300"></th>
+                <th class="text-left px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Organisation</th>
+                <th class="text-left px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Provider</th>
+                <th class="text-left px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">CRM</th>
+                <th class="text-center px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Mbr</th>
+                <th class="text-center px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Don</th>
+                <th class="text-left px-3 py-3 text-xs font-medium uppercase tracking-wider text-slate-500">Updated</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr class="bg-white"><td class="px-3 py-3"><input type="checkbox" checked class="rounded accent-blue-600"></td><td class="px-3 py-3 text-sm"><a href="#" class="text-blue-600 hover:underline font-medium">Barbican Centre</a><div class="text-xs text-slate-400">Venue · London</div></td><td class="px-3 py-3"><span class="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">Tessitura</span></td><td class="px-3 py-3 text-sm text-slate-700">Salesforce</td><td class="px-3 py-3 text-center cap-yes">✓</td><td class="px-3 py-3 text-center cap-yes">✓</td><td class="px-3 py-3 text-xs text-slate-400">2d ago</td></tr>
+              <tr class="bg-white"><td class="px-3 py-3"><input type="checkbox" checked class="rounded accent-blue-600"></td><td class="px-3 py-3 text-sm"><a href="#" class="text-blue-600 hover:underline font-medium">Sadler's Wells</a><div class="text-xs text-slate-400">Dance · London</div></td><td class="px-3 py-3"><span class="bg-blue-50 text-blue-700 text-xs font-medium px-2 py-0.5 rounded-full">Tessitura</span></td><td class="px-3 py-3 text-sm text-slate-700">Tessitura CRM</td><td class="px-3 py-3 text-center cap-yes">✓</td><td class="px-3 py-3 text-center cap-yes">✓</td><td class="px-3 py-3 text-xs text-slate-400">1w ago</td></tr>
+              <tr class="bg-white"><td class="px-3 py-3"><input type="checkbox" class="rounded"></td><td class="px-3 py-3 text-sm"><a href="#" class="text-blue-600 hover:underline font-medium">Scottish Opera</a><div class="text-xs text-slate-400">Opera · Glasgow</div></td><td class="px-3 py-3"><span class="bg-violet-50 text-violet-700 text-xs font-medium px-2 py-0.5 rounded-full">Spektrix</span></td><td class="px-3 py-3 text-sm text-slate-700">HubSpot</td><td class="px-3 py-3 text-center cap-yes">✓</td><td class="px-3 py-3 text-center cap-no">✕</td><td class="px-3 py-3 text-xs text-slate-400">3w ago</td></tr>
+              <tr class="bg-white"><td class="px-3 py-3"><input type="checkbox" class="rounded"></td><td class="px-3 py-3 text-sm"><a href="#" class="text-blue-600 hover:underline font-medium">National Theatre of Scotland</a><div class="text-xs text-slate-400">Theatre · Edinburgh</div></td><td class="px-3 py-3"><span class="bg-rose-50 text-rose-700 text-xs font-medium px-2 py-0.5 rounded-full">Ticketmaster</span></td><td class="px-3 py-3 text-xs text-slate-300 italic">—</td><td class="px-3 py-3 text-center cap-no">✕</td><td class="px-3 py-3 text-center cap-unk">–</td><td class="px-3 py-3 text-xs text-slate-400">1mo ago</td></tr>
+            </tbody>
+          </table>
+          <div class="compare-bar bg-slate-800 text-white px-5 py-3 flex items-center justify-between">
+            <span class="text-sm">2 selected</span>
+            <button class="bg-blue-500 text-white text-sm font-medium px-4 py-1.5 rounded">Compare selected (2) →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 text-xs text-slate-500 bg-white border border-slate-200 rounded px-4 py-3">
+      <strong class="text-slate-700">Direction 2 notes:</strong> The sidebar layout is familiar from enterprise tools. Filters are always visible and individually accessible. Trade-off: the sidebar consumes ~224px of horizontal space, which squeezes the table on narrower desktop widths. The "Apply filters" button introduces an extra step vs. reactive filtering in Direction 1. Good fit if Sam frequently adjusts multiple filters before applying, less so for quick single-filter queries.
+    </div>
+  </div>
+
+  <!-- ========================================
+       DIRECTION 3: COMPACT / DENSE
+       ======================================== -->
+  <div id="direction-3" class="direction-panel max-w-6xl mx-auto">
+    <div class="mb-3">
+      <span class="inline-block bg-slate-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Direction 3 — Compact / Dense</span>
+      <span class="ml-3 text-sm text-slate-500">Higher row density · more data visible without scrolling · for power users comfortable with tables</span>
+    </div>
+    <div class="showcase-frame">
+      <nav class="bg-slate-800 px-6 py-2.5 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+          <span class="text-white font-semibold text-xs tracking-tight">DMCF Stack Mapper</span>
+          <a href="#" class="text-white text-xs border-b border-blue-400">Organisations</a>
+        </div>
+        <button class="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded">+ Add organisation</button>
+      </nav>
+
+      <div class="bg-slate-50">
+        <!-- Compact filter bar -->
+        <div class="bg-white border-b border-slate-200 px-4 py-2 flex flex-wrap items-center gap-2">
+          <div class="flex items-center border border-slate-300 rounded bg-white px-2.5 py-1 gap-1.5">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+            <input class="text-xs text-slate-700 outline-none bg-transparent w-40 placeholder-slate-400" placeholder="Search…" value="Tessitura">
+          </div>
+          <select class="border border-slate-300 rounded text-xs text-slate-700 px-2 py-1 bg-white">
+            <option>Country: UK</option>
+          </select>
+          <select class="border border-slate-300 rounded text-xs text-slate-700 px-2 py-1 bg-white">
+            <option>Provider: All</option>
+          </select>
+          <select class="border border-slate-300 rounded text-xs text-slate-700 px-2 py-1 bg-white">
+            <option>Type: All</option>
+          </select>
+          <select class="border border-slate-300 rounded text-xs text-slate-700 px-2 py-1 bg-white">
+            <option>CRM: All</option>
+          </select>
+          <span class="text-xs text-slate-400 ml-auto">6 results</span>
+          <span class="inline-flex items-center gap-1 bg-blue-50 border border-blue-200 text-blue-600 text-xs px-2 py-0.5 rounded-full">UK <button class="text-blue-400">✕</button></span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse compact-row">
+            <thead>
+              <tr class="bg-white border-b border-slate-200">
+                <th class="w-8 px-3 py-2"><input type="checkbox" class="rounded border-slate-300"></th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Organisation</th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Type</th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Country</th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Provider</th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">CRM</th>
+                <th class="text-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Mbr</th>
+                <th class="text-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Don</th>
+                <th class="text-center px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Seats</th>
+                <th class="text-left px-3 py-2 text-xs font-medium uppercase tracking-wider text-slate-500">Updated</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" checked class="rounded accent-blue-600"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">Barbican Centre</a></td><td class="px-3 py-1.5 text-slate-600">Venue</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">Tessitura</span></td><td class="px-3 py-1.5 text-slate-600">Salesforce</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-slate-400">2d</td></tr>
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" checked class="rounded accent-blue-600"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">Sadler's Wells</a></td><td class="px-3 py-1.5 text-slate-600">Dance</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">Tessitura</span></td><td class="px-3 py-1.5 text-slate-600">Tessitura CRM</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-slate-400">1w</td></tr>
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" class="rounded"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">Scottish Opera</a></td><td class="px-3 py-1.5 text-slate-600">Opera</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-violet-50 text-violet-700 text-xs px-1.5 py-0.5 rounded">Spektrix</span></td><td class="px-3 py-1.5 text-slate-600">HubSpot</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-no">✕</td><td class="px-3 py-1.5 text-center cap-unk">–</td><td class="px-3 py-1.5 text-slate-400">3w</td></tr>
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" class="rounded"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">National Theatre of Scotland</a></td><td class="px-3 py-1.5 text-slate-600">Theatre</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-rose-50 text-rose-700 text-xs px-1.5 py-0.5 rounded">Ticketmaster</span></td><td class="px-3 py-1.5 text-slate-300 italic">—</td><td class="px-3 py-1.5 text-center cap-no">✕</td><td class="px-3 py-1.5 text-center cap-unk">–</td><td class="px-3 py-1.5 text-center cap-unk">–</td><td class="px-3 py-1.5 text-slate-400">1mo</td></tr>
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" class="rounded"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">Brighton Festival</a></td><td class="px-3 py-1.5 text-slate-600">Festival</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-amber-50 text-amber-700 text-xs px-1.5 py-0.5 rounded">See Tickets</span></td><td class="px-3 py-1.5 text-slate-300 italic">—</td><td class="px-3 py-1.5 text-center cap-unk">–</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-no">✕</td><td class="px-3 py-1.5 text-slate-400">2mo</td></tr>
+              <tr class="bg-white"><td class="px-3 py-1.5"><input type="checkbox" class="rounded"></td><td class="px-3 py-1.5"><a href="#" class="text-blue-600 font-medium hover:underline">Roundhouse</a></td><td class="px-3 py-1.5 text-slate-600">Venue</td><td class="px-3 py-1.5 text-slate-600">UK</td><td class="px-3 py-1.5"><span class="bg-blue-50 text-blue-700 text-xs px-1.5 py-0.5 rounded">Tessitura</span></td><td class="px-3 py-1.5 text-slate-600">Salesforce</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-center cap-no">✕</td><td class="px-3 py-1.5 text-center cap-yes">✓</td><td class="px-3 py-1.5 text-slate-400">3d</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="compare-bar bg-slate-800 text-white px-4 py-2.5 flex items-center justify-between">
+          <span class="text-xs">2 organisations selected</span>
+          <button class="bg-blue-500 text-white text-xs font-medium px-4 py-1.5 rounded">Compare selected (2) →</button>
+        </div>
+        <div class="bg-white border-t border-slate-200 px-4 py-2 flex items-center justify-between">
+          <span class="text-xs text-slate-500">Showing 1–6 of 6 results</span>
+          <div class="flex gap-1"><button class="px-2 py-0.5 text-xs border border-blue-600 rounded bg-blue-600 text-white">1</button></div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 text-xs text-slate-500 bg-white border border-slate-200 rounded px-4 py-3">
+      <strong class="text-slate-700">Direction 3 notes:</strong> More rows visible without scrolling — 6 fit in the viewport here vs. 4 in Direction 1. All three capability columns (Mbr / Don / Seats) are visible simultaneously. Trade-off: the tighter row height may feel pressured for non-technical staff reading quickly. City information is lost from the organisation column. Best suited if the catalogue grows large and scanning speed is paramount.
+    </div>
+  </div>
+
+  <!-- ========================================
+       DIRECTION 4: AIRY RESEARCH
+       ======================================== -->
+  <div id="direction-4" class="direction-panel max-w-6xl mx-auto">
+    <div class="mb-3">
+      <span class="inline-block bg-slate-600 text-white text-xs font-semibold px-3 py-1 rounded-full">Direction 4 — Airy Research</span>
+      <span class="ml-3 text-sm text-slate-500">More generous spacing · softer visual weight · comfortable for reading sessions and non-technical users</span>
+    </div>
+    <div class="showcase-frame">
+      <nav class="bg-white border-b border-slate-200 px-8 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-8">
+          <span class="text-slate-800 font-semibold text-base tracking-tight">DMCF Stack Mapper</span>
+          <a href="#" class="text-blue-600 text-sm font-medium border-b-2 border-blue-600 pb-0.5">Organisations</a>
+        </div>
+        <button class="bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded-lg hover:bg-blue-700">+ Add organisation</button>
+      </nav>
+
+      <div class="bg-slate-50 px-8 py-6 min-h-96">
+        <div class="flex items-start justify-between mb-6">
+          <div>
+            <h1 class="text-2xl font-semibold text-slate-800">Organisations</h1>
+            <p class="text-slate-500 text-sm mt-1">Catalogue of cultural organisations and their ticketing stacks</p>
+          </div>
+        </div>
+
+        <!-- Search -->
+        <div class="flex items-center border border-slate-300 rounded-lg bg-white px-4 py-2.5 gap-3 mb-4 max-w-lg shadow-sm">
+          <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+          <input class="text-sm text-slate-700 outline-none bg-transparent w-full placeholder-slate-400" placeholder="Search by name, city, provider…">
+        </div>
+
+        <!-- Filters row -->
+        <div class="flex flex-wrap gap-3 mb-4">
+          <select class="border border-slate-300 rounded-lg text-sm text-slate-700 px-3 py-2 bg-white shadow-sm">
+            <option>Country: United Kingdom</option>
+          </select>
+          <select class="border border-slate-300 rounded-lg text-sm text-slate-700 px-3 py-2 bg-white shadow-sm">
+            <option>Provider: All</option>
+          </select>
+          <select class="border border-slate-300 rounded-lg text-sm text-slate-700 px-3 py-2 bg-white shadow-sm">
+            <option>Type: All</option>
+          </select>
+          <select class="border border-slate-300 rounded-lg text-sm text-slate-700 px-3 py-2 bg-white shadow-sm">
+            <option>CRM: All</option>
+          </select>
+        </div>
+
+        <!-- Active chips + count -->
+        <div class="flex items-center gap-2 mb-5">
+          <span class="text-sm text-slate-500">4 results</span>
+          <span class="text-slate-300">·</span>
+          <span class="inline-flex items-center gap-1.5 bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium px-3 py-1.5 rounded-full">
+            Country: United Kingdom <button class="ml-1 text-blue-400 hover:text-blue-700">✕</button>
+          </span>
+          <button class="text-xs text-slate-400 hover:text-red-500 ml-1">Clear all</button>
+        </div>
+
+        <!-- Table — more generous -->
+        <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+          <table class="w-full border-collapse">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50">
+                <th class="w-10 px-5 py-3.5"><input type="checkbox" class="rounded border-slate-300"></th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Organisation</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Ticketing provider</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">CRM</th>
+                <th class="text-center px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Membership</th>
+                <th class="text-center px-4 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Donation</th>
+                <th class="text-left px-5 py-3.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Last updated</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100">
+              <tr>
+                <td class="px-5 py-4"><input type="checkbox" checked class="rounded border-slate-300 accent-blue-600"></td>
+                <td class="px-5 py-4">
+                  <a href="#" class="text-blue-600 hover:underline font-semibold text-sm">Barbican Centre</a>
+                  <div class="text-xs text-slate-400 mt-0.5">Venue · London, United Kingdom</div>
+                </td>
+                <td class="px-5 py-4"><span class="inline-block bg-blue-50 text-blue-700 text-sm font-medium px-3 py-1 rounded-full">Tessitura</span></td>
+                <td class="px-5 py-4 text-sm text-slate-700">Salesforce</td>
+                <td class="px-5 py-4 text-center"><span class="cap-yes text-lg" title="Yes">✓</span></td>
+                <td class="px-5 py-4 text-center"><span class="cap-yes text-lg" title="Yes">✓</span></td>
+                <td class="px-5 py-4 text-sm text-slate-400">2 days ago</td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4"><input type="checkbox" checked class="rounded border-slate-300 accent-blue-600"></td>
+                <td class="px-5 py-4">
+                  <a href="#" class="text-blue-600 hover:underline font-semibold text-sm">Sadler's Wells</a>
+                  <div class="text-xs text-slate-400 mt-0.5">Dance venue · London, United Kingdom</div>
+                </td>
+                <td class="px-5 py-4"><span class="inline-block bg-blue-50 text-blue-700 text-sm font-medium px-3 py-1 rounded-full">Tessitura</span></td>
+                <td class="px-5 py-4 text-sm text-slate-700">Tessitura CRM</td>
+                <td class="px-5 py-4 text-center"><span class="cap-yes text-lg" title="Yes">✓</span></td>
+                <td class="px-5 py-4 text-center"><span class="cap-yes text-lg" title="Yes">✓</span></td>
+                <td class="px-5 py-4 text-sm text-slate-400">1 week ago</td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4"><input type="checkbox" class="rounded border-slate-300"></td>
+                <td class="px-5 py-4">
+                  <a href="#" class="text-blue-600 hover:underline font-semibold text-sm">Scottish Opera</a>
+                  <div class="text-xs text-slate-400 mt-0.5">Opera company · Glasgow, United Kingdom</div>
+                </td>
+                <td class="px-5 py-4"><span class="inline-block bg-violet-50 text-violet-700 text-sm font-medium px-3 py-1 rounded-full">Spektrix</span></td>
+                <td class="px-5 py-4 text-sm text-slate-700">HubSpot</td>
+                <td class="px-5 py-4 text-center"><span class="cap-yes text-lg" title="Yes">✓</span></td>
+                <td class="px-5 py-4 text-center"><span class="cap-no text-lg" title="No">✕</span></td>
+                <td class="px-5 py-4 text-sm text-slate-400">3 weeks ago</td>
+              </tr>
+              <tr>
+                <td class="px-5 py-4"><input type="checkbox" class="rounded border-slate-300"></td>
+                <td class="px-5 py-4">
+                  <a href="#" class="text-blue-600 hover:underline font-semibold text-sm">National Theatre of Scotland</a>
+                  <div class="text-xs text-slate-400 mt-0.5">Theatre · Edinburgh, United Kingdom</div>
+                </td>
+                <td class="px-5 py-4"><span class="inline-block bg-rose-50 text-rose-700 text-sm font-medium px-3 py-1 rounded-full">Ticketmaster</span></td>
+                <td class="px-5 py-4 text-sm text-slate-300 italic">Not recorded</td>
+                <td class="px-5 py-4 text-center"><span class="cap-no text-lg" title="No">✕</span></td>
+                <td class="px-5 py-4 text-center"><span class="cap-unk text-lg" title="Unknown">–</span></td>
+                <td class="px-5 py-4 text-sm text-slate-400">1 month ago</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="compare-bar bg-slate-800 text-white px-5 py-3.5 flex items-center justify-between rounded-b-xl">
+            <span class="text-sm">2 organisations selected for comparison</span>
+            <button class="bg-blue-500 hover:bg-blue-400 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">Compare selected (2) →</button>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-4">
+          <span class="text-xs text-slate-500">Showing 1–4 of 4 results</span>
+          <div class="flex gap-1.5">
+            <button class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed">←</button>
+            <button class="px-3 py-1.5 text-sm border border-blue-600 rounded-lg bg-blue-600 text-white">1</button>
+            <button class="px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-400 cursor-not-allowed">→</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-3 text-xs text-slate-500 bg-white border border-slate-200 rounded px-4 py-3">
+      <strong class="text-slate-700">Direction 4 notes:</strong> The most generous spacing — rounded corners on the table container, larger row padding, bigger provider badges. Feels approachable and comfortable for less frequent users or longer reading sessions. Trade-off: fewer rows visible at once (4 vs. 6 in Direction 3), and the table container styling adds visual chrome that slightly reduces the "pure data tool" feel. City context is fully readable in the sub-row. Closest to a SaaS product register; furthest from GOV.UK admin.
+    </div>
+  </div>
+
+  <!-- Footer guidance -->
+  <div class="max-w-6xl mx-auto mt-8 bg-white border border-slate-200 rounded-lg px-6 py-5">
+    <p class="text-sm font-semibold text-slate-700 mb-2">Choosing a direction</p>
+    <p class="text-xs text-slate-500 leading-relaxed mb-3">
+      You can pick one direction as-is, choose a base direction and modify specific elements, or combine aspects across directions. The design tokens (slate palette, blue-600 accent, capability icons, table header style) remain consistent across all four — only the structural and spacing choices differ.
+    </p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+      <div class="bg-blue-50 border border-blue-200 rounded p-3">
+        <div class="font-semibold text-blue-800 mb-1">Direction 1 ★</div>
+        <div class="text-blue-700">Best balance of filter visibility, table width, and reactive UX. Recommended for this tool.</div>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded p-3">
+        <div class="font-semibold text-slate-700 mb-1">Direction 2</div>
+        <div class="text-slate-600">Good if simultaneous multi-filter editing is the primary pattern. Narrower table.</div>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded p-3">
+        <div class="font-semibold text-slate-700 mb-1">Direction 3</div>
+        <div class="text-slate-600">Best for large catalogues where scan speed beats comfort. Consider for a second iteration.</div>
+      </div>
+      <div class="bg-slate-50 border border-slate-200 rounded p-3">
+        <div class="font-semibold text-slate-700 mb-1">Direction 4</div>
+        <div class="text-slate-600">Most approachable for infrequent users. Fewer rows visible; slightly more visual chrome.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function showDirection(n) {
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById('direction-' + i).classList.remove('active');
+        document.getElementById('tab-' + i).classList.remove('active');
+      }
+      document.getElementById('direction-' + n).classList.add('active');
+      document.getElementById('tab-' + n).classList.add('active');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+# generated: 2026-04-02T17:48:29Z
+# last_updated: 2026-04-02T17:48:29Z
+# project: dmcf-app
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-04-02T17:48:29Z
+last_updated: 2026-04-02T23:30:00Z
+project: dmcf-app
+project_key: NOKEY
+tracking_system: file-system
+story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
+
+development_status:
+  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
+  epic-1: done
+  1-1-backend-scaffold-data-model-and-reference-data-seed: done
+  1-2-frontend-scaffold-and-application-shell: done
+  1-3-readme-and-project-documentation: done
+  epic-1-retrospective: done
+
+  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
+  epic-2: in-progress
+  2-1-organisation-list-page: review
+  2-2-create-organisation: backlog
+  2-3-organisation-detail-page: backlog
+  2-4-edit-organisation: backlog
+  2-5-delete-organisation: backlog
+  epic-2-retrospective: optional
+
+  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
+  epic-3: backlog
+  3-1-text-search: backlog
+  3-2-filter-bar-and-active-filter-chips: backlog
+  3-3-multi-filter-api-integration-and-url-state: backlog
+  epic-3-retrospective: optional
+
+  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
+  epic-4: backlog
+  4-1-compare-selection-bar: backlog
+  4-2-compare-page: backlog
+  epic-4-retrospective: optional
+
+  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
+  epic-5: backlog
+  5-1-sample-organisation-seed-data: backlog
+  5-2-readme-completion-and-demo-smoke-test: backlog
+  epic-5-retrospective: optional

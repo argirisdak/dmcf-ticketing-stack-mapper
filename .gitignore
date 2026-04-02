@@ -1,0 +1,13 @@
+node_modules/
+# Env files with secrets — `.env` matches `.env` in any directory; `.env.*` covers `.env.local`, etc.
+.env
+.env.*
+!.env.example
+dist/
+build/
+
+# Prisma: generated client and engines live under node_modules (e.g. node_modules/.prisma/, @prisma/client).
+# Ignoring node_modules/ therefore excludes Prisma output. If a custom output path outside node_modules is
+# ever added to schema.prisma, list that path here as well.
+backend/node_modules/
+frontend/node_modules/
