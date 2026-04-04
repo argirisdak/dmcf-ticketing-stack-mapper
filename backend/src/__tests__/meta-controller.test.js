@@ -2,7 +2,6 @@ const mockPrisma = {
   ticketingProvider: { findMany: jest.fn() },
   crmPlatform: { findMany: jest.fn() },
   organisationType: { findMany: jest.fn() },
-  $use: jest.fn(),
   $disconnect: jest.fn(),
 };
 

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
-import { SelectionProvider } from './context/SelectionContext.jsx'
+import { SelectionProvider } from './context/SelectionProvider.jsx'
 import OrganisationListPage from './pages/OrganisationListPage.jsx'
 import OrganisationDetailPage from './pages/OrganisationDetailPage.jsx'
 import OrganisationFormPage from './pages/OrganisationFormPage.jsx'

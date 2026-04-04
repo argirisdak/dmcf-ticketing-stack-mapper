@@ -1,0 +1,1774 @@
+diff --git a/backend/src/__tests__/organisation-controller.test.js b/backend/src/__tests__/organisation-controller.test.js
+index cdc35ba..40d4c94 100644
+--- a/backend/src/__tests__/organisation-controller.test.js
++++ b/backend/src/__tests__/organisation-controller.test.js
+@@ -1,21 +1,38 @@
+ const mockListOrganisations = jest.fn();
++const mockCreateOrganisation = jest.fn();
++const mockGetOrganisationById = jest.fn();
++const mockUpdateOrganisation = jest.fn();
++const mockDeleteOrganisation = jest.fn();
+ 
+ jest.mock('../lib/prisma', () => ({
+-  ticketingProvider: { findMany: jest.fn() },
+-  crmPlatform: { findMany: jest.fn() },
+-  organisationType: { findMany: jest.fn() },
+-  organisation: { findMany: jest.fn(), count: jest.fn() },
+-  $use: jest.fn(),
++  ticketingProvider: { findMany: jest.fn(), findUnique: jest.fn() },
++  crmPlatform: { findMany: jest.fn(), findUnique: jest.fn() },
++  organisationType: { findMany: jest.fn(), findUnique: jest.fn() },
++  organisation: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
+   $disconnect: jest.fn(),
+ }));
+ 
+ jest.mock('../services/organisation-service', () => ({
+   listOrganisations: (...args) => mockListOrganisations(...args),
++  createOrganisation: (...args) => mockCreateOrganisation(...args),
++  getOrganisationById: (...args) => mockGetOrganisationById(...args),
++  updateOrganisation: (...args) => mockUpdateOrganisation(...args),
++  deleteOrganisation: (...args) => mockDeleteOrganisation(...args),
+ }));
+ 
+ const request = require('supertest');
++const prisma = require('../lib/prisma');
+ const app = require('../app');
+ 
++const validCreateBody = {
++  name: 'Acme Hall',
++  country: 'United Kingdom',
++  organisationTypeId: 'type-uuid-1',
++  membershipCapability: 'YES',
++  donationCapability: 'NO',
++  reservedSeatingCapability: 'UNKNOWN',
++};
++
+ describe('GET /api/organisations', () => {
+   beforeEach(() => {
+     mockListOrganisations.mockReset();
+@@ -39,6 +56,7 @@ describe('GET /api/organisations', () => {
+           capacity: 2000,
+           lastUpdated: '2026-03-01T12:00:00.000Z',
+           createdAt: '2025-06-01T08:00:00.000Z',
++          updatedAt: '2026-03-01T12:00:00.000Z',
+         },
+       ],
+       total: 47,
+@@ -70,6 +88,7 @@ describe('GET /api/organisations', () => {
+           capacity: null,
+           lastUpdated: '2026-01-01T00:00:00.000Z',
+           createdAt: '2026-01-01T00:00:00.000Z',
++          updatedAt: '2026-01-01T00:00:00.000Z',
+         },
+       ],
+       total: 1,
+@@ -83,6 +102,7 @@ describe('GET /api/organisations', () => {
+     expect(item).toHaveProperty('crmPlatform');
+     expect(item).toHaveProperty('lastUpdated');
+     expect(item).toHaveProperty('createdAt');
++    expect(item).toHaveProperty('updatedAt');
+     expect(item).toHaveProperty('membershipCapability');
+     expect(item).not.toHaveProperty('organisation_type');
+     expect(item).not.toHaveProperty('last_updated');
+@@ -106,6 +126,13 @@ describe('GET /api/organisations', () => {
+     expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
+   });
+ 
++  it('uses first value when page or limit query keys are repeated', async () => {
++    mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++
++    await request(app).get('/api/organisations?page=2&page=99&limit=10&limit=50');
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10 });
++  });
++
+   it('returns 400 for invalid page', async () => {
+     const res = await request(app).get('/api/organisations?page=0');
+     expect(res.status).toBe(400);
+@@ -130,6 +157,7 @@ describe('GET /api/organisations', () => {
+   });
+ 
+   it('returns 500 envelope on unexpected service error', async () => {
++    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+     mockListOrganisations.mockRejectedValue(new Error('DB failure'));
+     const res = await request(app).get('/api/organisations');
+     expect(res.status).toBe(500);
+@@ -138,5 +166,334 @@ describe('GET /api/organisations', () => {
+       error: { message: 'An unexpected error occurred', fields: [] },
+       meta: null,
+     });
++    expect(logSpy).toHaveBeenCalled();
++    logSpy.mockRestore();
++  });
++});
++
++const sampleDto = {
++  id: '550e8400-e29b-41d4-a716-446655440000',
++  name: 'Royal Opera House',
++  country: 'United Kingdom',
++  organisationType: { id: 't1', name: 'Venue' },
++  ticketingProvider: { id: 'p1', name: 'Spektrix' },
++  crmPlatform: null,
++  membershipCapability: 'YES',
++  donationCapability: 'NO',
++  reservedSeatingCapability: 'UNKNOWN',
++  sourceReference: 'SRC-REF-1',
++  notes: 'Stage door on Bow Street',
++  capacity: 2256,
++  lastUpdated: '2026-03-01T12:00:00.000Z',
++  createdAt: '2025-06-01T08:00:00.000Z',
++  updatedAt: '2026-03-01T12:00:00.000Z',
++};
++
++describe('GET /api/organisations/:id', () => {
++  beforeEach(() => {
++    mockGetOrganisationById.mockReset();
++  });
++
++  it('returns 200 with camelCase data and meta null', async () => {
++    mockGetOrganisationById.mockResolvedValue(sampleDto);
++    const res = await request(app).get(
++      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
++    );
++    expect(res.status).toBe(200);
++    expect(res.body).toEqual({ data: sampleDto, error: null, meta: null });
++    expect(mockGetOrganisationById).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
++  });
++
++  it('returns 404 when organisation is missing', async () => {
++    mockGetOrganisationById.mockResolvedValue(null);
++    const res = await request(app).get(
++      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
++    );
++    expect(res.status).toBe(404);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'Organisation not found', fields: [] },
++      meta: null,
++    });
++  });
++
++  it('returns 404 for malformed id (not a UUID)', async () => {
++    const res = await request(app).get('/api/organisations/not-a-uuid');
++    expect(res.status).toBe(404);
++    expect(res.body.error.message).toBe('Organisation not found');
++    expect(mockGetOrganisationById).not.toHaveBeenCalled();
++  });
++
++  it('returns 500 envelope on unexpected service error', async () => {
++    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
++    mockGetOrganisationById.mockRejectedValue(new Error('DB failure'));
++    const res = await request(app).get(
++      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
++    );
++    expect(res.status).toBe(500);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++    logSpy.mockRestore();
++  });
++});
++
++describe('POST /api/organisations', () => {
++  beforeEach(() => {
++    mockCreateOrganisation.mockReset();
++    prisma.organisationType.findUnique.mockReset();
++    prisma.ticketingProvider.findUnique.mockReset();
++    prisma.crmPlatform.findUnique.mockReset();
++    prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
++    prisma.ticketingProvider.findUnique.mockResolvedValue(null);
++    prisma.crmPlatform.findUnique.mockResolvedValue(null);
++  });
++
++  it('returns 201 with camelCase data envelope', async () => {
++    mockCreateOrganisation.mockResolvedValue({
++      id: 'new-org-id',
++      name: 'Acme Hall',
++      country: 'United Kingdom',
++      organisationType: { id: 'type-uuid-1', name: 'Venue' },
++      ticketingProvider: null,
++      crmPlatform: null,
++      membershipCapability: 'YES',
++      donationCapability: 'NO',
++      reservedSeatingCapability: 'UNKNOWN',
++      sourceReference: null,
++      notes: null,
++      capacity: null,
++      lastUpdated: '2026-04-03T10:00:00.000Z',
++      createdAt: '2026-04-03T10:00:00.000Z',
++      updatedAt: '2026-04-03T10:00:00.000Z',
++    });
++
++    const res = await request(app).post('/api/organisations').send(validCreateBody);
++    expect(res.status).toBe(201);
++    expect(res.body.error).toBeNull();
++    expect(res.body.meta).toBeNull();
++    expect(res.body.data).toMatchObject({
++      id: 'new-org-id',
++      name: 'Acme Hall',
++      organisationType: { id: 'type-uuid-1', name: 'Venue' },
++    });
++    expect(res.body.data).not.toHaveProperty('organisation_type');
++    expect(mockCreateOrganisation).toHaveBeenCalledWith(
++      expect.objectContaining({
++        name: 'Acme Hall',
++        country: 'United Kingdom',
++        organisationTypeId: 'type-uuid-1',
++      }),
++    );
++  });
++
++  it('returns 400 when name is missing', async () => {
++    const { name: _n, ...rest } = validCreateBody;
++    const res = await request(app).post('/api/organisations').send(rest);
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'name')).toBe(true);
++    expect(mockCreateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 when country is missing', async () => {
++    const { country: _c, ...rest } = validCreateBody;
++    const res = await request(app).post('/api/organisations').send(rest);
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'country')).toBe(true);
++    expect(mockCreateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 when organisationTypeId is missing', async () => {
++    const { organisationTypeId: _t, ...rest } = validCreateBody;
++    const res = await request(app).post('/api/organisations').send(rest);
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'organisationTypeId')).toBe(true);
++    expect(mockCreateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 for unknown country string', async () => {
++    const res = await request(app).post('/api/organisations').send({ ...validCreateBody, country: 'Atlantis' });
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'country')).toBe(true);
++    expect(mockCreateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 for invalid capability value', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, membershipCapability: 'MAYBE' });
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'membershipCapability')).toBe(true);
++    expect(mockCreateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 500 envelope on unexpected service error', async () => {
++    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
++    mockCreateOrganisation.mockRejectedValue(new Error('DB failure'));
++    const res = await request(app).post('/api/organisations').send(validCreateBody);
++    expect(res.status).toBe(500);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++    logSpy.mockRestore();
++  });
++});
++
++describe('PUT /api/organisations/:id', () => {
++  const orgId = '550e8400-e29b-41d4-a716-446655440000';
++
++  beforeEach(() => {
++    mockUpdateOrganisation.mockReset();
++    prisma.organisationType.findUnique.mockReset();
++    prisma.ticketingProvider.findUnique.mockReset();
++    prisma.crmPlatform.findUnique.mockReset();
++    prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
++    prisma.ticketingProvider.findUnique.mockResolvedValue(null);
++    prisma.crmPlatform.findUnique.mockResolvedValue(null);
++  });
++
++  it('returns 200 with camelCase data and meta null', async () => {
++    mockUpdateOrganisation.mockResolvedValue({
++      ...sampleDto,
++      id: orgId,
++    });
++
++    const res = await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
++    expect(res.status).toBe(200);
++    expect(res.body).toEqual({
++      data: { ...sampleDto, id: orgId },
++      error: null,
++      meta: null,
++    });
++    expect(mockUpdateOrganisation).toHaveBeenCalledWith(
++      orgId,
++      expect.objectContaining({
++        name: 'Acme Hall',
++        country: 'United Kingdom',
++        organisationTypeId: 'type-uuid-1',
++      }),
++    );
++    expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('lastUpdated');
++    expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('id');
++  });
++
++  it('returns 404 for malformed id (not a UUID)', async () => {
++    const res = await request(app).put('/api/organisations/not-a-uuid').send(validCreateBody);
++    expect(res.status).toBe(404);
++    expect(res.body.error.message).toBe('Organisation not found');
++    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 404 when organisation is missing', async () => {
++    mockUpdateOrganisation.mockResolvedValue(null);
++    const res = await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
++    expect(res.status).toBe(404);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'Organisation not found', fields: [] },
++      meta: null,
++    });
++  });
++
++  it('returns 400 when name is missing', async () => {
++    const { name: _n, ...rest } = validCreateBody;
++    const res = await request(app).put(`/api/organisations/${orgId}`).send(rest);
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'name')).toBe(true);
++    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('strips lastUpdated from body before service call', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId });
++    await request(app)
++      .put(`/api/organisations/${orgId}`)
++      .send({ ...validCreateBody, lastUpdated: '2020-01-01T00:00:00.000Z' });
++    expect(mockUpdateOrganisation).toHaveBeenCalledWith(
++      orgId,
++      expect.not.objectContaining({ lastUpdated: expect.anything() }),
++    );
++  });
++
++  it('strips last_updated and created_at from body before service call', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId });
++    await request(app)
++      .put(`/api/organisations/${orgId}`)
++      .send({
++        ...validCreateBody,
++        last_updated: '2020-01-01T00:00:00.000Z',
++        created_at: '2019-01-01T00:00:00.000Z',
++      });
++    const payload = mockUpdateOrganisation.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('last_updated');
++    expect(payload).not.toHaveProperty('created_at');
++  });
++
++  it('returns 500 envelope on unexpected service error', async () => {
++    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
++    mockUpdateOrganisation.mockRejectedValue(new Error('DB failure'));
++    const res = await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
++    expect(res.status).toBe(500);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++    logSpy.mockRestore();
++  });
++});
++
++describe('DELETE /api/organisations/:id', () => {
++  const orgId = '550e8400-e29b-41d4-a716-446655440000';
++
++  beforeEach(() => {
++    mockDeleteOrganisation.mockReset();
++  });
++
++  it('returns 200 with data id and meta null', async () => {
++    mockDeleteOrganisation.mockResolvedValue(orgId);
++
++    const res = await request(app).delete(`/api/organisations/${orgId}`);
++    expect(res.status).toBe(200);
++    expect(res.body).toEqual({
++      data: { id: orgId },
++      error: null,
++      meta: null,
++    });
++    expect(mockDeleteOrganisation).toHaveBeenCalledWith(orgId);
++  });
++
++  it('returns 404 for malformed id (not a UUID)', async () => {
++    const res = await request(app).delete('/api/organisations/not-a-uuid');
++    expect(res.status).toBe(404);
++    expect(res.body.error.message).toBe('Organisation not found');
++    expect(mockDeleteOrganisation).not.toHaveBeenCalled();
++  });
++
++  it('returns 404 when organisation is missing', async () => {
++    mockDeleteOrganisation.mockResolvedValue(null);
++    const res = await request(app).delete(`/api/organisations/${orgId}`);
++    expect(res.status).toBe(404);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'Organisation not found', fields: [] },
++      meta: null,
++    });
++  });
++
++  it('returns 500 envelope on unexpected service error', async () => {
++    const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
++    mockDeleteOrganisation.mockRejectedValue(new Error('DB failure'));
++    const res = await request(app).delete(`/api/organisations/${orgId}`);
++    expect(res.status).toBe(500);
++    expect(res.body).toEqual({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++    logSpy.mockRestore();
+   });
+ });
+diff --git a/backend/src/controllers/organisation-controller.js b/backend/src/controllers/organisation-controller.js
+index a7989a0..c0f66ad 100644
+--- a/backend/src/controllers/organisation-controller.js
++++ b/backend/src/controllers/organisation-controller.js
+@@ -1,14 +1,94 @@
+ const organisationService = require('../services/organisation-service');
++const prisma = require('../lib/prisma');
++const { COUNTRIES } = require('../lib/countries');
+ 
+ const MAX_LIMIT = 100;
+ const DEFAULT_LIMIT = 20;
+ 
++/** Reject malformed ids before Prisma so invalid UUID strings do not throw. */
++const UUID_REGEX =
++  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
++
++function isUuidParam(id) {
++  return typeof id === 'string' && UUID_REGEX.test(id.trim());
++}
++
++const COUNTRY_SET = new Set(COUNTRIES);
++const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
++const MIN_CAPACITY = 0;
++const MAX_CAPACITY = 2_147_483_647;
++
++function normaliseOptionalFk(value) {
++  if (value === undefined || value === null || value === '') return null;
++  if (typeof value !== 'string') return { error: 'invalid' };
++  const t = value.trim();
++  if (t === '') return null;
++  return { id: t };
++}
++
++function normaliseCapability(value, field) {
++  if (value === undefined || value === null || value === '') return { ok: true, value: 'UNKNOWN' };
++  if (typeof value !== 'string') {
++    return { ok: false, field, message: 'Select a valid option' };
++  }
++  const v = value.trim().toUpperCase();
++  if (!CAPABILITY_SET.has(v)) {
++    return { ok: false, field, message: 'Select a valid option' };
++  }
++  return { ok: true, value: v };
++}
++
++function normaliseOptionalString(value) {
++  if (value === undefined || value === null) return null;
++  if (typeof value !== 'string') return String(value);
++  const t = value.trim();
++  return t === '' ? null : t;
++}
++
++function normaliseCapacity(value) {
++  if (value === undefined || value === null || value === '') return { ok: true, value: null };
++  if (typeof value === 'number') {
++    if (!Number.isInteger(value)) {
++      return { ok: false, message: 'Enter a whole number for capacity' };
++    }
++    if (value < MIN_CAPACITY || value > MAX_CAPACITY) {
++      return { ok: false, message: 'Enter a capacity between 0 and 2,147,483,647' };
++    }
++    return { ok: true, value };
++  }
++  if (typeof value === 'string' && value.trim() !== '') {
++    const n = Number(value.trim());
++    if (!Number.isInteger(n)) {
++      return { ok: false, message: 'Enter a whole number for capacity' };
++    }
++    if (n < MIN_CAPACITY || n > MAX_CAPACITY) {
++      return { ok: false, message: 'Enter a capacity between 0 and 2,147,483,647' };
++    }
++    return { ok: true, value: n };
++  }
++  return { ok: false, message: 'Enter a whole number for capacity' };
++}
++
++/** Express `req.query` values are string or string[] when keys repeat — normalise to a single string. */
++function asQueryString(param) {
++  if (param === undefined || param === null || param === '') return undefined;
++  if (typeof param === 'string') return param;
++  if (Array.isArray(param)) {
++    if (param.length === 0) return undefined;
++    const first = param[0];
++    if (first === undefined || first === null || first === '') return undefined;
++    return String(first);
++  }
++  return String(param);
++}
++
+ const listOrganisations = async (req, res) => {
+   const fields = [];
+ 
+   let page = 1;
+-  if (req.query.page !== undefined && req.query.page !== '') {
+-    const p = Number(req.query.page);
++  const pageStr = asQueryString(req.query.page);
++  if (pageStr !== undefined) {
++    const p = Number(pageStr);
+     if (!Number.isInteger(p) || p < 1) {
+       fields.push({ field: 'page', message: 'page must be a positive integer' });
+     } else {
+@@ -17,8 +97,9 @@ const listOrganisations = async (req, res) => {
+   }
+ 
+   let limit = DEFAULT_LIMIT;
+-  if (req.query.limit !== undefined && req.query.limit !== '') {
+-    const l = Number(req.query.limit);
++  const limitStr = asQueryString(req.query.limit);
++  if (limitStr !== undefined) {
++    const l = Number(limitStr);
+     if (!Number.isInteger(l) || l < 1) {
+       fields.push({ field: 'limit', message: 'limit must be a positive integer' });
+     } else if (l > MAX_LIMIT) {
+@@ -43,7 +124,314 @@ const listOrganisations = async (req, res) => {
+       error: null,
+       meta: { page, limit, total, totalPages },
+     });
+-  } catch {
++  } catch (err) {
++    console.error('[GET /api/organisations] unexpected error', err);
++    return res.status(500).json({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++  }
++};
++
++const notFoundEnvelope = {
++  data: null,
++  error: { message: 'Organisation not found', fields: [] },
++  meta: null,
++};
++
++const getOrganisationById = async (req, res) => {
++  const rawId = req.params?.id;
++  const id = typeof rawId === 'string' ? rawId.trim() : '';
++  if (!isUuidParam(id)) {
++    return res.status(404).json(notFoundEnvelope);
++  }
++
++  try {
++    const data = await organisationService.getOrganisationById(id);
++    if (!data) {
++      return res.status(404).json(notFoundEnvelope);
++    }
++    return res.json({ data, error: null, meta: null });
++  } catch (err) {
++    console.error('[GET /api/organisations/:id] unexpected error', err);
++    return res.status(500).json({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++  }
++};
++
++function stripClientControlledOrganisationKeys(body) {
++  const raw = { ...body };
++  delete raw.id;
++  delete raw.lastUpdated;
++  delete raw.createdAt;
++  delete raw.updatedAt;
++  delete raw.last_updated;
++  delete raw.created_at;
++  delete raw.updated_at;
++  return raw;
++}
++
++/**
++ * Validates a write payload (create/update) after client-controlled keys are stripped.
++ * @returns {{ fields: { field: string; message: string }[]; payload: object | null }}
++ */
++function parseOrganisationWritePayload(raw) {
++  const fields = [];
++
++  const name =
++    typeof raw.name === 'string'
++      ? raw.name.trim()
++      : raw.name === undefined || raw.name === null
++        ? ''
++        : String(raw.name).trim();
++  if (!name) {
++    fields.push({ field: 'name', message: 'Enter the organisation name' });
++  }
++
++  const countryRaw =
++    typeof raw.country === 'string'
++      ? raw.country.trim()
++      : raw.country === undefined || raw.country === null
++        ? ''
++        : String(raw.country).trim();
++  if (!countryRaw) {
++    fields.push({ field: 'country', message: 'Select a country' });
++  } else if (!COUNTRY_SET.has(countryRaw)) {
++    fields.push({ field: 'country', message: 'Select a country' });
++  }
++
++  const orgTypeRaw = raw.organisationTypeId;
++  const organisationTypeId =
++    typeof orgTypeRaw === 'string'
++      ? orgTypeRaw.trim()
++      : orgTypeRaw === undefined || orgTypeRaw === null
++        ? ''
++        : String(orgTypeRaw).trim();
++  if (!organisationTypeId) {
++    fields.push({ field: 'organisationTypeId', message: 'Select an organisation type' });
++  }
++
++  const tp = normaliseOptionalFk(raw.ticketingProviderId);
++  if (tp && tp.error) {
++    fields.push({ field: 'ticketingProviderId', message: 'Select a valid ticketing provider' });
++  }
++  const crm = normaliseOptionalFk(raw.crmPlatformId);
++  if (crm && crm.error) {
++    fields.push({ field: 'crmPlatformId', message: 'Select a valid CRM platform' });
++  }
++
++  const mem = normaliseCapability(raw.membershipCapability, 'membershipCapability');
++  if (!mem.ok) fields.push({ field: mem.field, message: mem.message });
++  const don = normaliseCapability(raw.donationCapability, 'donationCapability');
++  if (!don.ok) fields.push({ field: don.field, message: don.message });
++  const rs = normaliseCapability(raw.reservedSeatingCapability, 'reservedSeatingCapability');
++  if (!rs.ok) fields.push({ field: rs.field, message: rs.message });
++
++  const cap = normaliseCapacity(raw.capacity);
++  if (!cap.ok) {
++    fields.push({ field: 'capacity', message: cap.message });
++  }
++
++  const sourceReference = normaliseOptionalString(raw.sourceReference);
++  const notes = normaliseOptionalString(raw.notes);
++
++  if (fields.length > 0) {
++    return { fields, payload: null };
++  }
++
++  const payload = {
++    name,
++    country: countryRaw,
++    organisationTypeId,
++    ticketingProviderId: null,
++    crmPlatformId: null,
++    membershipCapability: mem.value,
++    donationCapability: don.value,
++    reservedSeatingCapability: rs.value,
++    sourceReference,
++    notes,
++    capacity: cap.value,
++  };
++
++  if (tp && tp.id) payload.ticketingProviderId = tp.id;
++  if (crm && crm.id) payload.crmPlatformId = crm.id;
++
++  return { fields: [], payload };
++}
++
++async function validateOrganisationForeignKeys(payload) {
++  const { organisationTypeId, ticketingProviderId, crmPlatformId } = payload;
++
++  if (organisationTypeId) {
++    const typeRow = await prisma.organisationType.findUnique({ where: { id: organisationTypeId } });
++    if (!typeRow) {
++      return {
++        response: {
++          status: 400,
++          body: {
++            data: null,
++            error: {
++              message: 'Validation failed',
++              fields: [{ field: 'organisationTypeId', message: 'Select an organisation type' }],
++            },
++            meta: null,
++          },
++        },
++      };
++    }
++  }
++
++  if (ticketingProviderId) {
++    const row = await prisma.ticketingProvider.findUnique({ where: { id: ticketingProviderId } });
++    if (!row) {
++      return {
++        response: {
++          status: 400,
++          body: {
++            data: null,
++            error: {
++              message: 'Validation failed',
++              fields: [{ field: 'ticketingProviderId', message: 'Select a valid ticketing provider' }],
++            },
++            meta: null,
++          },
++        },
++      };
++    }
++  }
++
++  if (crmPlatformId) {
++    const row = await prisma.crmPlatform.findUnique({ where: { id: crmPlatformId } });
++    if (!row) {
++      return {
++        response: {
++          status: 400,
++          body: {
++            data: null,
++            error: {
++              message: 'Validation failed',
++              fields: [{ field: 'crmPlatformId', message: 'Select a valid CRM platform' }],
++            },
++            meta: null,
++          },
++        },
++      };
++    }
++  }
++
++  return { response: null };
++}
++
++const createOrganisation = async (req, res) => {
++  if (req.body === null || req.body === undefined || typeof req.body !== 'object' || Array.isArray(req.body)) {
++    return res.status(400).json({
++      data: null,
++      error: {
++        message: 'Validation failed',
++        fields: [{ field: 'body', message: 'Request body must be a JSON object' }],
++      },
++      meta: null,
++    });
++  }
++
++  const raw = stripClientControlledOrganisationKeys(req.body);
++  const { fields, payload } = parseOrganisationWritePayload(raw);
++
++  if (fields.length > 0) {
++    return res.status(400).json({
++      data: null,
++      error: { message: 'Validation failed', fields },
++      meta: null,
++    });
++  }
++
++  const fk = await validateOrganisationForeignKeys(payload);
++  if (fk.response) {
++    return res.status(fk.response.status).json(fk.response.body);
++  }
++
++  try {
++    const data = await organisationService.createOrganisation(payload);
++    return res.status(201).json({ data, error: null, meta: null });
++  } catch (err) {
++    console.error('[POST /api/organisations] unexpected error', err);
++    return res.status(500).json({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++  }
++};
++
++const updateOrganisation = async (req, res) => {
++  const rawId = req.params?.id;
++  const id = typeof rawId === 'string' ? rawId.trim() : '';
++  if (!isUuidParam(id)) {
++    return res.status(404).json(notFoundEnvelope);
++  }
++
++  if (req.body === null || req.body === undefined || typeof req.body !== 'object' || Array.isArray(req.body)) {
++    return res.status(400).json({
++      data: null,
++      error: {
++        message: 'Validation failed',
++        fields: [{ field: 'body', message: 'Request body must be a JSON object' }],
++      },
++      meta: null,
++    });
++  }
++
++  const raw = stripClientControlledOrganisationKeys(req.body);
++  const { fields, payload } = parseOrganisationWritePayload(raw);
++
++  if (fields.length > 0) {
++    return res.status(400).json({
++      data: null,
++      error: { message: 'Validation failed', fields },
++      meta: null,
++    });
++  }
++
++  const fk = await validateOrganisationForeignKeys(payload);
++  if (fk.response) {
++    return res.status(fk.response.status).json(fk.response.body);
++  }
++
++  try {
++    const data = await organisationService.updateOrganisation(id, payload);
++    if (!data) {
++      return res.status(404).json(notFoundEnvelope);
++    }
++    return res.status(200).json({ data, error: null, meta: null });
++  } catch (err) {
++    console.error('[PUT /api/organisations/:id] unexpected error', err);
++    return res.status(500).json({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++  }
++};
++
++const deleteOrganisation = async (req, res) => {
++  const rawId = req.params?.id;
++  const id = typeof rawId === 'string' ? rawId.trim() : '';
++  if (!isUuidParam(id)) {
++    return res.status(404).json(notFoundEnvelope);
++  }
++
++  try {
++    const deletedId = await organisationService.deleteOrganisation(id);
++    if (!deletedId) {
++      return res.status(404).json(notFoundEnvelope);
++    }
++    return res.status(200).json({ data: { id: deletedId }, error: null, meta: null });
++  } catch (err) {
++    console.error('[DELETE /api/organisations/:id] unexpected error', err);
+     return res.status(500).json({
+       data: null,
+       error: { message: 'An unexpected error occurred', fields: [] },
+@@ -52,4 +440,10 @@ const listOrganisations = async (req, res) => {
+   }
+ };
+ 
+-module.exports = { listOrganisations };
++module.exports = {
++  listOrganisations,
++  getOrganisationById,
++  createOrganisation,
++  updateOrganisation,
++  deleteOrganisation,
++};
+diff --git a/backend/src/routes/organisations.js b/backend/src/routes/organisations.js
+index 4e87b11..7d36805 100644
+--- a/backend/src/routes/organisations.js
++++ b/backend/src/routes/organisations.js
+@@ -3,6 +3,10 @@ const organisationController = require('../controllers/organisation-controller')
+ 
+ const router = express.Router();
+ 
++router.post('/', organisationController.createOrganisation);
+ router.get('/', organisationController.listOrganisations);
++router.get('/:id', organisationController.getOrganisationById);
++router.put('/:id', organisationController.updateOrganisation);
++router.delete('/:id', organisationController.deleteOrganisation);
+ 
+ module.exports = router;
+diff --git a/backend/src/services/organisation-service.js b/backend/src/services/organisation-service.js
+index 2e4a69f..bd1881a 100644
+--- a/backend/src/services/organisation-service.js
++++ b/backend/src/services/organisation-service.js
+@@ -1,5 +1,11 @@
+ const prisma = require('../lib/prisma');
+-const { toOrganisationListDto } = require('./organisation-list-dto');
++const { toOrganisationDto } = require('./organisation-list-dto');
++
++const organisationInclude = {
++  organisation_type: true,
++  ticketing_provider: true,
++  crm_platform: true,
++};
+ 
+ /**
+  * @param {{ page: number; limit: number }} params
+@@ -12,19 +18,103 @@ async function listOrganisations({ page, limit }) {
+       skip,
+       take: limit,
+       orderBy: { name: 'asc' },
+-      include: {
+-        organisation_type: true,
+-        ticketing_provider: true,
+-        crm_platform: true,
+-      },
++      include: organisationInclude,
+     }),
+     prisma.organisation.count(),
+   ]);
+ 
+-  const data = rows.map(toOrganisationListDto);
++  const data = rows.map(toOrganisationDto);
+   const totalPages = Math.ceil(total / limit);
+ 
+   return { data, total, totalPages };
+ }
+ 
+-module.exports = { listOrganisations, toOrganisationListDto };
++/**
++ * @param {object} payload normalised camelCase fields for Prisma create
++ */
++async function createOrganisation(payload) {
++  const row = await prisma.organisation.create({
++    data: {
++      name: payload.name,
++      country: payload.country,
++      organisation_type_id: payload.organisationTypeId,
++      ticketing_provider_id: payload.ticketingProviderId,
++      crm_platform_id: payload.crmPlatformId,
++      membership_capability: payload.membershipCapability,
++      donation_capability: payload.donationCapability,
++      reserved_seating_capability: payload.reservedSeatingCapability,
++      source_reference: payload.sourceReference,
++      notes: payload.notes,
++      capacity: payload.capacity,
++    },
++    include: organisationInclude,
++  });
++
++  return toOrganisationDto(row);
++}
++
++/**
++ * @param {string} id organisation UUID
++ * @returns {Promise<object | null>} DTO or null when missing
++ */
++async function getOrganisationById(id) {
++  const row = await prisma.organisation.findUnique({
++    where: { id },
++    include: organisationInclude,
++  });
++  if (!row) return null;
++  return toOrganisationDto(row);
++}
++
++/**
++ * @param {string} id organisation UUID
++ * @param {object} payload normalised camelCase fields (same shape as create)
++ * @returns {Promise<object | null>} DTO or null when row missing (P2025)
++ */
++async function updateOrganisation(id, payload) {
++  try {
++    const row = await prisma.organisation.update({
++      where: { id },
++      data: {
++        name: payload.name,
++        country: payload.country,
++        organisation_type_id: payload.organisationTypeId,
++        ticketing_provider_id: payload.ticketingProviderId,
++        crm_platform_id: payload.crmPlatformId,
++        membership_capability: payload.membershipCapability,
++        donation_capability: payload.donationCapability,
++        reserved_seating_capability: payload.reservedSeatingCapability,
++        source_reference: payload.sourceReference,
++        notes: payload.notes,
++        capacity: payload.capacity,
++      },
++      include: organisationInclude,
++    });
++    return toOrganisationDto(row);
++  } catch (err) {
++    if (err && err.code === 'P2025') return null;
++    throw err;
++  }
++}
++
++/**
++ * @param {string} id organisation UUID
++ * @returns {Promise<string | null>} deleted id, or null when row missing (P2025)
++ */
++async function deleteOrganisation(id) {
++  try {
++    await prisma.organisation.delete({ where: { id } });
++    return id;
++  } catch (err) {
++    if (err && err.code === 'P2025') return null;
++    throw err;
++  }
++}
++
++module.exports = {
++  listOrganisations,
++  createOrganisation,
++  getOrganisationById,
++  updateOrganisation,
++  deleteOrganisation,
++};
+diff --git a/frontend/package-lock.json b/frontend/package-lock.json
+index d539ebc..af56572 100644
+--- a/frontend/package-lock.json
++++ b/frontend/package-lock.json
+@@ -8,6 +8,8 @@
+       "name": "frontend",
+       "version": "0.0.0",
+       "dependencies": {
++        "@radix-ui/react-dialog": "^1.1.15",
++        "@radix-ui/react-slot": "^1.2.3",
+         "@tanstack/react-query": "^5.96.1",
+         "class-variance-authority": "^0.7.1",
+         "clsx": "^2.1.1",
+diff --git a/frontend/package.json b/frontend/package.json
+index 67f0236..8da6e75 100644
+--- a/frontend/package.json
++++ b/frontend/package.json
+@@ -10,6 +10,8 @@
+     "preview": "vite preview"
+   },
+   "dependencies": {
++    "@radix-ui/react-dialog": "^1.1.15",
++    "@radix-ui/react-slot": "^1.2.3",
+     "@tanstack/react-query": "^5.96.1",
+     "class-variance-authority": "^0.7.1",
+     "clsx": "^2.1.1",
+diff --git a/frontend/src/api/organisations.js b/frontend/src/api/organisations.js
+index f70d9d6..36aa550 100644
+--- a/frontend/src/api/organisations.js
++++ b/frontend/src/api/organisations.js
+@@ -1,9 +1,34 @@
+ const rawBase = import.meta.env.VITE_API_BASE_URL ?? ''
+ const base = String(rawBase).replace(/\/$/, '')
+ 
++function assertListResponse(body) {
++  if (body == null || typeof body !== 'object') {
++    throw new Error('Invalid response from organisations API')
++  }
++  if (!Array.isArray(body.data)) {
++    throw new Error('Invalid response from organisations API: data is not an array')
++  }
++  if (body.error !== null && body.error !== undefined) {
++    throw new Error('Invalid response from organisations API: error must be null on success')
++  }
++  const m = body.meta
++  if (m == null || typeof m !== 'object') {
++    throw new Error('Invalid response from organisations API: missing meta')
++  }
++  const { page, limit, total, totalPages } = m
++  if (
++    typeof page !== 'number' ||
++    typeof limit !== 'number' ||
++    typeof total !== 'number' ||
++    typeof totalPages !== 'number'
++  ) {
++    throw new Error('Invalid response from organisations API: meta pagination fields')
++  }
++}
++
+ /**
+  * @param {{ page?: number; limit?: number }} params
+- * @returns {Promise<{ data: unknown[]; error: { message: string; fields?: unknown[] } | null; meta: { page: number; limit: number; total: number; totalPages: number } | null }>}
++ * @returns {Promise<{ data: unknown[]; error: null; meta: { page: number; limit: number; total: number; totalPages: number } }>}
+  */
+ export async function fetchOrganisations({ page = 1, limit = 20 } = {}) {
+   const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
+@@ -12,5 +37,155 @@ export async function fetchOrganisations({ page = 1, limit = 20 } = {}) {
+   if (!res.ok) {
+     throw new Error(body?.error?.message ?? `Request failed (${res.status})`)
+   }
++  assertListResponse(body)
+   return body
+ }
++
++/**
++ * @param {Record<string, unknown>} body camelCase organisation payload
++ * @returns {Promise<object>} created organisation DTO
++ */
++export async function createOrganisation(body) {
++  const res = await fetch(`${base}/api/organisations`, {
++    method: 'POST',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  })
++  const envelope = await res.json()
++  if (res.status === 201) {
++    if (envelope == null || typeof envelope !== 'object') {
++      throw new Error('Invalid response from organisations API')
++    }
++    if (envelope.data == null || typeof envelope.data !== 'object') {
++      throw new Error('Invalid response from organisations API: missing data')
++    }
++    if (envelope.error !== null) {
++      throw new Error('Invalid response from organisations API: error must be null on success')
++    }
++    if (envelope.meta !== null) {
++      throw new Error('Invalid response from organisations API: meta must be null on create')
++    }
++    return envelope.data
++  }
++  if (res.status === 400) {
++    const err = new Error(envelope?.error?.message ?? 'Validation failed')
++    err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
++    throw err
++  }
++  throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
++}
++
++export class OrganisationNotFoundError extends Error {
++  /** @param {string} [message] */
++  constructor(message = 'Organisation not found') {
++    super(message)
++    this.name = 'OrganisationNotFoundError'
++    /** @type {404} */
++    this.statusCode = 404
++  }
++}
++
++/**
++ * @param {string} id
++ * @param {Record<string, unknown>} body camelCase organisation payload
++ * @returns {Promise<object>} updated organisation DTO
++ */
++export async function updateOrganisation(id, body) {
++  const res = await fetch(`${base}/api/organisations/${encodeURIComponent(id)}`, {
++    method: 'PUT',
++    headers: { 'Content-Type': 'application/json' },
++    body: JSON.stringify(body),
++  })
++  const envelope = await res.json().catch(() => ({}))
++  if (res.status === 200) {
++    if (envelope == null || typeof envelope !== 'object') {
++      throw new Error('Invalid response from organisations API')
++    }
++    if (envelope.data == null || typeof envelope.data !== 'object') {
++      throw new Error('Invalid response from organisations API: missing data')
++    }
++    if (envelope.error !== null) {
++      throw new Error('Invalid response from organisations API: error must be null on success')
++    }
++    if (envelope.meta !== null) {
++      throw new Error('Invalid response from organisations API: meta must be null on update')
++    }
++    return envelope.data
++  }
++  if (res.status === 400) {
++    const err = new Error(envelope?.error?.message ?? 'Validation failed')
++    err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
++    throw err
++  }
++  if (res.status === 404) {
++    throw new OrganisationNotFoundError(
++      typeof envelope?.error?.message === 'string' ? envelope.error.message : undefined,
++    )
++  }
++  throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
++}
++
++/**
++ * @param {string} id
++ * @returns {Promise<{ id: string }>} deleted id envelope payload
++ */
++export async function deleteOrganisation(id) {
++  const res = await fetch(`${base}/api/organisations/${encodeURIComponent(id)}`, {
++    method: 'DELETE',
++  })
++  const envelope = await res.json().catch(() => ({}))
++  if (res.status === 200) {
++    if (envelope == null || typeof envelope !== 'object') {
++      throw new Error('Invalid response from organisations API')
++    }
++    if (envelope.data == null || typeof envelope.data !== 'object') {
++      throw new Error('Invalid response from organisations API: missing data')
++    }
++    if (typeof envelope.data.id !== 'string') {
++      throw new Error('Invalid response from organisations API: missing id')
++    }
++    if (envelope.error !== null) {
++      throw new Error('Invalid response from organisations API: error must be null on success')
++    }
++    if (envelope.meta !== null) {
++      throw new Error('Invalid response from organisations API: meta must be null on delete')
++    }
++    return envelope.data
++  }
++  if (res.status === 404) {
++    throw new OrganisationNotFoundError(
++      typeof envelope?.error?.message === 'string' ? envelope.error.message : undefined,
++    )
++  }
++  throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
++}
++
++/**
++ * @param {string} id
++ * @returns {Promise<object>} organisation DTO
++ */
++export async function fetchOrganisation(id) {
++  const res = await fetch(`${base}/api/organisations/${encodeURIComponent(id)}`)
++  const envelope = await res.json().catch(() => ({}))
++  if (res.status === 404) {
++    throw new OrganisationNotFoundError(
++      typeof envelope?.error?.message === 'string' ? envelope.error.message : undefined,
++    )
++  }
++  if (!res.ok) {
++    throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
++  }
++  if (envelope == null || typeof envelope !== 'object') {
++    throw new Error('Invalid response from organisations API')
++  }
++  if (envelope.data == null || typeof envelope.data !== 'object') {
++    throw new Error('Invalid response from organisations API: missing data')
++  }
++  if (envelope.error !== null) {
++    throw new Error('Invalid response from organisations API: error must be null on success')
++  }
++  if (envelope.meta !== null) {
++    throw new Error('Invalid response from organisations API: meta must be null')
++  }
++  return envelope.data
++}
+diff --git a/frontend/src/pages/OrganisationDetailPage.jsx b/frontend/src/pages/OrganisationDetailPage.jsx
+index 2684a18..e73706a 100644
+--- a/frontend/src/pages/OrganisationDetailPage.jsx
++++ b/frontend/src/pages/OrganisationDetailPage.jsx
+@@ -1,9 +1,349 @@
++import { useCallback, useEffect, useState } from 'react'
++import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
++import { useOrganisation } from '../hooks/useOrganisation.js'
++import { useDeleteOrganisation } from '../hooks/useDeleteOrganisation.js'
++import { OrganisationNotFoundError } from '../api/organisations.js'
++import { Button } from '../components/ui/button.jsx'
++import {
++  Dialog,
++  DialogContent,
++  DialogDescription,
++  DialogFooter,
++  DialogHeader,
++  DialogTitle,
++  DialogTrigger,
++} from '../components/ui/dialog.jsx'
++import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
++
++const BANNER_MS = 5000
++
++function formatDateTime(iso) {
++  if (!iso) return '—'
++  try {
++    return new Date(iso).toLocaleString(undefined, {
++      dateStyle: 'medium',
++      timeStyle: 'short',
++    })
++  } catch {
++    return '—'
++  }
++}
++
++function displayText(value) {
++  if (value == null || value === '') return '—'
++  return String(value)
++}
++
++function DetailSkeleton() {
++  return (
++    <div className="space-y-6 animate-pulse" aria-hidden>
++      <div className="h-4 w-48 rounded bg-slate-200" />
++      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
++        <div className="h-9 w-64 max-w-full rounded bg-slate-200" />
++        <div className="h-10 w-28 rounded-md bg-slate-200" />
++      </div>
++      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
++        <div className="mb-3 h-4 w-32 rounded bg-slate-200" />
++        <div className="grid gap-3 sm:grid-cols-2">
++          <div className="h-4 rounded bg-slate-100" />
++          <div className="h-4 rounded bg-slate-100" />
++        </div>
++      </div>
++      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
++        <div className="mb-3 h-4 w-40 rounded bg-slate-200" />
++        <div className="space-y-3">
++          <div className="h-4 w-full rounded bg-slate-100" />
++          <div className="h-4 w-full rounded bg-slate-100" />
++          <div className="h-4 w-3/4 rounded bg-slate-100" />
++        </div>
++      </div>
++      <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
++        <div className="mb-3 h-4 w-36 rounded bg-slate-200" />
++        <div className="grid gap-4 sm:grid-cols-3">
++          <div className="h-6 rounded bg-slate-100" />
++          <div className="h-6 rounded bg-slate-100" />
++          <div className="h-6 rounded bg-slate-100" />
++        </div>
++      </div>
++    </div>
++  )
++}
++
++function DetailRow({ label, children }) {
++  return (
++    <div className="grid gap-1 sm:grid-cols-[minmax(8rem,12rem)_1fr] sm:gap-4 sm:items-baseline">
++      <dt className="text-sm font-medium text-slate-500">{label}</dt>
++      <dd className="text-sm text-slate-800">{children}</dd>
++    </div>
++  )
++}
++
+ export default function OrganisationDetailPage() {
++  const { id } = useParams()
++  const location = useLocation()
++  const navigate = useNavigate()
++  const { data, isLoading, isError, error, isSuccess } = useOrganisation(id)
++  const deleteMutation = useDeleteOrganisation()
++  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
++
++  const [showSavedBanner, setShowSavedBanner] = useState(
++    () => Boolean(location.state?.organisationSaved),
++  )
++
++  const clearBannerState = useCallback(() => {
++    setShowSavedBanner(false)
++    const s = location.state
++    const nextState =
++      s && typeof s === 'object' && !Array.isArray(s)
++        ? Object.fromEntries(Object.entries(s).filter(([k]) => k !== 'organisationSaved'))
++        : {}
++    navigate(location.pathname, { replace: true, state: nextState })
++  }, [navigate, location.pathname, location.state])
++
++  useEffect(() => {
++    if (!showSavedBanner) return undefined
++    const t = window.setTimeout(() => {
++      clearBannerState()
++    }, BANNER_MS)
++    return () => window.clearTimeout(t)
++  }, [showSavedBanner, clearBannerState])
++
++  const notFound = error instanceof OrganisationNotFoundError
++  const missingId = !id
++
+   return (
+     <div className="py-8">
+-      <p className="text-sm text-blue-600 mb-4">← Back to organisations</p>
+-      <h1 className="text-2xl font-semibold text-slate-800">Organisation Detail</h1>
+-      <p className="mt-2 text-slate-500">Organisation detail — implemented in Epic 2.</p>
++      {showSavedBanner && (
++        <div
++          className="mb-6 flex items-start justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800"
++          role="status"
++        >
++          <p className="text-sm font-medium">Organisation saved.</p>
++          <button
++            type="button"
++            onClick={clearBannerState}
++            className="shrink-0 rounded px-2 text-lg leading-none text-emerald-900 hover:bg-emerald-100"
++            aria-label="Dismiss notification"
++          >
++            ×
++          </button>
++        </div>
++      )}
++
++      <Link to="/organisations" className="mb-4 inline-block text-sm text-blue-600">
++        ← Back to organisations
++      </Link>
++
++      {missingId && (
++        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
++          <h1 className="text-xl font-semibold text-slate-800">Organisation not found</h1>
++          <p className="mt-2 text-sm text-slate-600">This page needs a valid organisation link.</p>
++          <Link
++            to="/organisations"
++            className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++          >
++            Back to organisations
++          </Link>
++        </div>
++      )}
++
++      {!missingId && isLoading && <DetailSkeleton />}
++
++      {!missingId && notFound && (
++        <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
++          <h1 className="text-xl font-semibold text-slate-800">Organisation not found</h1>
++          <p className="mt-2 text-sm text-slate-600">
++            We could not find an organisation for this address. It may have been removed or the link
++            may be incorrect.
++          </p>
++          <Link
++            to="/organisations"
++            className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++          >
++            Back to organisations
++          </Link>
++        </div>
++      )}
++
++      {!missingId && isError && !notFound && (
++        <div
++          className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-900"
++          role="alert"
++        >
++          <h1 className="text-xl font-semibold">Something went wrong</h1>
++          <p className="mt-2 text-sm">
++            {error instanceof Error ? error.message : 'Unable to load this organisation.'}
++          </p>
++          <Link
++            to="/organisations"
++            className="mt-4 inline-block text-sm font-medium text-red-800 underline hover:text-red-900"
++          >
++            Back to organisations
++          </Link>
++        </div>
++      )}
++
++      {!missingId && isSuccess && data && (
++        <>
++          <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
++            <h1 className="text-2xl font-semibold text-slate-800">{data.name}</h1>
++            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:justify-end">
++              <Dialog
++                open={deleteDialogOpen}
++                onOpenChange={(open) => {
++                  if (deleteMutation.isPending) return
++                  setDeleteDialogOpen(open)
++                  if (open) deleteMutation.reset()
++                }}
++              >
++                <DialogTrigger asChild>
++                  <Button
++                    type="button"
++                    variant="secondary"
++                    className="w-full shrink-0 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 sm:w-auto justify-center"
++                  >
++                    Delete organisation
++                  </Button>
++                </DialogTrigger>
++                <DialogContent
++                  onEscapeKeyDown={(e) => {
++                    if (deleteMutation.isPending) e.preventDefault()
++                  }}
++                  onPointerDownOutside={(e) => {
++                    if (deleteMutation.isPending) e.preventDefault()
++                  }}
++                >
++                  <DialogHeader>
++                    <DialogTitle>Delete organisation</DialogTitle>
++                    <DialogDescription asChild>
++                      <div className="space-y-3 text-left text-sm text-slate-600">
++                        <p>
++                          <strong className="font-semibold text-slate-900">{data.name}</strong>
++                        </p>
++                        <p>This cannot be undone.</p>
++                      </div>
++                    </DialogDescription>
++                  </DialogHeader>
++                  {deleteMutation.isError && (
++                    <p className="text-sm text-red-700" role="alert">
++                      {deleteMutation.error instanceof Error
++                        ? deleteMutation.error.message
++                        : 'Could not delete this organisation.'}
++                    </p>
++                  )}
++                  <DialogFooter>
++                    <Button
++                      type="button"
++                      variant="secondary"
++                      disabled={deleteMutation.isPending}
++                      onClick={() => setDeleteDialogOpen(false)}
++                    >
++                      Cancel
++                    </Button>
++                    <Button
++                      type="button"
++                      disabled={deleteMutation.isPending}
++                      className="bg-red-600 text-white hover:bg-red-700"
++                      onClick={() => {
++                        if (!id) return
++                        deleteMutation.mutate(id, {
++                          onSuccess: () => {
++                            setDeleteDialogOpen(false)
++                            navigate('/organisations', {
++                              replace: false,
++                              state: { organisationDeleted: true },
++                            })
++                          },
++                        })
++                      }}
++                    >
++                      {deleteMutation.isPending ? (
++                        <span className="inline-flex items-center gap-2">
++                          <span
++                            className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
++                            aria-hidden
++                          />
++                          Deleting…
++                        </span>
++                      ) : (
++                        'Delete organisation'
++                      )}
++                    </Button>
++                  </DialogFooter>
++                </DialogContent>
++              </Dialog>
++              <Button
++                asChild
++                className="w-full shrink-0 bg-blue-600 hover:bg-blue-700 sm:w-auto justify-center"
++              >
++                <Link to={`/organisations/${id}/edit`}>Edit</Link>
++              </Button>
++            </div>
++          </header>
++
++          <section
++            className="mb-6 rounded-lg border border-amber-200 bg-amber-50/80 p-4 shadow-sm"
++            aria-labelledby="provenance-heading"
++          >
++            <h2 id="provenance-heading" className="text-sm font-semibold text-amber-950">
++              Provenance
++            </h2>
++            <dl className="mt-3 grid gap-4 sm:grid-cols-2">
++              <div>
++                <dt className="text-xs font-medium uppercase tracking-wide text-amber-900/80">
++                  Source reference
++                </dt>
++                <dd className="mt-1 text-base font-medium text-amber-950">
++                  {displayText(data.sourceReference)}
++                </dd>
++              </div>
++              <div>
++                <dt className="text-xs font-medium uppercase tracking-wide text-amber-900/80">
++                  Last updated
++                </dt>
++                <dd className="mt-1 text-base font-medium text-amber-950">
++                  {formatDateTime(data.lastUpdated)}
++                </dd>
++              </div>
++            </dl>
++          </section>
++
++          <section className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
++            <h2 className="mb-4 text-sm font-semibold text-slate-700">Details</h2>
++            <dl className="space-y-3">
++              <DetailRow label="Name">{data.name}</DetailRow>
++              <DetailRow label="Country">{data.country}</DetailRow>
++              <DetailRow label="Type">
++                {data.organisationType?.name ?? '—'}
++              </DetailRow>
++              <DetailRow label="Ticketing provider">
++                {data.ticketingProvider?.name ?? '—'}
++              </DetailRow>
++              <DetailRow label="CRM platform">{data.crmPlatform?.name ?? '—'}</DetailRow>
++              <DetailRow label="Notes">{displayText(data.notes)}</DetailRow>
++              <DetailRow label="Capacity">
++                {data.capacity != null ? String(data.capacity) : '—'}
++              </DetailRow>
++              <DetailRow label="Created at">{formatDateTime(data.createdAt)}</DetailRow>
++            </dl>
++          </section>
++
++          <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
++            <h2 className="mb-4 text-sm font-semibold text-slate-700">Capabilities</h2>
++            <dl className="space-y-3">
++              <DetailRow label="Membership">
++                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
++              </DetailRow>
++              <DetailRow label="Donation">
++                <CapabilityBadge value={data.donationCapability} variant="labelled" />
++              </DetailRow>
++              <DetailRow label="Reserved seating">
++                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
++              </DetailRow>
++            </dl>
++          </section>
++        </>
++      )}
+     </div>
+   )
+ }
+diff --git a/frontend/src/pages/OrganisationListPage.jsx b/frontend/src/pages/OrganisationListPage.jsx
+index 488e16e..d44b77a 100644
+--- a/frontend/src/pages/OrganisationListPage.jsx
++++ b/frontend/src/pages/OrganisationListPage.jsx
+@@ -1,11 +1,12 @@
+-import { useState } from 'react'
+-import { Link, useNavigate } from 'react-router-dom'
++import { useCallback, useEffect, useState } from 'react'
++import { Link, useLocation, useNavigate } from 'react-router-dom'
+ import { useOrganisations } from '../hooks/useOrganisations.js'
+ import { Button } from '../components/ui/button.jsx'
+ import { Badge } from '../components/ui/badge.jsx'
+ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
+ 
+ const LIMIT = 20
++const BANNER_MS = 5000
+ 
+ function formatUpdated(iso) {
+   if (!iso) return '–'
+@@ -53,9 +54,32 @@ function TableSkeleton() {
+ 
+ export default function OrganisationListPage() {
+   const [page, setPage] = useState(1)
++  const location = useLocation()
+   const navigate = useNavigate()
+   const { data, isLoading, isError, error } = useOrganisations({ page, limit: LIMIT })
+ 
++  const [showDeletedBanner, setShowDeletedBanner] = useState(
++    () => Boolean(location.state?.organisationDeleted),
++  )
++
++  const clearDeletedBannerState = useCallback(() => {
++    setShowDeletedBanner(false)
++    const s = location.state
++    const nextState =
++      s && typeof s === 'object' && !Array.isArray(s)
++        ? Object.fromEntries(Object.entries(s).filter(([k]) => k !== 'organisationDeleted'))
++        : {}
++    navigate(location.pathname + location.search, { replace: true, state: nextState })
++  }, [navigate, location.pathname, location.search, location.state])
++
++  useEffect(() => {
++    if (!showDeletedBanner) return undefined
++    const t = window.setTimeout(() => {
++      clearDeletedBannerState()
++    }, BANNER_MS)
++    return () => window.clearTimeout(t)
++  }, [showDeletedBanner, clearDeletedBannerState])
++
+   const organisations = data?.data ?? []
+   const meta = data?.meta
+   const total = meta?.total ?? 0
+@@ -71,6 +95,23 @@ export default function OrganisationListPage() {
+ 
+   return (
+     <div className="py-2">
++      {showDeletedBanner && (
++        <div
++          className="mb-6 flex items-start justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800"
++          role="status"
++        >
++          <p className="text-sm font-medium">Organisation deleted.</p>
++          <button
++            type="button"
++            onClick={clearDeletedBannerState}
++            className="shrink-0 rounded px-2 text-lg leading-none text-emerald-900 hover:bg-emerald-100"
++            aria-label="Dismiss notification"
++          >
++            ×
++          </button>
++        </div>
++      )}
++
+       <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-6 border-b border-slate-200 bg-white -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 mb-6">
+         <h1 className="text-2xl font-semibold text-slate-800">Organisations</h1>
+         <Button asChild className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto justify-center">
+diff --git a/frontend/src/components/ui/dialog.jsx b/frontend/src/components/ui/dialog.jsx
+new file mode 100644
+index 0000000..bdb2a99
+--- /dev/null
++++ b/frontend/src/components/ui/dialog.jsx
+@@ -0,0 +1,81 @@
++import * as React from 'react'
++import * as DialogPrimitive from '@radix-ui/react-dialog'
++import { cn } from '../../lib/utils'
++
++const Dialog = DialogPrimitive.Root
++
++const DialogTrigger = DialogPrimitive.Trigger
++
++const DialogPortal = DialogPrimitive.Portal
++
++const DialogClose = DialogPrimitive.Close
++
++const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
++  <DialogPrimitive.Overlay
++    ref={ref}
++    className={cn('fixed inset-0 z-50 bg-black/80', className)}
++    {...props}
++  />
++))
++DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
++
++const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
++  <DialogPortal>
++    <DialogOverlay />
++    <DialogPrimitive.Content
++      ref={ref}
++      className={cn(
++        'fixed left-1/2 top-1/2 z-50 grid w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 border border-slate-200 bg-white p-6 shadow-lg sm:rounded-lg',
++        className,
++      )}
++      {...props}
++    >
++      {children}
++    </DialogPrimitive.Content>
++  </DialogPortal>
++))
++DialogContent.displayName = DialogPrimitive.Content.displayName
++
++const DialogHeader = ({ className, ...props }) => (
++  <div className={cn('flex flex-col space-y-1.5 text-center sm:text-left', className)} {...props} />
++)
++DialogHeader.displayName = 'DialogHeader'
++
++const DialogFooter = ({ className, ...props }) => (
++  <div
++    className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:space-x-2', className)}
++    {...props}
++  />
++)
++DialogFooter.displayName = 'DialogFooter'
++
++const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
++  <DialogPrimitive.Title
++    ref={ref}
++    className={cn('text-lg font-semibold leading-none tracking-tight text-slate-900', className)}
++    {...props}
++  />
++))
++DialogTitle.displayName = DialogPrimitive.Title.displayName
++
++const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
++  <DialogPrimitive.Description
++    ref={ref}
++    className={cn('text-sm text-slate-500', className)}
++    {...props}
++  />
++))
++DialogDescription.displayName = DialogPrimitive.Description.displayName
++
++export {
++  Dialog,
++  DialogPortal,
++  DialogOverlay,
++  DialogClose,
++  DialogTrigger,
++  DialogContent,
++  DialogHeader,
++  DialogFooter,
++  DialogTitle,
++  DialogDescription,
++}
+diff --git a/frontend/src/hooks/useDeleteOrganisation.js b/frontend/src/hooks/useDeleteOrganisation.js
+new file mode 100644
+index 0000000..e5d94e4
+--- /dev/null
++++ b/frontend/src/hooks/useDeleteOrganisation.js
+@@ -0,0 +1,13 @@
++import { useMutation, useQueryClient } from '@tanstack/react-query'
++import { deleteOrganisation } from '../api/organisations.js'
++
++export function useDeleteOrganisation() {
++  const queryClient = useQueryClient()
++  return useMutation({
++    mutationFn: (/** @type {string} */ orgId) => deleteOrganisation(orgId),
++    onSuccess: (_data, orgId) => {
++      queryClient.invalidateQueries({ queryKey: ['organisations'] })
++      queryClient.invalidateQueries({ queryKey: ['organisations', orgId] })
++    },
++  })
++}

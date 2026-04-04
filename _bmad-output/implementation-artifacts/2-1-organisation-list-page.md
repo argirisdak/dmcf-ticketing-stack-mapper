@@ -1,6 +1,6 @@
 # Story 2.1: Organisation List Page
 
-Status: review
+Status: done
 
 <!-- Ultimate context engine analysis completed - comprehensive developer guide created -->
 
@@ -87,6 +87,20 @@ so that I have a home base for browsing and navigating the catalogue.
 
 - [x] **Documentation**
   - [x] If list API or serialisation choices are non-obvious, add a short note to `docs/decisions.md` (optional for straightforward CRUD list)
+
+### Review Findings
+
+- [x] [Review][Decision] Out-of-range `page` returns 200 with empty `data` — **Resolved 2026-04-02:** Option **A** — keep HTTP 200 with `data: []` and `meta` reflecting the requested `page` (and computed `totalPages`). Documented in `docs/decisions.md` (ADR-010).
+
+- [x] [Review][Patch] Harden `page` / `limit` when Express provides array query values — Repeated keys can yield `string[]`; validate with `typeof === 'string'` (or take first element explicitly) before `Number()` so behaviour is deterministic. [`backend/src/controllers/organisation-controller.js`] — fixed 2026-04-02 (batch review)
+
+- [x] [Review][Patch] Treat non-enum capability values as UNKNOWN in `CapabilityBadge` — If API ever sends `null`, wrong casing, or an unexpected string, the UI should not mis-render; default to the same presentation as `UNKNOWN`. [`frontend/src/components/CapabilityBadge.jsx`] — fixed 2026-04-02 (batch review)
+
+- [x] [Review][Patch] Log unexpected list errors server-side — The controller’s bare `catch` returns a safe 500 envelope but swallows the underlying error; log (without leaking to the client) to aid operations. [`backend/src/controllers/organisation-controller.js`] — fixed 2026-04-02 (batch review)
+
+- [x] [Review][Patch] Guard successful list response shape in `fetchOrganisations` — After `res.ok`, verify `Array.isArray(body?.data)` and `body?.meta` has pagination fields before returning; avoids opaque UI failures if the server returns an unexpected 200 body. [`frontend/src/api/organisations.js`] — fixed 2026-04-02 (batch review)
+
+- [x] [Review][Defer] No HTTP integration test through real Prisma for list — `organisation-controller.test.js` mocks `listOrganisations`, so DB + mapper + JSON are not exercised together via supertest (mirrors meta route tests). Consider a focused integration test when CI DB is available. [`backend/src/__tests__/organisation-controller.test.js`] — deferred, matches existing meta route test pattern
 
 ## Dev Notes
 
@@ -180,7 +194,7 @@ See `_bmad-output/project-context.md` for stack, naming (`kebab-case` files, `Pa
 
 ## Story completion status
 
-**review** — Implementation complete; ready for code review.
+**done** — Code review complete; decision and patch findings addressed.
 
 ---
 
@@ -199,6 +213,7 @@ Cursor agent (Composer) — dev-story workflow
 - Implemented `GET /api/organisations` with validation (`page` ≥ 1, `limit` 1–100, defaults 1/20), `{ data, error, meta }` envelope, and `toOrganisationListDto` for camelCase JSON + ISO timestamps.
 - Frontend: TanStack Query `useOrganisations`, paginated table with skeletons (`isLoading` only), badges, compact `CapabilityBadge`, empty state, row navigation + keyboard, pagination with ellipsis when >15 pages.
 - Documented list DTO boundary in ADR-009.
+- Post-review: ADR-010; controller query coalescing + error logging; client list response validation; `CapabilityBadge` tolerant of bad API values.
 
 ### File List
 
@@ -220,3 +235,4 @@ Cursor agent (Composer) — dev-story workflow
 ### Change Log
 
 - 2026-04-02: Story 2.1 — organisation list API, list DTO mapper, list page UI, Jest tests, ADR-009 (dev-story workflow).
+- 2026-04-02: Code review — ADR-010 (out-of-range `page`); batch patches: `asQueryString` for repeated query keys, `console.error` on list 500, `CapabilityBadge` normalisation, `fetchOrganisations` response guard; test for repeated `page`/`limit`.

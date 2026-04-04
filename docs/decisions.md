@@ -2,25 +2,37 @@
 
 This file records all meaningful architectural decisions made during implementation. Each entry states what was decided and why.
 
+**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**.
+
 ---
 
 ## ADR-001: Prisma v6 (not v7)
 
 **Decision:** Pin to Prisma v6 (`prisma@6`, `@prisma/client@6`).
 
-**Rationale:** Prisma v7 requires ESM and a `prisma.config.ts` file (TypeScript in a JS project). v7 also removes `$use` middleware, which is the chosen mechanism for auto-setting `last_updated` on organisation updates. v6 supports `$use` cleanly, runs in CommonJS without modification, and has no confirmed EOL date for an internal MVP timeline.
+**Rationale:** Prisma v7 requires ESM and a `prisma.config.ts` file (TypeScript in a JS project). v6 runs in CommonJS without modification and has no confirmed EOL date for an internal MVP timeline. Organisation freshness is maintained via **`@updatedAt` on `last_updated`** (see **ADR-011**), not `$use` middleware.
 
-**Implication:** If the project migrates to TypeScript or ESM in a future phase, `$use` must be replaced with a Prisma Client Extension or a PostgreSQL trigger.
+**Implication:** If the project migrates to TypeScript or ESM in a future phase, reassess the Prisma major version and config model independently of `last_updated` mechanics.
 
 ---
 
-## ADR-002: City column excluded from MVP Organisation schema
+## ADR-011: Organisation `last_updated` via Prisma `@updatedAt` (no `$use`)
 
-**Decision:** No `city` column on the `Organisation` table in this MVP.
+**Decision:** Remove Prisma Client **`$use`** middleware from `backend/src/lib/prisma.js`. On the `Organisation` model, set **`last_updated`** to **`@default(now()) @updatedAt`** and **drop** the separate **`updated_at`** column from `organisation` (Prisma allows only one `@updatedAt` field per model). The public API continues to expose **`lastUpdated`** and **`updatedAt`** in the organisation DTO; both map from the **`last_updated`** column so existing clients keep a stable shape.
 
-**Rationale:** The architecture document referenced a GIN trigram index on `city` alongside `name`, but the data model requirements (epics.md) do not include a city field on the organisation entity. The schema was defined without it. Story 3.1 text search will therefore cover `name`, `notes`, and the joined `ticketing_provider.name` only — not city. If a city field is added in a future phase, it should get its own GIN index migration at that point.
+**Rationale:** In current Prisma releases used by this project, **`$use` is not available** on the client (it was removed in the lineage the user hit — treated here as “do not rely on `$use`”). Prisma’s built-in **`@updatedAt`** updates the field on every `update` (and on `create`) at the client layer, which matches the prior “never trust client `last_updated`” rule. Stripping `updated_at` avoids duplicating two timestamps with the same meaning.
 
-**Implication:** Story 3.1 must not attempt to search across a `city` column. The initial migration includes only a GIN index on `organisation.name`.
+**Implication:** Run migrations after pull (`organisation.updated_at` removed). Any raw SQL or external tools that referenced `organisation.updated_at` must use `last_updated` instead.
+
+---
+
+## ADR-002: Optional `city` on Organisation for Story 3.1 text search
+
+**Decision:** Add nullable `organisation.city` and include it in list/detail DTOs as `city`. Server-side list search (`GET /api/organisations?q=`) matches case-insensitively on `name`, `city`, `notes`, and related `ticketing_provider.name` (OR). A GIN (`gin_trgm_ops`) index on `city` ships in the same migration as indexes for `notes` and `ticketing_provider.name`.
+
+**Rationale:** Epic 3 / Story 3.1 acceptance criteria require search by city as well as name, notes, and provider. The earlier “exclude city” note is superseded by that epic text. City remains optional (no form field required in 3.1) so existing creates/updates stay valid.
+
+**Implication:** Editors can add a city field to create/update flows later; until then `city` is usually null. Apply the Story 3.1 migration so the column and indexes exist before relying on search in deployed environments.
 
 ---
 
@@ -54,7 +66,8 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
 | Tailwind CSS v3 (not v4) pin | **ADR-005** |
 | shadcn/ui copy-paste (not CLI) | **ADR-006** |
 | React Router v6 via `react-router-dom` | **ADR-007** |
-| Country list dual maintenance (seed + frontend) | **ADR-008** |
+| Country list dual maintenance (backend `lib/countries.js` + frontend) | **ADR-008** |
+| Compare selection preserved on compare navigation (no `clearSelection()` on navigate) | **ADR-013** |
 
 ---
 
@@ -90,23 +103,11 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
 
 ## ADR-008: Country list dual maintenance (no `/api/meta/countries`)
 
-**Decision:** The canonical country list lives in **`backend/src/prisma/seed.js`** as a **named CommonJS export** `COUNTRIES`:
+**Decision:** The canonical country list for backend validation lives in **`backend/src/lib/countries.js`** as `COUNTRIES` (CommonJS export). **`backend/src/prisma/seed.js`** imports and **re-exports** `COUNTRIES` so existing `require('.../seed.js')` call sites keep working. The same values are **mirrored** in **`frontend/src/lib/countries.js`**. There is **no** `GET /api/meta/countries` endpoint.
 
-```js
-module.exports = { COUNTRIES };
-```
+**Rationale:** Story 2.2 needed country validation in the organisation controller without pulling the full seed module (which wires Prisma). A tiny shared module keeps seed and controller aligned. Keeping a mirrored frontend list avoids an extra API hop for static geography.
 
-Consumers in the backend destructure it, for example:
-
-```js
-const { COUNTRIES } = require('../prisma/seed.js');
-```
-
-(Adjust the relative path from the importing file.) The same list is **mirrored** in **`frontend/src/lib/countries.js`**. There is **no** `GET /api/meta/countries` endpoint.
-
-**Rationale:** Reference countries are needed for seeding and for the UI without adding a read-only meta route solely for static geography. Keeping two explicit sources forces a deliberate sync when the list changes and avoids an extra API hop for static data.
-
-**Implication:** Whenever the country list changes, **update both** `seed.js` and `frontend/src/lib/countries.js` in the same change. Record that dual update in commit messages or PR descriptions.
+**Implication:** Whenever the country list changes, **update** `backend/src/lib/countries.js` **and** `frontend/src/lib/countries.js` in the same change (seed continues to re-export from `lib/countries.js`). Record that dual update in commit messages or PR descriptions.
 
 ---
 
@@ -118,6 +119,48 @@ const { COUNTRIES } = require('../prisma/seed.js');
 
 **Implication:** New organisation endpoints should reuse or extend the same mapping pattern rather than serialising Prisma rows directly.
 
+**POST `/api/organisations` (Story 2.2):** Request bodies use **camelCase** keys (`name`, `country`, `organisationTypeId`, optional FK ids, three `*Capability` enums as `YES` | `NO` | `UNKNOWN`, optional `sourceReference`, `notes`, `capacity`). The handler strips client-supplied `id` and timestamp fields before persist. Successful **201** responses use the same **`toOrganisationDto`** mapper as the list (including `updatedAt`).
+
 ---
 
-*Further decisions will be recorded in later stories as the product evolves.*
+## ADR-010: List pagination — `page` beyond last page
+
+**Decision:** For `GET /api/organisations`, when `page` is greater than `totalPages` (including when `total` is 0), the API returns **HTTP 200** with `data: []`, `error: null`, and `meta` echoing the requested `page`, `limit`, `total`, and `totalPages` (no `400`, no clamping to the last page).
+
+**Rationale:** Matches common REST list semantics (offset past the end yields an empty window). Chosen explicitly over `400` or clamping during code review (2026-04-02) so clients can rely on stable success handling; the UI should disable or hide page controls beyond `totalPages` rather than depending on server-side rejection.
+
+**Implication:** Do not add validation errors for “page too high” unless this ADR is revised. Document in client code if deep-linking to a high `page` should reset to page 1.
+
+---
+
+## ADR-012: `GET /api/organisations/:id` — 404 for missing and malformed ids
+
+**Decision:** `getOrganisationById` treats **non-UUID** `:id` path segments the same as a missing row: **HTTP 404** with envelope `{ data: null, error: { message: 'Organisation not found', fields: [] }, meta: null }`. Valid UUIDs that do not exist receive the same response. No **400** for malformed ids.
+
+**Rationale:** Avoids Prisma throwing on invalid UUID strings, keeps a single client-facing “not found” story for bad links, and matches the delete-404 wording planned for Story 2.5.
+
+**Implication:** The SPA should use **404** (e.g. `OrganisationNotFoundError` with `statusCode === 404`) for both unknown and malformed ids when rendering the detail not-found state.
+
+---
+
+## ADR-013: Preserve compare selection after navigating to compare (Story 4.1)
+
+**Decision:** When the user activates **Compare selected** and the app navigates to **`/compare?ids=...`**, **do not** call **`clearSelection()`**. Selection remains in **`SelectionProvider`** so **browser Back** returns to the list with the **same** checkboxes still selected.
+
+**Rationale:** Epic 4 / Story 4.1 acceptance criteria require this back-navigation UX. Earlier architecture text described clearing selection on compare; that behaviour is **superseded** here for product usability.
+
+**Implication:** The compare page (Story 4.2+) must tolerate stale context state if the user deep-links to compare without using the bar; list and bar remain the source of truth for “what was selected” when returning via history.
+
+---
+
+## ADR-014: Sample organisations — fixed UUID upsert (Story 5.1)
+
+**Decision:** Curated demo `organisation` rows live in `backend/src/prisma/sample-organisations-seed-data.js` and are applied from `seed.js` **after** reference lookups are upserted. Each sample row has a **stable UUID**; persistence uses **`organisation.upsert` on `id`** with full scalar payloads (including explicit **`created_at`** and **`last_updated`**) on both create and update so repeated `prisma db seed` / `migrate reset` yields the same rows without duplicates.
+
+**Rationale:** Meets Story 5.1 AC5 (idempotent, deterministic state) without deleting user-created orgs that might share no ids with the fixed set. Lookup FKs are resolved by **name** at seed time, not hardcoded lookup UUIDs.
+
+**Implication:** Adding or renumbering sample UUIDs is a conscious change; testers can rely on documented ids for compare and filter smoke checks. Non-sample organisations created in the app are unaffected by re-seeding.
+
+---
+
+New decisions are appended to this file as they are made; see the index at the top for common audit topics.

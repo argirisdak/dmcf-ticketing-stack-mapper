@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useMemo, useCallback } from 'react'
-
-const SelectionContext = createContext(null)
+import { useCallback, useMemo, useState } from 'react'
+import { SelectionContext } from './selection-context.js'
 
 export function SelectionProvider({ children }) {
   const [selectedIds, setSelectedIds] = useState([])
@@ -23,10 +22,4 @@ export function SelectionProvider({ children }) {
       {children}
     </SelectionContext.Provider>
   )
-}
-
-export function useSelection() {
-  const ctx = useContext(SelectionContext)
-  if (!ctx) throw new Error('useSelection must be used within SelectionProvider')
-  return ctx
 }

@@ -16,6 +16,7 @@ enum CapabilityState {
 model Organisation {
   id                          String          @id @default(uuid())
   name                        String
+  city                        String?
   country                     String
   organisation_type_id        String
   ticketing_provider_id       String?
@@ -26,9 +27,8 @@ model Organisation {
   source_reference            String?
   notes                       String?
   capacity                    Int?
-  last_updated                DateTime        @default(now())
+  last_updated                DateTime        @default(now()) @updatedAt
   created_at                  DateTime        @default(now())
-  updated_at                  DateTime        @updatedAt
 
   organisation_type     OrganisationType   @relation(fields: [organisation_type_id], references: [id])
   ticketing_provider    TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])

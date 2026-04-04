@@ -1,10 +1,25 @@
 /**
- * Maps a Prisma organisation row (snake_case fields, nested relations) to the public list API DTO (camelCase).
+ * @param {unknown} value
+ * @returns {string | null} ISO 8601 or null when missing / invalid
  */
-function toOrganisationListDto(row) {
+function dateTimeToIso(value) {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return Number.isNaN(t) ? null : value.toISOString();
+  }
+  if (typeof value === 'string' && value.trim() !== '') return value.trim();
+  return null;
+}
+
+/**
+ * Maps a Prisma organisation row (snake_case fields, nested relations) to the public API DTO (camelCase).
+ */
+function toOrganisationDto(row) {
   return {
     id: row.id,
     name: row.name,
+    city: row.city ?? null,
     country: row.country,
     organisationType: row.organisation_type
       ? { id: row.organisation_type.id, name: row.organisation_type.name }
@@ -21,9 +36,13 @@ function toOrganisationListDto(row) {
     sourceReference: row.source_reference ?? null,
     notes: row.notes ?? null,
     capacity: row.capacity ?? null,
-    lastUpdated: row.last_updated instanceof Date ? row.last_updated.toISOString() : String(row.last_updated),
-    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+    lastUpdated: dateTimeToIso(row.last_updated),
+    createdAt: dateTimeToIso(row.created_at),
+    updatedAt: dateTimeToIso(row.last_updated),
   };
 }
 
-module.exports = { toOrganisationListDto };
+/** @deprecated Prefer `toOrganisationDto`; kept for existing imports. */
+const toOrganisationListDto = toOrganisationDto;
+
+module.exports = { toOrganisationDto, toOrganisationListDto };
