@@ -1,6 +1,6 @@
 # DMCF Ticketing Stack Mapper
 
-Internal tool for mapping and comparing ticketing and CRM platforms used by cultural **organisations** (British English spelling is used in the codebase and API).
+Internal tool for mapping and comparing ticketing and CRM platforms used by cultural **organisations**.
 
 ## Prerequisites
 
