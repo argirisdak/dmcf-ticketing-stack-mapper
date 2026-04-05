@@ -212,3 +212,4 @@ cd backend && npm test
 ## Further documentation
 
 - **`docs/decisions.md`** — ADRs (stack, tooling, and data conventions).
+- **`v2-roadmap.md`** — Post-MVP product direction (PRD Growth/Vision) and consolidated engineering backlog from deferred work and epic retrospectives.

@@ -11,3 +11,16 @@ build/
 # ever added to schema.prisma, list that path here as well.
 backend/node_modules/
 frontend/node_modules/
+
+# BMAD Framework Internals
+# Excludes the "engine" and agent configurations, but allows outputs
+/_bmad/
+
+# Tool-specific logs or temp files
+.bmad-log
+.agent-state/
+
+# AI IDE / Agent Framework Skills & Config
+.claude/
+.cursor/
+.gemini/
