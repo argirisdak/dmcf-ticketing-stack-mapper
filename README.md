@@ -8,6 +8,8 @@ Internal tool for mapping and comparing ticketing and CRM platforms used by cult
 - **Docker** with Docker Compose v2 (`docker compose` CLI)
 - **Node.js** 20 LTS or newer (needed for local development without Docker, and for running backend tests from your machine)
 
+On **Windows**, use **Git for Windows** and **Docker Desktop** (Linux containers — default), and work from **PowerShell** or **Command Prompt**; see **[Windows (native, without WSL)](#windows-native-without-wsl)** below.
+
 ## Quick start (Docker — recommended)
 
 These steps assume you are at the **project root** after cloning (the folder that contains `docker-compose.yml`, `backend/`, and `frontend/` — often named `dmcf-app`).
@@ -39,6 +41,107 @@ These steps assume you are at the **project root** after cloning (the folder tha
    The **backend** container command (see `docker-compose.yml`) runs **`npx prisma migrate deploy`** then **`npx prisma db seed`** before starting the API. So the database is migrated and seeded automatically on each backend start. You only need the manual commands below if you want to **re-seed** or **fully reset** without rebuilding images or if you run the backend outside Compose.
 
    The database is **not** published to your host; only the API and frontend dev server are.
+
+## Windows (native, without WSL)
+
+These steps are for **Windows only**: you clone and run commands from a normal Windows folder (for example under `%USERPROFILE%`), not from an Ubuntu/WSL shell. **Docker Desktop** still runs **Linux** containers internally; you do not need a separate WSL distro for day-to-day Git and `docker compose` commands.
+
+### Prerequisites (Windows)
+
+1. **[Git for Windows](https://git-scm.com/download/win)** — install with default options so `git` works in PowerShell.
+2. **[Docker Desktop for Windows](https://www.docker.com/products/docker-desktop/)** — use **Linux containers** (default). Start Docker Desktop and wait until it reports that it is running.
+3. **Node.js 20+** — only if you will run the backend or frontend **on the host** instead of in Docker (see [Local development without Docker](#local-development-without-docker-optional)).
+
+### Clone
+
+Example (PowerShell):
+
+```powershell
+cd $env:USERPROFILE\source\repos
+git clone <repository-url> dmcf-app
+cd dmcf-app
+```
+
+Prefer a path on the Windows filesystem (for example `C:\dev\dmcf-app`), not `\\wsl$\...`, if you want a purely Windows workspace.
+
+### Environment files
+
+**PowerShell:**
+
+```powershell
+Copy-Item backend\.env.example backend\.env
+Copy-Item frontend\.env.example frontend\.env
+```
+
+**Command Prompt:**
+
+```cmd
+copy backend\.env.example backend\.env
+copy frontend\.env.example frontend\.env
+```
+
+For Docker Compose, keep `backend/.env` aligned with the example (`DATABASE_URL` host **`db`**, `CORS_ORIGIN=http://localhost:5173`). Keep `frontend/.env` pointing at `http://localhost:3001` for the API.
+
+### Start the stack
+
+From the folder that contains `docker-compose.yml`:
+
+```powershell
+docker compose up --build
+```
+
+On later runs, `docker compose up` is enough. Behaviour matches **Quick start (Docker — recommended)** above (migrations and seed on backend start).
+
+### URLs
+
+Same as **[Service URLs and ports](#service-urls-and-ports)** — open http://localhost:5173 for the app and http://localhost:3001 for the API.
+
+### Prisma commands (Docker on Windows)
+
+With the **backend** service already running:
+
+```powershell
+docker compose exec backend npx prisma db seed
+```
+
+If no backend container is running:
+
+```powershell
+docker compose run --rm backend npx prisma db seed
+```
+
+Use the same `exec` / `run --rm` pattern for `migrate reset` as in **[Database seed and reset](#database-seed-and-reset)**.
+
+### Troubleshooting (Windows)
+
+- **Docker daemon not running** — start **Docker Desktop** and wait until it is ready.
+- **Port already in use** — another process is using `3001` or `5173`; stop it or adjust published ports in `docker-compose.yml` only if you understand the impact.
+- **Line endings** — if a host-side script misbehaves, `git config core.autocrlf true` in this repo may help; Compose runs commands inside Linux images, so this is rarely needed for the default Docker workflow.
+- **Virtualization** — Docker Desktop needs hardware virtualisation enabled; follow the installer’s checklist (Hyper-V / WSL2 components as required by your Docker Desktop version).
+
+### Optional: backend and frontend on Windows without Docker
+
+1. Install **PostgreSQL 16** for Windows and create a database (for example `dmcf`).
+2. Set `DATABASE_URL` in `backend/.env` to a **localhost** URL (not host `db`), for example `postgresql://USER:PASSWORD@localhost:5432/dmcf`.
+3. In one terminal:
+
+   ```powershell
+   cd backend
+   npm install
+   npx prisma migrate dev
+   npx prisma db seed
+   npm start
+   ```
+
+4. In another terminal:
+
+   ```powershell
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+Ensure `frontend/.env` contains `VITE_API_BASE_URL=http://localhost:3001`.
 
 ## Service URLs and ports
 
