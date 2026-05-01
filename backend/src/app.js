@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const metaRoutes = require('./routes/meta');
 const organisationRoutes = require('./routes/organisations');
+const systemRoutes = require('./routes/systems');
 
 const app = express();
 
@@ -15,5 +16,6 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/meta', metaRoutes);
 app.use('/api/organisations', organisationRoutes);
+app.use('/api/systems', systemRoutes);
 
 module.exports = app;

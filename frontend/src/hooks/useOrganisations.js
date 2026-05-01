@@ -8,9 +8,9 @@ import { fetchOrganisations } from '../api/organisations.js'
  *   limit?: number
  *   q?: string
  *   country?: string
- *   provider?: string
  *   type?: string
- *   crm?: string
+ *   system?: string
+ *   system_role?: string
  *   membership?: string
  *   donation?: string
  *   seating?: string

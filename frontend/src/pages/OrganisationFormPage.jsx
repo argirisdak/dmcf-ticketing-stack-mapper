@@ -2,15 +2,15 @@ import { useCallback, useEffect, useMemo, useRef, useState, startTransition } fr
 import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { COUNTRIES } from '../lib/countries.js'
 import { Button } from '../components/ui/button.jsx'
-import { useCreateOrganisation } from '../hooks/useCreateOrganisation.js'
-import { useUpdateOrganisation } from '../hooks/useUpdateOrganisation.js'
 import { useOrganisation } from '../hooks/useOrganisation.js'
-import { OrganisationNotFoundError } from '../api/organisations.js'
+import { useOrganisationTypesQuery } from '../hooks/useMetaReferenceData.js'
+import { OrganisationNotFoundError, createOrganisation, updateOrganisation } from '../api/organisations.js'
 import {
-  useOrganisationTypesQuery,
-  useTicketingProvidersQuery,
-  useCrmPlatformsQuery,
-} from '../hooks/useMetaReferenceData.js'
+  createOrganisationSystemLink,
+  updateOrganisationSystemLink,
+  deleteOrganisationSystemLink,
+} from '../api/organisation-systems.js'
+import { SystemCombobox } from '../components/SystemCombobox.jsx'
 
 /** Match server `MAX_CAPACITY` in `organisation-controller.js` */
 const MAX_CAPACITY = 2_147_483_647
@@ -20,8 +20,6 @@ const FIELD_IDS = {
   country: 'field-country',
   city: 'field-city',
   organisationTypeId: 'field-organisation-type',
-  ticketingProviderId: 'field-ticketing-provider',
-  crmPlatformId: 'field-crm-platform',
   membershipCapability: 'field-membership-capability',
   donationCapability: 'field-donation-capability',
   reservedSeatingCapability: 'field-reserved-seating-capability',
@@ -29,6 +27,14 @@ const FIELD_IDS = {
   notes: 'field-notes',
   capacity: 'field-capacity',
 }
+
+const SYSTEM_ROLES = [
+  { value: 'PRIMARY_TICKETING', label: 'Primary ticketing' },
+  { value: 'PRIMARY_CRM', label: 'Primary CRM' },
+  { value: 'INTEGRATED_SUITE', label: 'Integrated suite' },
+  { value: 'SECONDARY', label: 'Secondary' },
+]
+const KNOWN_ROLE_VALUES = SYSTEM_ROLES.map((r) => r.value)
 
 /** @param {{ field: string; message: string }[]} fields */
 function mapServerFieldsToSummary(fields) {
@@ -75,6 +81,87 @@ function validateClient(values) {
   return out
 }
 
+function validateLinkedSystems(rows) {
+  const errors = []
+  /** @type {Map<string, object[]>} */
+  const bySystemId = new Map()
+  for (const row of rows) {
+    if (!row.systemId) continue
+    if (!bySystemId.has(row.systemId)) bySystemId.set(row.systemId, [])
+    bySystemId.get(row.systemId).push(row)
+  }
+
+  for (const row of rows) {
+    if (!row.systemId) continue
+    if (!row.role) {
+      errors.push({
+        rowKey: row._rowKey,
+        field: `link-role-${row._rowKey}`,
+        message: `Select a role for ${row.systemName || 'the selected system'}`,
+        anchorId: `field-link-role-${row._rowKey}`,
+      })
+    }
+  }
+
+  for (const [, group] of bySystemId) {
+    if (group.length <= 1) continue
+    for (const row of group) {
+      errors.push({
+        rowKey: row._rowKey,
+        field: `link-system-${row._rowKey}`,
+        message: 'This system is already linked. Remove the duplicate row.',
+        anchorId: `field-link-system-${row._rowKey}`,
+      })
+    }
+  }
+
+  return errors
+}
+
+function diffLinks(originalLinks, activeRows) {
+  const originalById = new Map(originalLinks.map((l) => [l.id, l]))
+  const activeRowIds = new Set(activeRows.filter((r) => r.linkId).map((r) => r.linkId))
+
+  const toPost = activeRows.filter((r) => r.linkId === null)
+  const toDelete = originalLinks.filter((l) => !activeRowIds.has(l.id))
+  const toPut = activeRows.filter((r) => {
+    if (!r.linkId) return false
+    const orig = originalById.get(r.linkId)
+    if (!orig) return false
+    return (
+      r.systemId !== orig.system.id ||
+      r.role !== orig.role ||
+      r.sourceReference !== (orig.sourceReference ?? '') ||
+      r.note !== (orig.note ?? '')
+    )
+  })
+  return { toPost, toPut, toDelete }
+}
+
+function hydrateLinkRows(systems) {
+  return systems.map((link) => ({
+    _rowKey: link.id,
+    linkId: link.id,
+    systemId: link.system.id,
+    systemName: link.system.name,
+    role: link.role ?? '',
+    sourceReference: link.sourceReference ?? '',
+    note: link.note ?? '',
+  }))
+}
+
+function newEmptyRow() {
+  return {
+    _rowKey: crypto.randomUUID(),
+    linkId: null,
+    systemId: null,
+    systemName: '',
+    role: '',
+    sourceReference: '',
+    note: '',
+  }
+}
+
 function focusFormControl(anchorId) {
   const el = document.getElementById(anchorId)
   if (el && typeof el.focus === 'function') {
@@ -98,8 +185,6 @@ function initialFormState() {
     country: '',
     city: '',
     organisationTypeId: '',
-    ticketingProviderId: '',
-    crmPlatformId: '',
     membershipCapability: 'UNKNOWN',
     donationCapability: 'UNKNOWN',
     reservedSeatingCapability: 'UNKNOWN',
@@ -117,8 +202,6 @@ function dtoToFormState(dto) {
     country: dto.country ?? '',
     city: dto.city ?? '',
     organisationTypeId: dto.organisationType?.id ?? '',
-    ticketingProviderId: dto.ticketingProvider?.id ?? '',
-    crmPlatformId: dto.crmPlatform?.id ?? '',
     membershipCapability: String(dto.membershipCapability ?? 'UNKNOWN').toUpperCase(),
     donationCapability: String(dto.donationCapability ?? 'UNKNOWN').toUpperCase(),
     reservedSeatingCapability: String(dto.reservedSeatingCapability ?? 'UNKNOWN').toUpperCase(),
@@ -139,8 +222,6 @@ function buildSubmitBody(form) {
   }
   const cityTrim = form.city.trim()
   if (cityTrim) body.city = cityTrim
-  if (form.ticketingProviderId) body.ticketingProviderId = form.ticketingProviderId
-  if (form.crmPlatformId) body.crmPlatformId = form.crmPlatformId
   const sr = form.sourceReference.trim()
   if (sr) body.sourceReference = sr
   const notes = form.notes.trim()
@@ -150,24 +231,103 @@ function buildSubmitBody(form) {
   return body
 }
 
-/**
- * @param {{
- *   backLink: import('react').ReactNode
- *   title: string
- *   subtitle: string | null
- *   form: ReturnType<typeof initialFormState>
- *   setField: (key: string, value: string) => void
- *   summaryErrors: { field: string; message: string; anchorId: string }[]
- *   submitError: string | null
- *   metaLoading: boolean
- *   metaError: boolean
- *   orgTypesQ: import('@tanstack/react-query').UseQueryResult
- *   ticketingQ: import('@tanstack/react-query').UseQueryResult
- *   crmQ: import('@tanstack/react-query').UseQueryResult
- *   mutation: { isPending: boolean }
- *   onSubmit: (e: import('react').FormEvent) => void
- * }} props
- */
+function LinkedSystemRow({ row, onChange, onRemove, errors }) {
+  const roleError = errors.find((e) => e.rowKey === row._rowKey && e.field === `link-role-${row._rowKey}`)
+  const systemError = errors.find((e) => e.rowKey === row._rowKey && e.field === `link-system-${row._rowKey}`)
+
+  return (
+    <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <div className="flex-1 min-w-0">
+          <label htmlFor={`field-link-system-${row._rowKey}`} className="mb-1 block text-xs font-medium text-slate-700">
+            System
+          </label>
+          <SystemCombobox
+            selectedId={row.systemId}
+            onSelect={(sys) => {
+              if (sys) {
+                onChange(row._rowKey, { systemId: sys.id, systemName: sys.name })
+              } else {
+                onChange(row._rowKey, { systemId: null, systemName: '' })
+              }
+            }}
+            placeholder="Search for a system…"
+            inputId={`field-link-system-${row._rowKey}`}
+          />
+          <FieldInlineError
+            id={`field-link-system-${row._rowKey}-error`}
+            message={systemError?.message}
+          />
+        </div>
+
+        <div className="sm:w-44 shrink-0">
+          <label htmlFor={`field-link-role-${row._rowKey}`} className="mb-1 block text-xs font-medium text-slate-700">
+            Role
+          </label>
+          <select
+            id={`field-link-role-${row._rowKey}`}
+            value={row.role}
+            onChange={(e) => onChange(row._rowKey, { role: e.target.value })}
+            className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="">Select a role</option>
+            {row.role !== '' && !KNOWN_ROLE_VALUES.includes(row.role) ? (
+              <option value={row.role}>{`${row.role} (unspecified role)`}</option>
+            ) : null}
+            {SYSTEM_ROLES.map((r) => (
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
+            ))}
+          </select>
+          <FieldInlineError
+            id={`field-link-role-${row._rowKey}-error`}
+            message={roleError?.message}
+          />
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor={`field-link-src-${row._rowKey}`} className="mb-1 block text-xs font-medium text-slate-700">
+          Source reference <span className="font-normal text-slate-500">(optional)</span>
+        </label>
+        <input
+          id={`field-link-src-${row._rowKey}`}
+          type="text"
+          value={row.sourceReference}
+          onChange={(e) => onChange(row._rowKey, { sourceReference: e.target.value })}
+          className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          placeholder="URL or identifier"
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`field-link-note-${row._rowKey}`} className="mb-1 block text-xs font-medium text-slate-700">
+          Note <span className="font-normal text-slate-500">(optional)</span>
+        </label>
+        <textarea
+          id={`field-link-note-${row._rowKey}`}
+          rows={2}
+          value={row.note}
+          onChange={(e) => onChange(row._rowKey, { note: e.target.value })}
+          className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          placeholder="Optional note"
+        />
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => onRemove(row._rowKey)}
+          className="text-sm text-red-600 hover:text-red-800"
+        >
+          × Remove
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function OrganisationFormBody({
   backLink,
   title,
@@ -179,9 +339,10 @@ function OrganisationFormBody({
   metaLoading,
   metaError,
   orgTypesQ,
-  ticketingQ,
-  crmQ,
-  mutation,
+  isSaving,
+  linkRows,
+  setLinkRows,
+  linkRowErrors,
   onSubmit,
 }) {
   const invalidFields = useMemo(() => new Set(summaryErrors.map((e) => e.field)), [summaryErrors])
@@ -201,6 +362,21 @@ function OrganisationFormBody({
     const msg = fieldMessages.get(fieldKey)
     return msg ? `${fieldId}-error` : undefined
   }
+
+  const handleRowChange = useCallback((rowKey, patch) => {
+    setLinkRows((prev) => prev.map((r) => r._rowKey === rowKey ? { ...r, ...patch } : r))
+  }, [setLinkRows])
+
+  const handleRowRemove = useCallback((rowKey) => {
+    setLinkRows((prev) => prev.filter((r) => r._rowKey !== rowKey))
+  }, [setLinkRows])
+
+  const handleAddRow = () => {
+    setLinkRows((prev) => [...prev, newEmptyRow()])
+  }
+
+  // Merge link row errors into summary for display (already done by caller, but render from summaryErrors)
+  // All errors (core + link) are already in summaryErrors when passed in.
 
   return (
     <div className="py-8">
@@ -338,61 +514,6 @@ function OrganisationFormBody({
         </div>
 
         <div>
-          <label htmlFor={FIELD_IDS.ticketingProviderId} className="mb-1 block text-sm font-medium text-slate-800">
-            Ticketing provider{' '}
-            <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <select
-            id={FIELD_IDS.ticketingProviderId}
-            name="ticketingProviderId"
-            value={form.ticketingProviderId}
-            onChange={(e) => setField('ticketingProviderId', e.target.value)}
-            disabled={metaLoading}
-            aria-invalid={invalidFields.has('ticketingProviderId')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.ticketingProviderId, 'ticketingProviderId')}
-            className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('ticketingProviderId')}`}
-          >
-            <option value="">—</option>
-            {(ticketingQ.data ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.ticketingProviderId}-error`}
-            message={fieldMessages.get('ticketingProviderId')}
-          />
-        </div>
-
-        <div>
-          <label htmlFor={FIELD_IDS.crmPlatformId} className="mb-1 block text-sm font-medium text-slate-800">
-            CRM platform <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <select
-            id={FIELD_IDS.crmPlatformId}
-            name="crmPlatformId"
-            value={form.crmPlatformId}
-            onChange={(e) => setField('crmPlatformId', e.target.value)}
-            disabled={metaLoading}
-            aria-invalid={invalidFields.has('crmPlatformId')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.crmPlatformId, 'crmPlatformId')}
-            className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('crmPlatformId')}`}
-          >
-            <option value="">—</option>
-            {(crmQ.data ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.crmPlatformId}-error`}
-            message={fieldMessages.get('crmPlatformId')}
-          />
-        </div>
-
-        <div>
           <label htmlFor={FIELD_IDS.membershipCapability} className="mb-1 block text-sm font-medium text-slate-800">
             Membership capability
           </label>
@@ -522,13 +643,37 @@ function OrganisationFormBody({
           <FieldInlineError id={`${FIELD_IDS.capacity}-error`} message={fieldMessages.get('capacity')} />
         </div>
 
+        {/* Linked systems section */}
+        <div className="border-t border-slate-200 pt-6">
+          <h2 className="text-base font-medium text-slate-800">Linked systems</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Link this organisation to the systems it uses. Add a source reference and role for each.
+          </p>
+          <div className="mt-4 space-y-3">
+            {linkRows.map((row) => (
+              <LinkedSystemRow
+                key={row._rowKey}
+                row={row}
+                onChange={handleRowChange}
+                onRemove={handleRowRemove}
+                errors={linkRowErrors}
+              />
+            ))}
+          </div>
+          <div className="mt-3">
+            <Button type="button" variant="outline" onClick={handleAddRow}>
+              + Add system
+            </Button>
+          </div>
+        </div>
+
         <div className="pt-2">
           <Button
             type="submit"
-            disabled={mutation.isPending || metaLoading || metaError}
+            disabled={isSaving || metaLoading || metaError}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {mutation.isPending ? (
+            {isSaving ? (
               <span className="inline-flex items-center gap-2">
                 <span
                   className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
@@ -551,44 +696,79 @@ function OrganisationCreateForm() {
   const [form, setForm] = useState(initialFormState)
   const [summaryErrors, setSummaryErrors] = useState([])
   const [submitError, setSubmitError] = useState(null)
-  const mutation = useCreateOrganisation()
+  const [isSaving, setIsSaving] = useState(false)
+  const [linkRows, setLinkRows] = useState([])
+  const [linkRowErrors, setLinkRowErrors] = useState([])
 
   const orgTypesQ = useOrganisationTypesQuery()
-  const ticketingQ = useTicketingProvidersQuery()
-  const crmQ = useCrmPlatformsQuery()
-
-  const metaLoading = orgTypesQ.isLoading || ticketingQ.isLoading || crmQ.isLoading
-  const metaError = orgTypesQ.isError || ticketingQ.isError || crmQ.isError
+  const metaLoading = orgTypesQ.isLoading
+  const metaError = orgTypesQ.isError
 
   const setField = useCallback((key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
   }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setSummaryErrors([])
     setSubmitError(null)
 
     const clientErrs = validateClient(form)
-    if (clientErrs.length > 0) {
-      setSummaryErrors(clientErrs)
+    const linkErrs = validateLinkedSystems(linkRows)
+    if (clientErrs.length > 0 || linkErrs.length > 0) {
+      setSummaryErrors([...clientErrs, ...linkErrs])
+      setLinkRowErrors(linkErrs)
+      return
+    }
+    setLinkRowErrors([])
+
+    setIsSaving(true)
+    const body = buildSubmitBody(form)
+    let savedOrgId
+    try {
+      const result = await createOrganisation(body)
+      savedOrgId = result.id
+    } catch (err) {
+      if (Array.isArray(err.fields) && err.fields.length > 0) {
+        setSummaryErrors(mapServerFieldsToSummary(err.fields))
+      } else {
+        setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
+      }
+      setIsSaving(false)
       return
     }
 
-    const body = buildSubmitBody(form)
+    const activeRows = linkRows.filter((r) => r.systemId !== null)
+    const { toPost, toPut, toDelete } = diffLinks([], activeRows)
+    const writes = [
+      ...toPost.map((r) =>
+        createOrganisationSystemLink(savedOrgId, {
+          systemId: r.systemId,
+          role: r.role,
+          sourceReference: r.sourceReference || undefined,
+          note: r.note || undefined,
+        }),
+      ),
+      ...toPut.map((r) =>
+        updateOrganisationSystemLink(savedOrgId, r.linkId, {
+          systemId: r.systemId,
+          role: r.role,
+          sourceReference: r.sourceReference || undefined,
+          note: r.note || undefined,
+        }),
+      ),
+      ...toDelete.map((l) => deleteOrganisationSystemLink(savedOrgId, l.id)),
+    ]
 
-    mutation.mutate(body, {
-      onSuccess: (data) => {
-        navigate(`/organisations/${data.id}`, { state: { organisationSaved: true } })
-      },
-      onError: (err) => {
-        if (Array.isArray(err.fields) && err.fields.length > 0) {
-          setSubmitError(null)
-          setSummaryErrors(mapServerFieldsToSummary(err.fields))
-        } else {
-          setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
-        }
-      },
+    if (writes.length === 0) {
+      navigate(`/organisations/${savedOrgId}`, { state: { organisationSaved: true } })
+      return
+    }
+
+    const results = await Promise.allSettled(writes)
+    const anyFailed = results.some((r) => r.status === 'rejected')
+    navigate(`/organisations/${savedOrgId}`, {
+      state: anyFailed ? { linksSavedWithErrors: true } : { organisationSaved: true },
     })
   }
 
@@ -608,9 +788,10 @@ function OrganisationCreateForm() {
       metaLoading={metaLoading}
       metaError={metaError}
       orgTypesQ={orgTypesQ}
-      ticketingQ={ticketingQ}
-      crmQ={crmQ}
-      mutation={mutation}
+      isSaving={isSaving}
+      linkRows={linkRows}
+      setLinkRows={setLinkRows}
+      linkRowErrors={linkRowErrors}
       onSubmit={handleSubmit}
     />
   )
@@ -622,16 +803,16 @@ function OrganisationEditForm({ id }) {
   const [form, setForm] = useState(initialFormState)
   const [summaryErrors, setSummaryErrors] = useState([])
   const [submitError, setSubmitError] = useState(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [linkRows, setLinkRows] = useState([])
+  const [originalLinks, setOriginalLinks] = useState([])
+  const [linkRowErrors, setLinkRowErrors] = useState([])
 
   const { data, isLoading, isError, error, isSuccess } = useOrganisation(id)
-  const mutation = useUpdateOrganisation(id)
 
   const orgTypesQ = useOrganisationTypesQuery()
-  const ticketingQ = useTicketingProvidersQuery()
-  const crmQ = useCrmPlatformsQuery()
-
-  const metaLoading = orgTypesQ.isLoading || ticketingQ.isLoading || crmQ.isLoading
-  const metaError = orgTypesQ.isError || ticketingQ.isError || crmQ.isError
+  const metaLoading = orgTypesQ.isLoading
+  const metaError = orgTypesQ.isError
 
   const notFound = error instanceof OrganisationNotFoundError
   const missingId = !id
@@ -642,6 +823,8 @@ function OrganisationEditForm({ id }) {
     hydratedRef.current = true
     startTransition(() => {
       setForm(dtoToFormState(data))
+      setLinkRows(hydrateLinkRows(data.systems ?? []))
+      setOriginalLinks(data.systems ?? [])
     })
   }, [data])
 
@@ -649,32 +832,66 @@ function OrganisationEditForm({ id }) {
     setForm((prev) => ({ ...prev, [key]: value }))
   }, [])
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     if (!id) return
     setSummaryErrors([])
     setSubmitError(null)
 
     const clientErrs = validateClient(form)
-    if (clientErrs.length > 0) {
-      setSummaryErrors(clientErrs)
+    const linkErrs = validateLinkedSystems(linkRows)
+    if (clientErrs.length > 0 || linkErrs.length > 0) {
+      setSummaryErrors([...clientErrs, ...linkErrs])
+      setLinkRowErrors(linkErrs)
+      return
+    }
+    setLinkRowErrors([])
+
+    setIsSaving(true)
+    const body = buildSubmitBody(form)
+    try {
+      await updateOrganisation(id, body)
+    } catch (err) {
+      if (Array.isArray(err.fields) && err.fields.length > 0) {
+        setSummaryErrors(mapServerFieldsToSummary(err.fields))
+      } else {
+        setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
+      }
+      setIsSaving(false)
       return
     }
 
-    const body = buildSubmitBody(form)
+    const activeRows = linkRows.filter((r) => r.systemId !== null)
+    const { toPost, toPut, toDelete } = diffLinks(originalLinks, activeRows)
+    const writes = [
+      ...toPost.map((r) =>
+        createOrganisationSystemLink(id, {
+          systemId: r.systemId,
+          role: r.role,
+          sourceReference: r.sourceReference || undefined,
+          note: r.note || undefined,
+        }),
+      ),
+      ...toPut.map((r) =>
+        updateOrganisationSystemLink(id, r.linkId, {
+          systemId: r.systemId,
+          role: r.role,
+          sourceReference: r.sourceReference || undefined,
+          note: r.note || undefined,
+        }),
+      ),
+      ...toDelete.map((l) => deleteOrganisationSystemLink(id, l.id)),
+    ]
 
-    mutation.mutate(body, {
-      onSuccess: () => {
-        navigate(`/organisations/${id}`, { state: { organisationSaved: true } })
-      },
-      onError: (err) => {
-        if (Array.isArray(err.fields) && err.fields.length > 0) {
-          setSubmitError(null)
-          setSummaryErrors(mapServerFieldsToSummary(err.fields))
-        } else {
-          setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
-        }
-      },
+    if (writes.length === 0) {
+      navigate(`/organisations/${id}`, { state: { organisationSaved: true } })
+      return
+    }
+
+    const results = await Promise.allSettled(writes)
+    const anyFailed = results.some((r) => r.status === 'rejected')
+    navigate(`/organisations/${id}`, {
+      state: anyFailed ? { linksSavedWithErrors: true } : { organisationSaved: true },
     })
   }
 
@@ -766,9 +983,10 @@ function OrganisationEditForm({ id }) {
       metaLoading={metaLoading}
       metaError={metaError}
       orgTypesQ={orgTypesQ}
-      ticketingQ={ticketingQ}
-      crmQ={crmQ}
-      mutation={mutation}
+      isSaving={isSaving}
+      linkRows={linkRows}
+      setLinkRows={setLinkRows}
+      linkRowErrors={linkRowErrors}
       onSubmit={handleSubmit}
     />
   )

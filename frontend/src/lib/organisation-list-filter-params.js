@@ -1,15 +1,15 @@
-/** Order matches filter bar and clear-all behaviour (Story 3.2). */
+/** Order matches filter bar and clear-all behaviour. */
 export const LIST_FILTER_PARAM_KEYS = Object.freeze([
   'country',
-  'provider',
   'type',
-  'crm',
+  'system',
+  'system_role',
   'membership',
   'donation',
   'seating',
 ])
 
-/** URL param keys that must use YES | NO | UNKNOWN (Story 3.2 / 3.3). */
+/** URL param keys that must use YES | NO | UNKNOWN. */
 export const CAPABILITY_FILTER_PARAM_KEYS = new Set(['membership', 'donation', 'seating'])
 
 const CAPABILITY_URL_VALUES = ['YES', 'NO', 'UNKNOWN']
@@ -24,9 +24,9 @@ export function normaliseCapabilityParam(raw) {
 
 export const FILTER_DIMENSION_LABELS = Object.freeze({
   country: 'Country',
-  provider: 'Provider',
   type: 'Type',
-  crm: 'CRM',
+  system: 'Adopted system',
+  system_role: 'Role',
   membership: 'Membership',
   donation: 'Donation',
   seating: 'Reserved Seating',
@@ -84,7 +84,7 @@ export function hasActiveListFilters(searchParams) {
 }
 
 /**
- * Removes only the seven filter keys and sets page=1 (Story 3.2 / 3.3).
+ * Removes only the filter keys and sets page=1.
  * @param {URLSearchParams} prev
  */
 export function clearAllListFiltersInSearchParams(prev) {

@@ -15,16 +15,9 @@ function isUuidParam(id) {
 
 const COUNTRY_SET = new Set(COUNTRIES);
 const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
+const VALID_ROLES = new Set(['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']);
 const MIN_CAPACITY = 0;
 const MAX_CAPACITY = 2_147_483_647;
-
-function normaliseOptionalFk(value) {
-  if (value === undefined || value === null || value === '') return null;
-  if (typeof value !== 'string') return { error: 'invalid' };
-  const t = value.trim();
-  if (t === '') return null;
-  return { id: t };
-}
 
 function normaliseCapability(value, field) {
   if (value === undefined || value === null || value === '') return { ok: true, value: 'UNKNOWN' };
@@ -83,6 +76,24 @@ function asQueryString(param) {
   return String(param);
 }
 
+/**
+ * Checks the (already-stripped) body for v1 legacy FK keys that must be rejected.
+ * Returns a fields[] array with one entry per forbidden key present.
+ * @param {Record<string, unknown>} body
+ */
+function checkForbiddenOrganisationBodyKeys(body) {
+  const forbidden = [];
+  for (const key of ['ticketing_provider_id', 'crm_platform_id', 'ticketingProviderId', 'crmPlatformId', 'systems']) {
+    if (key in body) {
+      forbidden.push({
+        field: key,
+        message: 'Use POST /api/organisations/:id/systems instead',
+      });
+    }
+  }
+  return forbidden;
+}
+
 const listOrganisations = async (req, res) => {
   const fields = [];
 
@@ -110,11 +121,52 @@ const listOrganisations = async (req, res) => {
     }
   }
 
+  // Reject deprecated v1 filter params explicitly
+  const providerRaw = asQueryString(req.query.provider);
+  if (providerRaw !== undefined) {
+    fields.push({ field: 'provider', message: 'Unknown filter' });
+  }
+  const crmRaw = asQueryString(req.query.crm);
+  if (crmRaw !== undefined) {
+    fields.push({ field: 'crm', message: 'Unknown filter' });
+  }
+
+  // v2 system filter
+  const systemRaw = asQueryString(req.query.system);
+  const systemRoleRaw = asQueryString(req.query.system_role);
+  let systemUuid;
+  let systemRole;
+
+  if (systemRaw !== undefined) {
+    const trimmed = systemRaw.trim();
+    if (!isUuidParam(trimmed)) {
+      fields.push({ field: 'system', message: 'Provide a valid system UUID' });
+    } else {
+      systemUuid = trimmed;
+    }
+  }
+
+  if (systemRoleRaw !== undefined) {
+    if (systemUuid === undefined && systemRaw === undefined) {
+      // system_role without any system param
+      fields.push({ field: 'system_role', message: 'Provide a system filter to use a role sub-filter' });
+    } else if (systemUuid !== undefined) {
+      // system is valid UUID — validate the role
+      const r = systemRoleRaw.trim().toUpperCase();
+      if (!VALID_ROLES.has(r)) {
+        fields.push({ field: 'system_role', message: 'Select a valid role' });
+      } else {
+        systemRole = r;
+      }
+    } else {
+      // system param was present but failed UUID validation — only report the system UUID error
+      // (system_role dependency error would be confusing on top of an invalid UUID)
+    }
+  }
+
   const qRaw = asQueryString(req.query.q);
   const countryRaw = asQueryString(req.query.country);
-  const providerRaw = asQueryString(req.query.provider);
   const typeRaw = asQueryString(req.query.type);
-  const crmRaw = asQueryString(req.query.crm);
   const membershipRaw = asQueryString(req.query.membership);
   const donationRaw = asQueryString(req.query.donation);
   const seatingRaw = asQueryString(req.query.seating);
@@ -141,7 +193,6 @@ const listOrganisations = async (req, res) => {
     });
   }
 
-  /** @type {{ page: number; limit: number; q?: string; country?: string; provider?: string; type?: string; crm?: string; membership?: string; donation?: string; seating?: string }} */
   const listParams = { page, limit };
 
   if (qRaw !== undefined && qRaw.trim() !== '') {
@@ -150,18 +201,15 @@ const listOrganisations = async (req, res) => {
   if (countryRaw !== undefined && countryRaw.trim() !== '') {
     listParams.country = countryRaw.trim();
   }
-  const providerTrimmed =
-    providerRaw !== undefined && typeof providerRaw === 'string' ? providerRaw.trim() : '';
-  if (providerTrimmed !== '') {
-    listParams.provider = providerTrimmed;
-  }
   const typeTrimmed = typeRaw !== undefined && typeof typeRaw === 'string' ? typeRaw.trim() : '';
   if (typeTrimmed !== '') {
     listParams.type = typeTrimmed;
   }
-  const crmTrimmed = crmRaw !== undefined && typeof crmRaw === 'string' ? crmRaw.trim() : '';
-  if (crmTrimmed !== '') {
-    listParams.crm = crmTrimmed;
+  if (systemUuid !== undefined) {
+    listParams.system = systemUuid;
+  }
+  if (systemRole !== undefined) {
+    listParams.system_role = systemRole;
   }
   if (membershipRaw !== undefined && membershipRaw !== null && String(membershipRaw).trim() !== '') {
     listParams.membership = memQ.value;
@@ -232,7 +280,8 @@ function stripClientControlledOrganisationKeys(body) {
 }
 
 /**
- * Validates a write payload (create/update) after client-controlled keys are stripped.
+ * Validates a write payload (create/update) after client-controlled keys are stripped
+ * and forbidden legacy keys are rejected.
  * @returns {{ fields: { field: string; message: string }[]; payload: object | null }}
  */
 function parseOrganisationWritePayload(raw) {
@@ -271,15 +320,6 @@ function parseOrganisationWritePayload(raw) {
     fields.push({ field: 'organisationTypeId', message: 'Select an organisation type' });
   }
 
-  const tp = normaliseOptionalFk(raw.ticketingProviderId);
-  if (tp && tp.error) {
-    fields.push({ field: 'ticketingProviderId', message: 'Select a valid ticketing provider' });
-  }
-  const crm = normaliseOptionalFk(raw.crmPlatformId);
-  if (crm && crm.error) {
-    fields.push({ field: 'crmPlatformId', message: 'Select a valid CRM platform' });
-  }
-
   const mem = normaliseCapability(raw.membershipCapability, 'membershipCapability');
   if (!mem.ok) fields.push({ field: mem.field, message: mem.message });
   const don = normaliseCapability(raw.donationCapability, 'donationCapability');
@@ -305,8 +345,6 @@ function parseOrganisationWritePayload(raw) {
     city,
     country: countryRaw,
     organisationTypeId,
-    ticketingProviderId: null,
-    crmPlatformId: null,
     membershipCapability: mem.value,
     donationCapability: don.value,
     reservedSeatingCapability: rs.value,
@@ -315,14 +353,11 @@ function parseOrganisationWritePayload(raw) {
     capacity: cap.value,
   };
 
-  if (tp && tp.id) payload.ticketingProviderId = tp.id;
-  if (crm && crm.id) payload.crmPlatformId = crm.id;
-
   return { fields: [], payload };
 }
 
 async function validateOrganisationForeignKeys(payload) {
-  const { organisationTypeId, ticketingProviderId, crmPlatformId } = payload;
+  const { organisationTypeId } = payload;
 
   if (organisationTypeId) {
     const typeRow = await prisma.organisationType.findUnique({ where: { id: organisationTypeId } });
@@ -335,44 +370,6 @@ async function validateOrganisationForeignKeys(payload) {
             error: {
               message: 'Validation failed',
               fields: [{ field: 'organisationTypeId', message: 'Select an organisation type' }],
-            },
-            meta: null,
-          },
-        },
-      };
-    }
-  }
-
-  if (ticketingProviderId) {
-    const row = await prisma.ticketingProvider.findUnique({ where: { id: ticketingProviderId } });
-    if (!row) {
-      return {
-        response: {
-          status: 400,
-          body: {
-            data: null,
-            error: {
-              message: 'Validation failed',
-              fields: [{ field: 'ticketingProviderId', message: 'Select a valid ticketing provider' }],
-            },
-            meta: null,
-          },
-        },
-      };
-    }
-  }
-
-  if (crmPlatformId) {
-    const row = await prisma.crmPlatform.findUnique({ where: { id: crmPlatformId } });
-    if (!row) {
-      return {
-        response: {
-          status: 400,
-          body: {
-            data: null,
-            error: {
-              message: 'Validation failed',
-              fields: [{ field: 'crmPlatformId', message: 'Select a valid CRM platform' }],
             },
             meta: null,
           },
@@ -397,6 +394,16 @@ const createOrganisation = async (req, res) => {
   }
 
   const raw = stripClientControlledOrganisationKeys(req.body);
+
+  const forbiddenFields = checkForbiddenOrganisationBodyKeys(raw);
+  if (forbiddenFields.length > 0) {
+    return res.status(400).json({
+      data: null,
+      error: { message: 'Validation failed', fields: forbiddenFields },
+      meta: null,
+    });
+  }
+
   const { fields, payload } = parseOrganisationWritePayload(raw);
 
   if (fields.length > 0) {
@@ -444,6 +451,16 @@ const updateOrganisation = async (req, res) => {
   }
 
   const raw = stripClientControlledOrganisationKeys(req.body);
+
+  const forbiddenFields = checkForbiddenOrganisationBodyKeys(raw);
+  if (forbiddenFields.length > 0) {
+    return res.status(400).json({
+      data: null,
+      error: { message: 'Validation failed', fields: forbiddenFields },
+      meta: null,
+    });
+  }
+
   const { fields, payload } = parseOrganisationWritePayload(raw);
 
   if (fields.length > 0) {

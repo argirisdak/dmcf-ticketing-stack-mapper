@@ -1,5 +1,6 @@
 const express = require('express');
 const organisationController = require('../controllers/organisation-controller');
+const organisationSystemsRouter = require('./organisation-systems');
 
 const router = express.Router();
 
@@ -8,5 +9,6 @@ router.get('/', organisationController.listOrganisations);
 router.get('/:id', organisationController.getOrganisationById);
 router.put('/:id', organisationController.updateOrganisation);
 router.delete('/:id', organisationController.deleteOrganisation);
+router.use('/:id/systems', organisationSystemsRouter);
 
 module.exports = router;

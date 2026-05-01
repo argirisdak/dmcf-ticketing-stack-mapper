@@ -7,8 +7,7 @@ import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
 const ROW_LABELS = [
   'Country',
   'Type',
-  'Ticketing Provider',
-  'CRM Platform',
+  'Systems',
   'Membership Capability',
   'Donation Capability',
   'Reserved Seating Capability',
@@ -70,7 +69,7 @@ export default function ComparePage() {
           className="inline-grid min-w-full gap-x-4"
           style={{
             gridTemplateColumns: `12rem repeat(${ids.length}, 18rem)`,
-            gridTemplateRows: 'auto repeat(9, auto)',
+            gridTemplateRows: 'auto repeat(8, auto)',
           }}
         >
           <div className="sticky left-0 z-20 col-start-1 row-span-full grid min-w-0 grid-rows-subgrid border-r border-slate-200 bg-slate-50">
@@ -92,6 +91,7 @@ export default function ComparePage() {
             <OrganisationCard
               key={id}
               compareGridColumn={index + 2}
+              variant="compare"
               organisationId={id}
               query={queries[index]}
               onRemove={() => removeId(id)}

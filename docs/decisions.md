@@ -2,7 +2,7 @@
 
 This file records all meaningful architectural decisions made during implementation. Each entry states what was decided and why.
 
-**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**.
+**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**; v2 schema migration — three-step sequence — **ADR-015**; system `geographic_focus` list dual maintenance — **ADR-016**; `GET /api/systems` multi-value `category` filter — **ADR-017**.
 
 ---
 
@@ -160,6 +160,36 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
 **Rationale:** Meets Story 5.1 AC5 (idempotent, deterministic state) without deleting user-created orgs that might share no ids with the fixed set. Lookup FKs are resolved by **name** at seed time, not hardcoded lookup UUIDs.
 
 **Implication:** Adding or renumbering sample UUIDs is a conscious change; testers can rely on documented ids for compare and filter smoke checks. Non-sample organisations created in the app are unaffected by re-seeding.
+
+---
+
+## ADR-015: v2 systems model — three Prisma migrations (additive → backfill → destructive)
+
+**Decision:** Converting the catalogue from legacy `ticketing_provider` / `crm_platform` FKs on `organisation` to the `system` + `organisation_system` model is implemented as **three sequential Prisma migrations**, not one: **(A)** additive schema (`system`, `organisation_system`, enums, indexes; legacy columns and lookup tables unchanged); **(B)** custom SQL backfill from legacy FKs into the new tables; **(C)** drop legacy lookup tables and FK columns (deferred to Epic 10).
+
+**Rationale:** A single migration that removes the old FK columns before `organisation_system` is populated would strand associations and lose provenance. Additive-first keeps existing rows valid while the junction is filled deterministically, then destructive cleanup is safe.
+
+**Implication:** Story 6.1 applies only Migration A. Local `npx prisma migrate dev` may detect drift versus `schema.prisma` when the database still has **raw-SQL-only** GIN (`pg_trgm`) indexes (organisation search and system search) that are not declared as Prisma `@@index` attributes — those indexes are intentional. Use **`prisma migrate deploy`** in Docker/CI when applying an already-reviewed migration folder; avoid interactive `migrate dev` replan cycles unless intentionally generating a new migration.
+
+---
+
+## ADR-016: System `geographic_focus` list — dual maintenance (Story 6.3)
+
+**Decision:** Canonical allowed values for **`system.geographic_focus`** live in **`backend/src/lib/system-geographic-focus.js`** and **`frontend/src/lib/system-geographic-focus.js`** as **`SYSTEM_GEOGRAPHIC_FOCUS`**. Both files must stay identical. There is no `GET /api/meta/geographic-focus` endpoint.
+
+**Rationale:** Matches the **ADR-008** pattern for countries: static validation lists for an internal MVP without an extra round-trip. System list filters (Epic 7+) will validate `geographic_focus` against this set.
+
+**Implication:** When the list changes, update **both** files in the same commit. Seed data and migrations should only use values present in the shared constant.
+
+---
+
+## ADR-017: `GET /api/systems` — multi-value `category` filter via repeated query param (Story 7.1)
+
+**Decision:** The `category` filter on `GET /api/systems` accepts **repeated** `?category=` params (e.g. `?category=INTEGRATED&category=TICKETING`) and maps to a Prisma **`category: { in: [...] }`** clause. This is the first multi-value list filter in the API; all other filter params remain single-value.
+
+**Rationale:** Category is a primary discovery dimension for Systems and users will frequently want to view more than one category at once (e.g. "show me integrated and ticketing systems"). A comma-separated single-param approach (`?category=INTEGRATED,TICKETING`) is non-standard; Express's built-in `req.query` parsing of repeated keys into arrays is the idiomatic choice. `URLSearchParams` on the frontend handles repeated params natively.
+
+**Implication:** The frontend must serialise multi-category selection using `URLSearchParams.append('category', value)` per selected value — not a comma-separated string. Backend controller normalises a single string param to a one-element array so single-value and multi-value clients behave identically.
 
 ---
 

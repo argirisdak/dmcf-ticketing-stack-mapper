@@ -13,6 +13,33 @@ enum CapabilityState {
   UNKNOWN
 }
 
+enum SystemCategory {
+  INTEGRATED
+  TICKETING
+  AUDIENCE_MANAGEMENT
+}
+
+enum SystemRole {
+  PRIMARY_TICKETING
+  PRIMARY_CRM
+  INTEGRATED_SUITE
+  SECONDARY
+}
+
+enum DeploymentModel {
+  SAAS
+  SELF_HOSTED
+  HYBRID
+}
+
+enum PricingModel {
+  SUBSCRIPTION
+  TRANSACTION_FEE
+  LICENCE
+  HYBRID
+  UNKNOWN
+}
+
 model Organisation {
   id                          String          @id @default(uuid())
   name                        String
@@ -30,39 +57,80 @@ model Organisation {
   last_updated                DateTime        @default(now()) @updatedAt
   created_at                  DateTime        @default(now())
 
-  organisation_type     OrganisationType   @relation(fields: [organisation_type_id], references: [id])
-  ticketing_provider    TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])
-  crm_platform          CrmPlatform?       @relation(fields: [crm_platform_id], references: [id])
+  organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
+  ticketing_provider TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])
+  crm_platform       CrmPlatform?       @relation(fields: [crm_platform_id], references: [id])
+  systems            OrganisationSystem[]
 
   @@map("organisation")
 }
 
 model TicketingProvider {
-  id            String         @id @default(uuid())
-  name          String         @unique
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
+  id            String @id @default(uuid())
+  name          String @unique
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
   organisations Organisation[]
 
   @@map("ticketing_provider")
 }
 
 model CrmPlatform {
-  id            String         @id @default(uuid())
-  name          String         @unique
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
+  id            String @id @default(uuid())
+  name          String @unique
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
   organisations Organisation[]
 
   @@map("crm_platform")
 }
 
 model OrganisationType {
-  id            String         @id @default(uuid())
-  name          String         @unique
-  created_at    DateTime       @default(now())
-  updated_at    DateTime       @updatedAt
+  id            String @id @default(uuid())
+  name          String @unique
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
   organisations Organisation[]
 
   @@map("organisation_type")
+}
+
+model System {
+  id                          String             @id @default(uuid())
+  name                        String             @unique
+  vendor                      String
+  category                    SystemCategory
+  deployment_model            DeploymentModel?
+  pricing_model               PricingModel?
+  geographic_focus            String?
+  description                 String?
+  membership_capability       CapabilityState    @default(UNKNOWN)
+  donation_capability         CapabilityState    @default(UNKNOWN)
+  reserved_seating_capability CapabilityState    @default(UNKNOWN)
+  source_reference            String?
+  custom_attributes           Json?
+  last_updated                DateTime           @default(now()) @updatedAt
+  created_at                  DateTime           @default(now())
+
+  organisation_systems OrganisationSystem[]
+
+  @@map("system")
+}
+
+model OrganisationSystem {
+  id               String       @id @default(uuid())
+  organisation_id  String
+  organisation     Organisation @relation(fields: [organisation_id], references: [id], onDelete: Cascade)
+  system_id        String
+  system           System       @relation(fields: [system_id], references: [id], onDelete: Restrict)
+  role             SystemRole
+  source_reference String?
+  note             String?
+  last_updated     DateTime     @default(now()) @updatedAt
+  created_at       DateTime     @default(now())
+
+  @@unique([organisation_id, system_id])
+  @@index([system_id])
+  @@index([organisation_id])
+  @@map("organisation_system")
 }

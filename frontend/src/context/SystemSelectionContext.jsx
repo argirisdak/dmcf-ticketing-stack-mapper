@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
-import { SelectionContext } from './selection-context.js'
+import { SystemSelectionContext } from './system-selection-context.js'
 
-export function SelectionProvider({ children }) {
+export function SystemSelectionProvider({ children }) {
   const [selectedIds, setSelectedIds] = useState([])
 
   const toggleSelection = useCallback((id) => {
@@ -18,8 +18,8 @@ export function SelectionProvider({ children }) {
   )
 
   return (
-    <SelectionContext.Provider value={value}>
+    <SystemSelectionContext.Provider value={value}>
       {children}
-    </SelectionContext.Provider>
+    </SystemSelectionContext.Provider>
   )
 }

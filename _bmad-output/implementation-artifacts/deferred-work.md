@@ -1,5 +1,52 @@
 # Deferred work
 
+## Deferred from: code review of 8-5-organisation-form-linked-systems-editor.md (2026-05-01)
+
+- **`fetchOrganisations` param rename (`provider`/`crm` → `system`/`system_role`)** — All callers must use the new query keys; verify list/filter hooks and URL sync outside the reviewed chunk.
+
+- **“Compare these systems →” on detail** — Link targets `/compare/organisations` without guaranteed selection context; revisit when compare flows and SelectionProvider behaviour are final.
+
+## Deferred from: code review of 8-4-organisation-detail-linked-systems-panel.md (2026-05-01)
+
+- **Edit PUT 409 / duplicate `systemId`** — Frontend does not map update conflicts to inline messaging; depends on whether the junction PUT returns 409 when retargeting to an existing pair. Revisit when API behaviour is confirmed.
+
+## Deferred from: code review of 8-2-organisation-api-filter-and-response-re-shape.md (2026-05-01)
+
+- **`buildOrganisationListCompositeWhere` ignores orphan `system_role`** — If `listOrganisations` were called internally with `system_role` but no `system`, no junction filter is applied. The HTTP controller always validates pairing; defer hardening unless non-HTTP callers are introduced.
+
+## Deferred from: code review of 7-6-system-create-edit-form.md (2026-04-30)
+
+- **`createSystem` 409 / duplicate name not exercised in Vitest** — Inline name conflict UX depends on `err.fields`; add a mocked 409 response test when the frontend API suite grows.
+
+## Deferred from: code review of 7-4-system-list-page.md (2026-04-30)
+
+- **`limit` not read from URL for system list** — Matches organisation list parser behaviour; revisit if URL-driven page size is required.
+- **`fetchSystems` assumes JSON error bodies** — Non-JSON responses can throw on `res.json()`; align with a shared API helper if this is tightened project-wide.
+- **Search box vs URL `q` after back/forward** — Matches organisation list pattern; revisit if filters must mirror URL on every navigation type.
+
+## Deferred from: code review of 7-3-navigation-shell-organisations-systems-switch-and-selectioncontext-split.md (2026-04-30)
+
+- **No frontend tests for Story 7–3 behaviours** — Pathname-derived nav active state and navigation to `/compare/organisations?ids=` could be covered in a smoke or component test suite in a later story.
+
+## Deferred from: code review of 7-2-system-rest-api-create-update-delete.md (2026-04-30)
+
+- **P2002 mapped only to `field: name`** — Fine while `System.name` is the only unique constraint; extend error mapping if further uniques are added.
+- **Monolithic `system-controller.js`** — Read and write paths share one file; consider splitting when the systems API surface grows.
+
+## Deferred from: code review of 6-3-updatedat-on-system-organisationsystem-and-seed-reshape.md (2026-04-30)
+
+- **`seed.js` `console.error` on failure** — Acceptable for CLI seed entrypoint; differs from API “no console.error” rule in project-context.
+- **Integration test: Prisma `update` bumps `system.last_updated`** — Optional per story; add when CI runs migrations against Postgres.
+
+## Deferred from: code review of 6-2-migration-b-backfill-systems-and-organisation-links-custom-sql.md (2026-05-01)
+
+- **`CREATE EXTENSION pgcrypto` on managed Postgres** — May need superuser or extension allow-list on RDS/Aurora; verify against target hosting before production migrate.
+- **Migration B not executed in automated integration tests** — Only structural Jest checks; rely on `migrate deploy` / manual DB verification until CI runs migrations against Postgres.
+
+## Deferred from: code review of 6-1-migration-a-add-system-and-organisationsystem-schema-additive.md (2026-04-30)
+
+- **Scoped diff vs working tree** — `git diff HEAD` on `main` may include large `_bmad-output/planning-artifacts` edits (epics, architecture, UX) alongside Migration A; reviewers should diff the story File List or a dedicated branch for Story 6.1 only.
+
 ## Deferred from: code review of 5-2-readme-completion-and-demo-smoke-test.md (2026-04-04)
 
 - **ADR-011 rationale tone** — Replace informal “lineage the user hit” phrasing with a pinned Prisma version and a concrete reference to middleware removal in the docs when convenient.

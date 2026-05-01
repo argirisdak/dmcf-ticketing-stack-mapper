@@ -151,16 +151,15 @@ CommonJS (default Node.js) — no `"type": "module"` in `package.json`.
 
 **ORM:**
 Prisma v6 with the `postgresql` datasource provider. Chosen over v7 for this MVP because:
-- All standard patterns work without modification (including `$use` middleware for `last_updated`)
+- All standard patterns work without modification (including `@updatedAt` on `organisation.last_updated` per ADR-011)
 - No ESM conversion required
 - No `prisma.config.ts` (TypeScript file in a JS project)
 - Automatic seeding on `migrate dev` still works as expected
 - No confirmed EOL date; v6 remains viable for an internal MVP
 
 Note: Prisma v7 with the legacy `prisma-client-js` provider is a viable alternative that avoids the
-ESM requirement, but still removes `$use` middleware, automatic seeding, and requires `prisma.config.ts`.
-If the project moves to v7, the `last_updated` hook must be implemented as a Client Extension or
-PostgreSQL trigger — a decision to revisit in a future phase.
+ESM requirement, but changes bootstrap (`prisma.config.ts`, seed integration) and must be validated before upgrade.
+If the project moves to v7, keep `last_updated` on `@updatedAt` unless a future ADR replaces ADR-011.
 
 Schema at `backend/prisma/schema.prisma`. Migrations via `npx prisma migrate dev`.
 Seed via `backend/prisma/seed.js` per project context.
@@ -226,14 +225,10 @@ Compose setup) should be the first implementation story.
 - Affects: `organisation` table schema, API serialisation, frontend `CapabilityBadge` component
 
 **Decision: `last_updated` mechanism**
-- Choice: Prisma v6 `$use` middleware
-- Rationale: Internal MVP where all writes go through the API; DB-level trigger enforcement is
-  unnecessary overhead. Middleware is visible in application code, easier to read and reason
-  about than a DB trigger. `$use` is clean and idiomatic in Prisma v6.
-- Implementation: Single middleware registered on the Prisma client instance; sets
-  `data.last_updated = new Date()` before every `update` operation on `organisation`.
-  `last_updated` is never accepted from the request body.
-- Affects: Prisma client setup, all organisation update paths
+- Choice: Prisma `@default(now()) @updatedAt` on `organisation.last_updated` (ADR-011 — no client `$use` middleware)
+- Rationale: Internal MVP where all writes go through the API; Prisma updates the column on every write without DB triggers. Request bodies must not set `last_updated` — controllers strip timestamp fields.
+- Implementation: Field on the `Organisation` model in `schema.prisma`; singleton `PrismaClient` in `lib/prisma.js` without `$use` hooks for freshness.
+- Affects: Prisma schema, all organisation update paths, request validation
 
 ---
 
@@ -343,8 +338,8 @@ present; mis-deployment to a public host would expose all data. Secrets in `.env
 ### Decision Impact Analysis
 
 **Implementation sequence (decisions that must be in place before others):**
-1. Prisma schema (country string, CapabilityState enum, `last_updated` field) — blocks all API work
-2. Prisma `$use` middleware for `last_updated` — must be in place before any organisation update
+1. Prisma schema (country string, CapabilityState enum, `last_updated` with `@updatedAt`) — blocks all API work
+2. ADR-011 freshness rule (`last_updated` not client-settable) — must hold before any organisation update ships
 3. `pg_trgm` extension migration — must precede search implementation
 4. `SelectionContext` provider — must be in place before list checkboxes or compare bar
 5. TanStack Query `QueryClientProvider` — must wrap the app before any data-fetching hooks
@@ -354,7 +349,7 @@ present; mis-deployment to a public host would expose all data. Secrets in `.env
 - `CapabilityState` enum flows from Prisma schema → API response shape → `CapabilityBadge` props
 - Filter query params flow from `useSearchParams` → TanStack Query key → API `GET /organisations`
 - Selection state flows from `SelectionContext` → `CompareSelectionBar` → `/compare?ids=...` URL
-- `last_updated` is set by Prisma middleware → returned in API response → displayed as read-only
+- `last_updated` is maintained by Prisma `@updatedAt` → returned in API response → displayed as read-only
   in detail, compare card, and list table (muted secondary text per UX spec)
 - Validation error shape (`fields: [{ field, message }]`) flows from controller → API response →
   frontend error summary + inline error components
@@ -434,8 +429,7 @@ backend/src/
 
 - Prisma client: single instance exported from `src/lib/prisma.js`; never instantiate
   `PrismaClient` anywhere else
-- Middleware (including `$use` for `last_updated`) is registered on the instance in `lib/prisma.js`
-  immediately after instantiation
+- No `$use` hooks for `last_updated` — freshness is schema-driven (`@updatedAt` on `last_updated`, ADR-011)
 
 **Frontend file locations:**
 ```
@@ -640,7 +634,7 @@ const { selectedIds, toggleSelection, clearSelection } = useSelection()
 | Navigation (FR7) | — | `App.jsx` (React Router routes) |
 | Filtering (FR8–13) | `organisation-controller.js` (query param parsing) | `ActiveFilterChips.jsx`, `useOrganisations.js` |
 | Compare (FR14–16) | — | `CompareSelectionBar.jsx`, `ComparePage.jsx`, `OrganisationCard.jsx`, `SelectionContext.jsx` |
-| Provenance & freshness (FR17–20) | `lib/prisma.js` (`$use` middleware), `schema.prisma` | `OrganisationDetailPage.jsx`, `OrganisationCard.jsx` |
+| Provenance & freshness (FR17–20) | `schema.prisma` (`@updatedAt` on `last_updated`) | `OrganisationDetailPage.jsx`, `OrganisationCard.jsx` |
 | Reference dimensions (FR21–24) | `meta-controller.js`, `seed.js`, schema enums | `useMetaData.js`, select fields in `OrganisationFormPage.jsx` |
 | Pagination (FR25) | `organisation-controller.js` (offset query + meta) | `OrganisationListPage.jsx` (shadcn `Pagination`) |
 | Operability (FR26–28) | `docker-compose.yml`, `README.md`, `seed.js` | `README.md` |
@@ -665,7 +659,7 @@ const { selectedIds, toggleSelection, clearSelection } = useSelection()
 │       ├── index.js                  ← server entry point (app.listen)
 │       ├── app.js                    ← Express app, middleware registration, route mounting
 │       ├── lib/
-│       │   └── prisma.js             ← PrismaClient singleton + $use middleware for last_updated
+│       │   └── prisma.js             ← PrismaClient singleton (freshness via @updatedAt on schema)
 │       ├── routes/
 │       │   ├── organisations.js      ← routing only; mounts organisation-controller handlers
 │       │   └── meta.js               ← routing only; mounts meta-controller handlers
@@ -864,7 +858,7 @@ diagrams in the integration points section.
 | FR5–7 (List, search, nav) | `OrganisationListPage`, `useOrganisations`, `ILIKE` + `pg_trgm`, React Router routes |
 | FR8–13 (Filtering) | `ActiveFilterChips`, URL query params, server-side `WHERE` clause, all five filter dimensions |
 | FR14–16 (Compare) | `SelectionContext`, `CompareSelectionBar`, `ComparePage`, `OrganisationCard`, parallel fetches |
-| FR17–20 (Provenance) | `source_reference` field, `last_updated` via Prisma `$use` middleware, detail + compare display |
+| FR17–20 (Provenance) | `source_reference` field, `last_updated` via Prisma `@updatedAt`, detail + compare display |
 | FR21–24 (Reference dims) | Lookup tables + meta endpoints + `CapabilityState` enum + seeded data |
 | FR25 (Pagination) | Offset pagination, `meta: { page, limit, total, totalPages }`, shadcn `Pagination` |
 | FR26–28 (Operability) | `docker-compose.yml`, `seed.js`, `README.md` |
@@ -984,7 +978,7 @@ four clarifications added during validation to prevent common agent errors.
 - No auth complexity, no external integrations — agents can focus on product logic
 - Comprehensive pattern specification reduces ambiguity for AI-agent implementation
 - URL-encoded filter state is a well-understood React Router pattern
-- Prisma v6 with `$use` middleware is the simplest, most readable `last_updated` solution
+- Prisma v6 with `@updatedAt` on `last_updated` (ADR-011) is the simplest `last_updated` solution for this stack
 
 **Areas for future enhancement (post-MVP):**
 - Prisma v6 → v7 migration when moving to ESM or TypeScript

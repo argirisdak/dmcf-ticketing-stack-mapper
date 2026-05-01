@@ -117,7 +117,7 @@ The PRD is **well-structured and complete**. It contains 31 numbered FRs coverin
 | FR17 | View source reference | Epic 2 | Stories 2.2–2.3 | ✓ Covered |
 | FR18 | Create/edit source reference | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
 | FR19 | View last updated time | Epic 2 | Story 2.3 | ✓ Covered |
-| FR20 | Automatic last_updated maintenance via middleware | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
+| FR20 | Automatic last_updated maintenance via `@updatedAt` (ADR-011) | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
 | FR21 | Choose ticketing provider from controlled set | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
 | FR22 | Choose CRM platform from controlled set | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
 | FR23 | Choose organisation type from controlled set | Epic 2 | Stories 2.2–2.4 | ✓ Covered |
@@ -176,7 +176,7 @@ The architecture document was created using both PRD and UX spec as inputs and d
 - **React Router v6** → supports UX-DR11 navigation and back-link patterns
 - **shadcn/ui Radix Dialog** → supports UX-DR6 delete confirmation
 - **Parallel `Promise.all` fetches for compare** → supports UX-DR15 and NFR P2
-- **Prisma `$use` middleware** → supports `last_updated` maintenance (UX detail: Sam never manually sets it)
+- **Prisma `@updatedAt` on `last_updated`** → supports `last_updated` maintenance (UX detail: Sam never manually sets it)
 - **`pg_trgm` GIN index + `ILIKE`** → supports UX-DR14 debounced search performance
 
 ### Alignment Issues
@@ -231,7 +231,7 @@ Epic 1 frames its value in terms of team-member operability ("Staff and team mem
 
 **Concern m2 — Story 1.1 creates the full Prisma schema upfront**
 
-Story 1.1 establishes the complete data model (all tables, all enums, all relationships, `pg_trgm` extension, `$use` middleware). Strict story sizing would have each story create only the tables it needs. However, for Prisma-based projects, holistic schema management via migrations is architecturally correct — piecemeal schema evolution with Prisma is complex and fragile. This deviation is justified by the stack and is the right call.
+Story 1.1 establishes the complete data model (all tables, all enums, all relationships, `pg_trgm` extension, `last_updated` via `@updatedAt`). Strict story sizing would have each story create only the tables it needs. However, for Prisma-based projects, holistic schema management via migrations is architecturally correct — piecemeal schema evolution with Prisma is complex and fragile. This deviation is justified by the stack and is the right call.
 
 **Concern m3 — Story 2.4 introduces a shared form component implicitly**
 

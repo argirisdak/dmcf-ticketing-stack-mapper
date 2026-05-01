@@ -1,3 +1,4 @@
+import { Ticket, Users, Layers, Link2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Badge } from './ui/badge.jsx'
 import { Button } from './ui/button.jsx'
@@ -7,6 +8,98 @@ import { OrganisationNotFoundError } from '../api/organisations.js'
 import { cn } from '../lib/utils.js'
 
 const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+
+const ROLE_ICON_MAP = {
+  PRIMARY_TICKETING: Ticket,
+  PRIMARY_CRM: Users,
+  INTEGRATED_SUITE: Layers,
+  SECONDARY: Link2,
+}
+
+const ROLE_LABELS = {
+  PRIMARY_TICKETING: 'Primary ticketing',
+  PRIMARY_CRM: 'Primary CRM',
+  INTEGRATED_SUITE: 'Integrated suite',
+  SECONDARY: 'Secondary',
+}
+
+const CATEGORY_CONFIG = {
+  INTEGRATED: 'bg-blue-50 text-blue-700 border border-blue-200',
+  TICKETING: 'bg-amber-50 text-amber-700 border border-amber-200',
+  AUDIENCE_MANAGEMENT: 'bg-purple-50 text-purple-700 border border-purple-200',
+}
+
+/** @param {{ id?: unknown, name?: unknown, category?: unknown } | null | undefined} system */
+function linkedSystemPresentation(system) {
+  const rawName =
+    system != null && system.name != null && String(system.name).trim() !== ''
+      ? String(system.name).trim()
+      : null
+  const name = rawName ?? 'Unnamed system'
+  let id = null
+  if (system != null && system.id != null) {
+    const s = String(system.id).trim()
+    if (s !== '') id = s
+  }
+  const href = id !== null ? `/systems/${encodeURIComponent(id)}` : null
+  return { name, href, category: system?.category }
+}
+
+function SystemsChipStrip({ systems }) {
+  if (!systems || systems.length === 0) {
+    return <span className="text-xs text-slate-400 italic">No systems linked</span>
+  }
+  const visible = systems.slice(0, 3)
+  const overflow = systems.length - 3
+  return (
+    <div className="flex flex-wrap items-center gap-1">
+      {visible.map((link) => {
+        const Icon = ROLE_ICON_MAP[link.role] ?? Link2
+        const { name } = linkedSystemPresentation(link.system)
+        return (
+          <span
+            key={link.id}
+            className="inline-flex items-center gap-1 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600"
+          >
+            <Icon size={11} aria-hidden />
+            {name}
+          </span>
+        )
+      })}
+      {overflow > 0 && <span className="text-xs text-slate-400">+{overflow} more</span>}
+    </div>
+  )
+}
+
+function SystemsCompareList({ systems }) {
+  if (!systems || systems.length === 0) {
+    return <span className="text-xs text-slate-400 italic">No systems linked</span>
+  }
+  return (
+    <div className="flex flex-col gap-1.5">
+      {systems.map((link) => {
+        const { href, name, category } = linkedSystemPresentation(link.system)
+        const catCls =
+          CATEGORY_CONFIG[category] ?? 'bg-slate-50 text-slate-700 border border-slate-200'
+        const roleLabel = ROLE_LABELS[link.role] ?? link.role
+        return (
+          <div key={link.id} className="flex items-center gap-2 text-xs">
+            <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${catCls}`}>
+              {roleLabel}
+            </span>
+            {href !== null ? (
+              <Link to={href} className="text-blue-600 hover:text-blue-800">
+                {name}
+              </Link>
+            ) : (
+              <span className="text-slate-600">{name}</span>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 /** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
 function CompareColumnShell({ gridColumn, className, children, ...rest }) {
@@ -58,7 +151,7 @@ function OrganisationCardSkeleton({ compareGridColumn }) {
           <div className="h-9 w-20 rounded-md bg-slate-100" />
         </div>
       </div>
-      {Array.from({ length: 9 }).map((_, i) => (
+      {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className={`${ATTR_ROW_CLASS} border-b border-slate-100 last:border-b-0`}>
           <div className="h-4 w-full max-w-[10rem] rounded bg-slate-100" />
         </div>
@@ -92,7 +185,7 @@ function OrganisationCardSkeleton({ compareGridColumn }) {
  *   compareGridColumn?: number
  * }} props
  */
-export function OrganisationCard({ organisationId, query, onRemove, compareGridColumn }) {
+export function OrganisationCard({ organisationId, query, onRemove, compareGridColumn, variant = 'summary' }) {
   const { isPending, isError, error, data, isSuccess } = query
 
   if (isPending) {
@@ -110,7 +203,7 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
             Remove
           </Button>
         </div>
-        {Array.from({ length: 9 }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
             className={`${ATTR_ROW_CLASS} border-b border-slate-100 bg-slate-50/40 last:border-b-0`}
@@ -141,7 +234,7 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
             Remove
           </Button>
         </div>
-        {Array.from({ length: 9 }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
           <div
             key={i}
             className={`${ATTR_ROW_CLASS} border-b border-red-100 bg-red-50 last:border-b-0`}
@@ -179,16 +272,7 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
     org.organisationType && typeof org.organisationType === 'object' && org.organisationType !== null
       ? /** @type {{ name?: string }} */ (org.organisationType).name
       : undefined
-  const ticketingName =
-    org.ticketingProvider &&
-    typeof org.ticketingProvider === 'object' &&
-    org.ticketingProvider !== null
-      ? /** @type {{ name?: string }} */ (org.ticketingProvider).name
-      : undefined
-  const crmName =
-    org.crmPlatform && typeof org.crmPlatform === 'object' && org.crmPlatform !== null
-      ? /** @type {{ name?: string }} */ (org.crmPlatform).name
-      : undefined
+  const systems = Array.isArray(org.systems) ? org.systems : []
 
   const headerCountry =
     org.country != null && org.country !== '' ? String(org.country) : 'Not recorded'
@@ -224,18 +308,10 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
         )}
       </div>
       <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        {ticketingName != null && String(ticketingName).trim() !== '' ? (
-          <Badge tone="ticketing">{String(ticketingName)}</Badge>
-        ) : (
-          textCell(null)
-        )}
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        {crmName != null && String(crmName).trim() !== '' ? (
-          <Badge tone="crm">{String(crmName)}</Badge>
-        ) : (
-          textCell(null)
-        )}
+        {variant === 'compare'
+          ? <SystemsCompareList systems={systems} />
+          : <SystemsChipStrip systems={systems} />
+        }
       </div>
       <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
         <CapabilityBadge variant="labelled" value={org.membershipCapability} />

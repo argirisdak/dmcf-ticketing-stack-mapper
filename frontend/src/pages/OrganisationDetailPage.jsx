@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useOrganisation } from '../hooks/useOrganisation.js'
 import { useDeleteOrganisation } from '../hooks/useDeleteOrganisation.js'
+import { useCreateOrganisationSystemLink } from '../hooks/useCreateOrganisationSystemLink.js'
+import { useUpdateOrganisationSystemLink } from '../hooks/useUpdateOrganisationSystemLink.js'
+import { useDeleteOrganisationSystemLink } from '../hooks/useDeleteOrganisationSystemLink.js'
 import { OrganisationNotFoundError } from '../api/organisations.js'
 import { Button } from '../components/ui/button.jsx'
 import {
@@ -15,8 +19,18 @@ import {
 } from '../components/ui/dialog.jsx'
 import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
 import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
+import { SystemCombobox } from '../components/SystemCombobox.jsx'
 
 const BANNER_MS = 5000
+
+const ROLE_ORDER = ['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']
+const ROLE_LABELS = {
+  PRIMARY_TICKETING: 'Primary ticketing',
+  PRIMARY_CRM: 'Primary CRM',
+  INTEGRATED_SUITE: 'Integrated suite',
+  SECONDARY: 'Secondary',
+}
+const KNOWN_ROLES = Object.keys(ROLE_LABELS)
 
 function formatDateTime(iso) {
   if (!iso) return '—'
@@ -83,13 +97,54 @@ export default function OrganisationDetailPage() {
   const { id } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
   const { data, isLoading, isError, error, isSuccess } = useOrganisation(id)
   const deleteMutation = useDeleteOrganisation()
+  const createLinkMutation = useCreateOrganisationSystemLink()
+  const updateLinkMutation = useUpdateOrganisationSystemLink()
+  const deleteLinkMutation = useDeleteOrganisationSystemLink()
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   const [showSavedBanner, setShowSavedBanner] = useState(
     () => Boolean(location.state?.organisationSaved),
   )
+
+  const [showLinkWarningBanner, setShowLinkWarningBanner] = useState(
+    () => Boolean(location.state?.linksSavedWithErrors),
+  )
+
+  // Link CRUD state
+  const [linkRemovedBanner, setLinkRemovedBanner] = useState(false)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [editLink, setEditLink] = useState(null)
+  const [removeTarget, setRemoveTarget] = useState(null)
+
+  // Edit dialog form state
+  const [editFormSystemId, setEditFormSystemId] = useState(null)
+  const [editFormRole, setEditFormRole] = useState('')
+  const [editFormSourceRef, setEditFormSourceRef] = useState('')
+  const [editFormNote, setEditFormNote] = useState('')
+
+  // Add dialog form state
+  const [addFormSystemId, setAddFormSystemId] = useState(null)
+  const [addFormRole, setAddFormRole] = useState('')
+  const [addFormSourceRef, setAddFormSourceRef] = useState('')
+  const [addFormNote, setAddFormNote] = useState('')
+  const [addComboboxError, setAddComboboxError] = useState('')
+
+  // Sync edit form from the link being edited.
+  // editLink is external interaction state (user clicking Edit) — same pattern as SystemCombobox mode sync.
+  useEffect(() => {
+    if (editLink?.system?.id) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- editLink is external interaction state
+      setEditFormSystemId(editLink.system.id)
+      setEditFormRole(KNOWN_ROLES.includes(editLink.role) ? editLink.role : '')
+      setEditFormSourceRef(editLink.sourceReference ?? '')
+      setEditFormNote(editLink.note ?? '')
+    }
+  }, [editLink])
 
   const clearBannerState = useCallback(() => {
     setShowSavedBanner(false)
@@ -97,6 +152,16 @@ export default function OrganisationDetailPage() {
     const nextState =
       s && typeof s === 'object' && !Array.isArray(s)
         ? Object.fromEntries(Object.entries(s).filter(([k]) => k !== 'organisationSaved'))
+        : {}
+    navigate(location.pathname, { replace: true, state: nextState })
+  }, [navigate, location.pathname, location.state])
+
+  const clearLinkWarningBanner = useCallback(() => {
+    setShowLinkWarningBanner(false)
+    const s = location.state
+    const nextState =
+      s && typeof s === 'object' && !Array.isArray(s)
+        ? Object.fromEntries(Object.entries(s).filter(([k]) => k !== 'linksSavedWithErrors'))
         : {}
     navigate(location.pathname, { replace: true, state: nextState })
   }, [navigate, location.pathname, location.state])
@@ -109,8 +174,94 @@ export default function OrganisationDetailPage() {
     return () => window.clearTimeout(t)
   }, [showSavedBanner, clearBannerState])
 
+  useEffect(() => {
+    if (!linkRemovedBanner) return undefined
+    const t = window.setTimeout(() => setLinkRemovedBanner(false), BANNER_MS)
+    return () => window.clearTimeout(t)
+  }, [linkRemovedBanner])
+
+  const resetAddForm = () => {
+    setAddFormSystemId(null)
+    setAddFormRole('')
+    setAddFormSourceRef('')
+    setAddFormNote('')
+    setAddComboboxError('')
+  }
+
   const notFound = error instanceof OrganisationNotFoundError
   const missingId = !id
+
+  // Group systems by role in display order
+  const systems = (isSuccess && data?.systems) ? data.systems : []
+  const grouped = ROLE_ORDER.reduce((acc, role) => {
+    acc[role] = systems.filter((l) => l.role === role)
+    return acc
+  }, {})
+
+  const handleSaveEdit = () => {
+    if (!editLink?.system?.id || !id) return
+    const body = {}
+    if (editFormSystemId !== editLink.system.id) body.systemId = editFormSystemId
+    if (editFormRole !== editLink.role) body.role = editFormRole
+    const newSrcRef = editFormSourceRef.trim() || null
+    if (newSrcRef !== (editLink.sourceReference ?? null)) body.sourceReference = newSrcRef
+    const newNote = editFormNote.trim() || null
+    if (newNote !== (editLink.note ?? null)) body.note = newNote
+    if (Object.keys(body).length === 0) {
+      setEditLink(null)
+      return
+    }
+    updateLinkMutation.mutate(
+      { orgId: id, linkId: editLink.id, body },
+      {
+        onSuccess: () => {
+          setEditLink(null)
+          queryClient.invalidateQueries({ queryKey: ['organisations'] })
+        },
+      },
+    )
+  }
+
+  const handleConfirmRemove = () => {
+    if (!removeTarget?.linkId || !id) return
+    deleteLinkMutation.mutate(
+      { orgId: id, linkId: removeTarget.linkId },
+      {
+        onSuccess: () => {
+          setRemoveTarget(null)
+          queryClient.invalidateQueries({ queryKey: ['organisations'] })
+          setLinkRemovedBanner(true)
+        },
+      },
+    )
+  }
+
+  const handleAddLink = () => {
+    if (!addFormSystemId || !addFormRole || !id) return
+    createLinkMutation.mutate(
+      {
+        orgId: id,
+        body: {
+          systemId: addFormSystemId,
+          role: addFormRole,
+          sourceReference: addFormSourceRef.trim() || null,
+          note: addFormNote.trim() || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setAddDialogOpen(false)
+          resetAddForm()
+          queryClient.invalidateQueries({ queryKey: ['organisations'] })
+        },
+        onError: (err) => {
+          if (/** @type {any} */ (err).isConflict) {
+            setAddComboboxError('This system is already linked to this organisation')
+          }
+        },
+      },
+    )
+  }
 
   return (
     <div className="py-8">
@@ -125,6 +276,23 @@ export default function OrganisationDetailPage() {
             onClick={clearBannerState}
             className="shrink-0 rounded px-2 text-lg leading-none text-emerald-900 hover:bg-emerald-100"
             aria-label="Dismiss notification"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {showLinkWarningBanner && (
+        <div
+          className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start justify-between gap-4"
+          role="alert"
+        >
+          <span>Organisation saved, but one or more system links could not be updated. Check the linked systems panel.</span>
+          <button
+            type="button"
+            onClick={clearLinkWarningBanner}
+            className="shrink-0 text-amber-600 hover:text-amber-800"
+            aria-label="Dismiss"
           >
             ×
           </button>
@@ -318,16 +486,461 @@ export default function OrganisationDetailPage() {
               <DetailRow label="Type">
                 {data.organisationType?.name ?? '—'}
               </DetailRow>
-              <DetailRow label="Ticketing provider">
-                {data.ticketingProvider?.name ?? '—'}
-              </DetailRow>
-              <DetailRow label="CRM platform">{data.crmPlatform?.name ?? '—'}</DetailRow>
               <DetailRow label="Notes">{displayText(data.notes)}</DetailRow>
               <DetailRow label="Capacity">
                 {data.capacity != null ? String(data.capacity) : '—'}
               </DetailRow>
               <DetailRow label="Created at">{formatDateTime(data.createdAt)}</DetailRow>
             </dl>
+          </section>
+
+          {/* Link removed banner — above the Linked systems panel */}
+          {linkRemovedBanner && (
+            <div
+              className="mb-4 flex items-start justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800"
+              role="status"
+            >
+              <p className="text-sm font-medium">Link removed.</p>
+              <button
+                type="button"
+                onClick={() => setLinkRemovedBanner(false)}
+                className="shrink-0 rounded px-2 text-lg leading-none text-emerald-900 hover:bg-emerald-100"
+                aria-label="Dismiss notification"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          <section className="mb-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-slate-700">Linked systems</h2>
+
+            {systems.length === 0 ? (
+              <p className="text-sm text-slate-600">
+                No systems linked yet.{' '}
+                <button
+                  type="button"
+                  onClick={() => setAddDialogOpen(true)}
+                  className="font-medium text-blue-600 hover:underline"
+                >
+                  Add system →
+                </button>
+              </p>
+            ) : (
+              <>
+                <div className="space-y-4">
+                  {ROLE_ORDER.filter((role) => grouped[role]?.length > 0).map((role) => (
+                    <div key={role}>
+                      <p className="mb-2 text-xs font-medium text-slate-500 uppercase tracking-wide">
+                        {ROLE_LABELS[role]}
+                      </p>
+                      <div className="space-y-1">
+                        {grouped[role].map((link) => (
+                          <div
+                            key={link.id}
+                            className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md py-1.5 px-2 hover:bg-slate-50"
+                          >
+                            {link.system?.id ? (
+                              <Link
+                                to={`/systems/${link.system.id}`}
+                                className="font-medium text-blue-600 hover:underline"
+                              >
+                                {link.system.name}
+                              </Link>
+                            ) : (
+                              <span className="font-medium text-slate-600">Unknown system</span>
+                            )}
+                            <span className="text-sm text-slate-500">
+                              {link.system?.vendor ?? '—'}
+                            </span>
+                            <span className="text-sm">
+                              <SourceReferenceDisplay
+                                value={link.sourceReference}
+                                emptyLabel="—"
+                              />
+                            </span>
+                            <span
+                              title={link.note}
+                              className="max-w-xs truncate text-sm text-slate-600"
+                            >
+                              {link.note || '—'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatDateTime(link.lastUpdated)}
+                            </span>
+                            <div className="ml-auto flex shrink-0 items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setEditLink(link)}
+                                disabled={!link.system?.id}
+                                className="text-sm font-medium text-slate-600 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setRemoveTarget({
+                                    linkId: link.id,
+                                    systemName: link.system?.name ?? 'Unknown system',
+                                  })
+                                }
+                                className="text-sm font-medium text-red-600 hover:text-red-800"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 flex flex-wrap items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => setAddDialogOpen(true)}
+                  >
+                    Add system
+                  </Button>
+                  {systems.length >= 2 && (
+                    <Link
+                      to="/compare/organisations"
+                      className="text-sm text-slate-500 hover:text-slate-700"
+                    >
+                      Compare these systems →
+                    </Link>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Edit link dialog */}
+            <Dialog
+              open={editLink !== null}
+              onOpenChange={(o) => {
+                if (updateLinkMutation.isPending) return
+                if (!o) {
+                  setEditLink(null)
+                  updateLinkMutation.reset()
+                }
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit linked system</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Update the role, source reference, or note for this system link.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="edit-link-system"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      System
+                    </label>
+                    <SystemCombobox
+                      selectedId={editFormSystemId}
+                      onSelect={(sys) => setEditFormSystemId(sys ? sys.id : null)}
+                      placeholder="Search for a system…"
+                      inputId="edit-link-system"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-link-role"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Role
+                    </label>
+                    <select
+                      id="edit-link-role"
+                      value={editFormRole}
+                      onChange={(e) => setEditFormRole(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="">Select a role</option>
+                      {ROLE_ORDER.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-link-source-ref"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Source reference
+                    </label>
+                    <input
+                      id="edit-link-source-ref"
+                      type="text"
+                      value={editFormSourceRef}
+                      onChange={(e) => setEditFormSourceRef(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="URL or identifier"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="edit-link-note"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Note
+                    </label>
+                    <textarea
+                      id="edit-link-note"
+                      value={editFormNote}
+                      onChange={(e) => setEditFormNote(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="Optional note"
+                    />
+                  </div>
+                  {updateLinkMutation.isError && (
+                    <p className="text-sm text-red-700" role="alert">
+                      {updateLinkMutation.error instanceof Error
+                        ? updateLinkMutation.error.message
+                        : 'Could not save changes.'}
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={updateLinkMutation.isPending}
+                    onClick={() => {
+                      setEditLink(null)
+                      updateLinkMutation.reset()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={updateLinkMutation.isPending || !editFormSystemId || !editFormRole}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={handleSaveEdit}
+                  >
+                    {updateLinkMutation.isPending ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                          aria-hidden
+                        />
+                        Saving…
+                      </span>
+                    ) : (
+                      'Save'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Remove link dialog */}
+            <Dialog
+              open={removeTarget !== null}
+              onOpenChange={(o) => {
+                if (deleteLinkMutation.isPending) return
+                if (!o) setRemoveTarget(null)
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Remove linked system</DialogTitle>
+                  <DialogDescription asChild>
+                    <div className="space-y-2 text-left text-sm text-slate-600">
+                      <p>
+                        <strong className="font-semibold text-slate-900">
+                          {removeTarget?.systemName}
+                        </strong>{' '}
+                        will be unlinked from{' '}
+                        <strong className="font-semibold text-slate-900">{data.name}</strong>. This
+                        cannot be undone.
+                      </p>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+                {deleteLinkMutation.isError && (
+                  <p className="text-sm text-red-700" role="alert">
+                    {deleteLinkMutation.error instanceof Error
+                      ? deleteLinkMutation.error.message
+                      : 'Could not remove link.'}
+                  </p>
+                )}
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={deleteLinkMutation.isPending}
+                    onClick={() => setRemoveTarget(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={deleteLinkMutation.isPending}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                    onClick={handleConfirmRemove}
+                  >
+                    {deleteLinkMutation.isPending ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                          aria-hidden
+                        />
+                        Removing…
+                      </span>
+                    ) : (
+                      'Remove link'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
+            {/* Add system dialog */}
+            <Dialog
+              open={addDialogOpen}
+              onOpenChange={(open) => {
+                if (createLinkMutation.isPending) return
+                setAddDialogOpen(open)
+                if (!open) {
+                  resetAddForm()
+                }
+                if (open) createLinkMutation.reset()
+              }}
+            >
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add linked system</DialogTitle>
+                  <DialogDescription className="sr-only">
+                    Link a system to this organisation with a role and optional provenance.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <label
+                      htmlFor="add-link-system"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      System
+                    </label>
+                    <SystemCombobox
+                      selectedId={addFormSystemId}
+                      onSelect={(sys) => {
+                        setAddFormSystemId(sys ? sys.id : null)
+                        if (addComboboxError) setAddComboboxError('')
+                      }}
+                      placeholder="Search for a system…"
+                      inputId="add-link-system"
+                    />
+                    {addComboboxError && (
+                      <p className="mt-1 text-xs text-red-600">{addComboboxError}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="add-link-role"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Role
+                    </label>
+                    <select
+                      id="add-link-role"
+                      value={addFormRole}
+                      onChange={(e) => setAddFormRole(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                    >
+                      <option value="">Select a role</option>
+                      {ROLE_ORDER.map((r) => (
+                        <option key={r} value={r}>
+                          {ROLE_LABELS[r]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="add-link-source-ref"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Source reference
+                    </label>
+                    <input
+                      id="add-link-source-ref"
+                      type="text"
+                      value={addFormSourceRef}
+                      onChange={(e) => setAddFormSourceRef(e.target.value)}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="URL or identifier"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="add-link-note"
+                      className="mb-1 block text-sm font-medium text-slate-700"
+                    >
+                      Note
+                    </label>
+                    <textarea
+                      id="add-link-note"
+                      value={addFormNote}
+                      onChange={(e) => setAddFormNote(e.target.value)}
+                      rows={3}
+                      className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      placeholder="Optional note"
+                    />
+                  </div>
+                  {createLinkMutation.isError && !/** @type {any} */ (createLinkMutation.error)?.isConflict && (
+                    <p className="text-sm text-red-700" role="alert">
+                      {createLinkMutation.error instanceof Error
+                        ? createLinkMutation.error.message
+                        : 'Could not add system link.'}
+                    </p>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={createLinkMutation.isPending}
+                    onClick={() => {
+                      setAddDialogOpen(false)
+                      resetAddForm()
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={createLinkMutation.isPending || !addFormSystemId || !addFormRole}
+                    className="bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={handleAddLink}
+                  >
+                    {createLinkMutation.isPending ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span
+                          className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
+                          aria-hidden
+                        />
+                        Adding…
+                      </span>
+                    ) : (
+                      'Add system'
+                    )}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </section>
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">

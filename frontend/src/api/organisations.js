@@ -32,9 +32,9 @@ function assertListResponse(body) {
  *   limit?: number
  *   q?: string
  *   country?: string
- *   provider?: string
  *   type?: string
- *   crm?: string
+ *   system?: string
+ *   system_role?: string
  *   membership?: string
  *   donation?: string
  *   seating?: string
@@ -47,9 +47,9 @@ export async function fetchOrganisations(params = {}) {
     limit = 20,
     q,
     country,
-    provider,
     type,
-    crm,
+    system,
+    system_role,
     membership,
     donation,
     seating,
@@ -58,9 +58,9 @@ export async function fetchOrganisations(params = {}) {
   const trimmed = typeof q === 'string' ? q.trim() : ''
   if (trimmed !== '') qs.set('q', trimmed)
   if (country) qs.set('country', country)
-  if (provider) qs.set('provider', provider)
   if (type) qs.set('type', type)
-  if (crm) qs.set('crm', crm)
+  if (system) qs.set('system', system)
+  if (system_role) qs.set('system_role', system_role)
   if (membership) qs.set('membership', membership)
   if (donation) qs.set('donation', donation)
   if (seating) qs.set('seating', seating)

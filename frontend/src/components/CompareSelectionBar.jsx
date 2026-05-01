@@ -1,19 +1,17 @@
 import { useNavigate } from 'react-router-dom'
-import { useSelection } from '../hooks/useSelection.js'
 import { Button } from './ui/button.jsx'
-/**
- * Sticky compare actions for organisation list selection (Epic 4).
- */
-export function CompareSelectionBar() {
+
+function CompareSelectionBarImpl({ entityLabel, useSelectionHook }) {
   const navigate = useNavigate()
-  const { selectedIds, clearSelection } = useSelection()
+  const { selectedIds, clearSelection } = useSelectionHook()
   const n = selectedIds.length
   const tooMany = n >= 5
   const canCompare = n >= 1 && n <= 4
+  const entitySingular = entityLabel.slice(0, -1)
 
   const handleCompare = () => {
     if (!canCompare) return
-    navigate(`/compare?ids=${selectedIds.join(',')}`)
+    navigate(`/compare/${entityLabel}?ids=${selectedIds.join(',')}`)
   }
 
   return (
@@ -25,12 +23,12 @@ export function CompareSelectionBar() {
       <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-200">
           <span className="font-medium text-white">{n}</span>{' '}
-          {n === 1 ? 'organisation' : 'organisations'} selected
+          {n === 1 ? entitySingular : entityLabel} selected
         </p>
         <div className="flex flex-wrap items-center gap-3 sm:justify-end">
           {tooMany ? (
             <p className="text-sm text-amber-200" id="compare-selection-limit-hint">
-              Select up to 4 organisations to compare
+              Select up to 4 {entityLabel} to compare
             </p>
           ) : null}
           <Button
@@ -53,5 +51,18 @@ export function CompareSelectionBar() {
         </div>
       </div>
     </div>
+  )
+}
+
+export function CompareSelectionBar({ entityLabel, useSelectionHook }) {
+  const label = typeof entityLabel === 'string' ? entityLabel.trim() : ''
+  if (!label || typeof useSelectionHook !== 'function') {
+    throw new Error(
+      'CompareSelectionBar expects entityLabel to be a non-empty string (e.g. "organisations") and useSelectionHook to be the selection hook function (e.g. useOrganisationSelection).',
+    )
+  }
+
+  return (
+    <CompareSelectionBarImpl entityLabel={label} useSelectionHook={useSelectionHook} />
   )
 }

@@ -5,8 +5,6 @@ const mockUpdateOrganisation = jest.fn();
 const mockDeleteOrganisation = jest.fn();
 
 jest.mock('../lib/prisma', () => ({
-  ticketingProvider: { findMany: jest.fn(), findUnique: jest.fn() },
-  crmPlatform: { findMany: jest.fn(), findUnique: jest.fn() },
   organisationType: { findMany: jest.fn(), findUnique: jest.fn() },
   organisation: { findMany: jest.fn(), count: jest.fn(), findUnique: jest.fn() },
   $disconnect: jest.fn(),
@@ -33,6 +31,8 @@ const validCreateBody = {
   reservedSeatingCapability: 'UNKNOWN',
 };
 
+const VALID_UUID = '550e8400-e29b-41d4-a716-446655440000';
+
 describe('GET /api/organisations', () => {
   beforeEach(() => {
     mockListOrganisations.mockReset();
@@ -47,8 +47,6 @@ describe('GET /api/organisations', () => {
           city: null,
           country: 'United Kingdom',
           organisationType: { id: 't1', name: 'Venue' },
-          ticketingProvider: { id: 'p1', name: 'Spektrix' },
-          crmPlatform: null,
           membershipCapability: 'YES',
           donationCapability: 'NO',
           reservedSeatingCapability: 'UNKNOWN',
@@ -58,6 +56,7 @@ describe('GET /api/organisations', () => {
           lastUpdated: '2026-03-01T12:00:00.000Z',
           createdAt: '2025-06-01T08:00:00.000Z',
           updatedAt: '2026-03-01T12:00:00.000Z',
+          systems: [],
         },
       ],
       total: 47,
@@ -71,7 +70,7 @@ describe('GET /api/organisations', () => {
     expect(res.body.data).toHaveLength(1);
   });
 
-  it('serialises list items with camelCase keys only (no snake_case)', async () => {
+  it('serialises list items with systems array and no legacy ticketingProvider/crmPlatform', async () => {
     mockListOrganisations.mockResolvedValue({
       data: [
         {
@@ -80,8 +79,6 @@ describe('GET /api/organisations', () => {
           city: null,
           country: 'GB',
           organisationType: { id: 't', name: 'Festival' },
-          ticketingProvider: null,
-          crmPlatform: { id: 'c', name: 'HubSpot' },
           membershipCapability: 'UNKNOWN',
           donationCapability: 'YES',
           reservedSeatingCapability: 'NO',
@@ -91,6 +88,7 @@ describe('GET /api/organisations', () => {
           lastUpdated: '2026-01-01T00:00:00.000Z',
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
+          systems: [],
         },
       ],
       total: 1,
@@ -100,12 +98,13 @@ describe('GET /api/organisations', () => {
     const res = await request(app).get('/api/organisations');
     const item = res.body.data[0];
     expect(item).toHaveProperty('organisationType');
-    expect(item).toHaveProperty('ticketingProvider');
-    expect(item).toHaveProperty('crmPlatform');
+    expect(item).toHaveProperty('systems');
     expect(item).toHaveProperty('lastUpdated');
     expect(item).toHaveProperty('createdAt');
     expect(item).toHaveProperty('updatedAt');
     expect(item).toHaveProperty('membershipCapability');
+    expect(item).not.toHaveProperty('ticketingProvider');
+    expect(item).not.toHaveProperty('crmPlatform');
     expect(item).not.toHaveProperty('organisation_type');
     expect(item).not.toHaveProperty('last_updated');
     expect(item).not.toHaveProperty('membership_capability');
@@ -193,20 +192,20 @@ describe('GET /api/organisations', () => {
     logSpy.mockRestore();
   });
 
-  it('forwards filter query params to the service', async () => {
+  it('forwards v2 filter query params to the service', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get(
-      '/api/organisations?page=2&limit=10&q=royal&country=United+Kingdom&provider=Spektrix&type=Venue&crm=HubSpot&membership=YES&donation=NO&seating=UNKNOWN',
+      `/api/organisations?page=2&limit=10&q=royal&country=United+Kingdom&type=Venue&system=${VALID_UUID}&system_role=PRIMARY_TICKETING&membership=YES&donation=NO&seating=UNKNOWN`,
     );
     expect(mockListOrganisations).toHaveBeenCalledWith({
       page: 2,
       limit: 10,
       q: 'royal',
       country: 'United Kingdom',
-      provider: 'Spektrix',
       type: 'Venue',
-      crm: 'HubSpot',
+      system: VALID_UUID,
+      system_role: 'PRIMARY_TICKETING',
       membership: 'YES',
       donation: 'NO',
       seating: 'UNKNOWN',
@@ -234,24 +233,105 @@ describe('GET /api/organisations', () => {
     expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
   });
 
-  it('does not 400 for unknown provider name (empty list allowed)', async () => {
+  // v2: reject deprecated provider and crm params
+  it('returns 400 when provider param is passed', async () => {
+    const res = await request(app).get('/api/organisations?provider=Tessitura');
+    expect(res.status).toBe(400);
+    expect(res.body.data).toBeNull();
+    expect(res.body.meta).toBeNull();
+    expect(res.body.error.message).toBe('Validation failed');
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'provider', message: 'Unknown filter' }),
+      ]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when crm param is passed', async () => {
+    const res = await request(app).get('/api/organisations?crm=Salesforce');
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'crm', message: 'Unknown filter' }),
+      ]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when both provider and crm are passed', async () => {
+    const res = await request(app).get('/api/organisations?provider=Spektrix&crm=HubSpot');
+    expect(res.status).toBe(400);
+    const fieldNames = res.body.error.fields.map((f) => f.field);
+    expect(fieldNames).toContain('provider');
+    expect(fieldNames).toContain('crm');
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  // v2: system filter
+  it('accepts valid system UUID and forwards to service', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
-    const res = await request(app).get('/api/organisations?provider=NoSuchProviderEver');
+    const res = await request(app).get(`/api/organisations?system=${VALID_UUID}`);
     expect(res.status).toBe(200);
     expect(mockListOrganisations).toHaveBeenCalledWith(
-      expect.objectContaining({ provider: 'NoSuchProviderEver' }),
+      expect.objectContaining({ system: VALID_UUID }),
     );
+  });
+
+  it('returns 400 when system param is not a valid UUID', async () => {
+    const res = await request(app).get('/api/organisations?system=not-a-uuid');
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'system' }),
+      ]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when system_role is passed without system', async () => {
+    const res = await request(app).get('/api/organisations?system_role=PRIMARY_TICKETING');
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: 'system_role',
+          message: 'Provide a system filter to use a role sub-filter',
+        }),
+      ]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('accepts system+system_role and forwards both to service', async () => {
+    mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+    const res = await request(app).get(
+      `/api/organisations?system=${VALID_UUID}&system_role=INTEGRATED_SUITE`,
+    );
+    expect(res.status).toBe(200);
+    expect(mockListOrganisations).toHaveBeenCalledWith(
+      expect.objectContaining({ system: VALID_UUID, system_role: 'INTEGRATED_SUITE' }),
+    );
+  });
+
+  it('returns 400 for invalid system_role value when system is valid', async () => {
+    const res = await request(app).get(
+      `/api/organisations?system=${VALID_UUID}&system_role=NOT_A_ROLE`,
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'system_role' })]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
   });
 });
 
 const sampleDto = {
-  id: '550e8400-e29b-41d4-a716-446655440000',
+  id: VALID_UUID,
   name: 'Royal Opera House',
   city: null,
   country: 'United Kingdom',
   organisationType: { id: 't1', name: 'Venue' },
-  ticketingProvider: { id: 'p1', name: 'Spektrix' },
-  crmPlatform: null,
   membershipCapability: 'YES',
   donationCapability: 'NO',
   reservedSeatingCapability: 'UNKNOWN',
@@ -261,6 +341,7 @@ const sampleDto = {
   lastUpdated: '2026-03-01T12:00:00.000Z',
   createdAt: '2025-06-01T08:00:00.000Z',
   updatedAt: '2026-03-01T12:00:00.000Z',
+  systems: [],
 };
 
 describe('GET /api/organisations/:id', () => {
@@ -270,19 +351,15 @@ describe('GET /api/organisations/:id', () => {
 
   it('returns 200 with camelCase data and meta null', async () => {
     mockGetOrganisationById.mockResolvedValue(sampleDto);
-    const res = await request(app).get(
-      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
-    );
+    const res = await request(app).get(`/api/organisations/${VALID_UUID}`);
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: sampleDto, error: null, meta: null });
-    expect(mockGetOrganisationById).toHaveBeenCalledWith('550e8400-e29b-41d4-a716-446655440000');
+    expect(mockGetOrganisationById).toHaveBeenCalledWith(VALID_UUID);
   });
 
   it('returns 404 when organisation is missing', async () => {
     mockGetOrganisationById.mockResolvedValue(null);
-    const res = await request(app).get(
-      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
-    );
+    const res = await request(app).get(`/api/organisations/${VALID_UUID}`);
     expect(res.status).toBe(404);
     expect(res.body).toEqual({
       data: null,
@@ -301,9 +378,7 @@ describe('GET /api/organisations/:id', () => {
   it('returns 500 envelope on unexpected service error', async () => {
     const logSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     mockGetOrganisationById.mockRejectedValue(new Error('DB failure'));
-    const res = await request(app).get(
-      '/api/organisations/550e8400-e29b-41d4-a716-446655440000',
-    );
+    const res = await request(app).get(`/api/organisations/${VALID_UUID}`);
     expect(res.status).toBe(500);
     expect(res.body).toEqual({
       data: null,
@@ -318,11 +393,7 @@ describe('POST /api/organisations', () => {
   beforeEach(() => {
     mockCreateOrganisation.mockReset();
     prisma.organisationType.findUnique.mockReset();
-    prisma.ticketingProvider.findUnique.mockReset();
-    prisma.crmPlatform.findUnique.mockReset();
     prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
-    prisma.ticketingProvider.findUnique.mockResolvedValue(null);
-    prisma.crmPlatform.findUnique.mockResolvedValue(null);
   });
 
   it('returns 201 with camelCase data envelope', async () => {
@@ -332,8 +403,6 @@ describe('POST /api/organisations', () => {
       city: null,
       country: 'United Kingdom',
       organisationType: { id: 'type-uuid-1', name: 'Venue' },
-      ticketingProvider: null,
-      crmPlatform: null,
       membershipCapability: 'YES',
       donationCapability: 'NO',
       reservedSeatingCapability: 'UNKNOWN',
@@ -343,6 +412,7 @@ describe('POST /api/organisations', () => {
       lastUpdated: '2026-04-03T10:00:00.000Z',
       createdAt: '2026-04-03T10:00:00.000Z',
       updatedAt: '2026-04-03T10:00:00.000Z',
+      systems: [],
     });
 
     const res = await request(app).post('/api/organisations').send(validCreateBody);
@@ -363,6 +433,10 @@ describe('POST /api/organisations', () => {
         organisationTypeId: 'type-uuid-1',
       }),
     );
+    // Confirm legacy FK fields are not in the service call
+    const payload = mockCreateOrganisation.mock.calls[0][0];
+    expect(payload).not.toHaveProperty('ticketingProviderId');
+    expect(payload).not.toHaveProperty('crmPlatformId');
   });
 
   it('returns 400 when name is missing', async () => {
@@ -417,19 +491,85 @@ describe('POST /api/organisations', () => {
     });
     logSpy.mockRestore();
   });
+
+  // v2: reject legacy body keys
+  it('returns 400 when ticketing_provider_id is in POST body', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, ticketing_provider_id: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.message).toBe('Validation failed');
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: 'ticketing_provider_id',
+          message: 'Use POST /api/organisations/:id/systems instead',
+        }),
+      ]),
+    );
+    expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when ticketingProviderId (camelCase) is in POST body', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, ticketingProviderId: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'ticketingProviderId' }),
+      ]),
+    );
+    expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when crmPlatformId (camelCase) is in POST body', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, crmPlatformId: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'crmPlatformId' }),
+      ]),
+    );
+    expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when crm_platform_id is in POST body', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, crm_platform_id: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'crm_platform_id' }),
+      ]),
+    );
+    expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when systems array is in POST body', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, systems: [] });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'systems' }),
+      ]),
+    );
+    expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
 });
 
 describe('PUT /api/organisations/:id', () => {
-  const orgId = '550e8400-e29b-41d4-a716-446655440000';
+  const orgId = VALID_UUID;
 
   beforeEach(() => {
     mockUpdateOrganisation.mockReset();
     prisma.organisationType.findUnique.mockReset();
-    prisma.ticketingProvider.findUnique.mockReset();
-    prisma.crmPlatform.findUnique.mockReset();
     prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
-    prisma.ticketingProvider.findUnique.mockResolvedValue(null);
-    prisma.crmPlatform.findUnique.mockResolvedValue(null);
   });
 
   it('returns 200 with camelCase data and meta null', async () => {
@@ -456,6 +596,8 @@ describe('PUT /api/organisations/:id', () => {
     );
     expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('lastUpdated');
     expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('id');
+    expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('ticketingProviderId');
+    expect(mockUpdateOrganisation.mock.calls[0][1]).not.toHaveProperty('crmPlatformId');
   });
 
   it('returns 404 for malformed id (not a UUID)', async () => {
@@ -521,10 +663,63 @@ describe('PUT /api/organisations/:id', () => {
     });
     logSpy.mockRestore();
   });
+
+  // v2: reject legacy body keys on PUT
+  it('returns 400 when ticketing_provider_id is in PUT body', async () => {
+    const res = await request(app)
+      .put(`/api/organisations/${orgId}`)
+      .send({ ...validCreateBody, ticketing_provider_id: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'ticketing_provider_id' }),
+      ]),
+    );
+    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when crm_platform_id is in PUT body', async () => {
+    const res = await request(app)
+      .put(`/api/organisations/${orgId}`)
+      .send({ ...validCreateBody, crm_platform_id: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'crm_platform_id' }),
+      ]),
+    );
+    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when crmPlatformId (camelCase) is in PUT body', async () => {
+    const res = await request(app)
+      .put(`/api/organisations/${orgId}`)
+      .send({ ...validCreateBody, crmPlatformId: 'some-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'crmPlatformId' }),
+      ]),
+    );
+    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when systems array is in PUT body', async () => {
+    const res = await request(app)
+      .put(`/api/organisations/${orgId}`)
+      .send({ ...validCreateBody, systems: [{ systemId: 'x', role: 'PRIMARY_TICKETING' }] });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'systems' }),
+      ]),
+    );
+    expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+  });
 });
 
 describe('DELETE /api/organisations/:id', () => {
-  const orgId = '550e8400-e29b-41d4-a716-446655440000';
+  const orgId = VALID_UUID;
 
   beforeEach(() => {
     mockDeleteOrganisation.mockReset();

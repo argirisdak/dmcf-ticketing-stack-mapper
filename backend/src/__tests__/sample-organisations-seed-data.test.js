@@ -26,13 +26,16 @@ describe('sample-organisations-seed-data', () => {
 
   it('uses CapabilityState enum values and satisfies AC3 / richness helpers', () => {
     const caps = { m: new Set(), d: new Set(), r: new Set() };
-    let ukTessitura = false;
-    let hasTp = false;
-    let hasCrm = false;
+    let ukTessituraSuite = false;
+    let hasSecondary = false;
+    let maxLinks = 0;
     const lastUpdated = new Set();
     const createdAt = new Set();
 
     for (const o of SAMPLE_ORGANISATIONS) {
+      expect(Array.isArray(o.links)).toBe(true);
+      expect(o.links.length).toBeGreaterThan(0);
+      maxLinks = Math.max(maxLinks, o.links.length);
       expect(CAPS.has(o.membership_capability)).toBe(true);
       expect(CAPS.has(o.donation_capability)).toBe(true);
       expect(CAPS.has(o.reserved_seating_capability)).toBe(true);
@@ -41,20 +44,26 @@ describe('sample-organisations-seed-data', () => {
       caps.r.add(o.reserved_seating_capability);
       lastUpdated.add(o.last_updated);
       createdAt.add(o.created_at);
-      if (o.country === 'United Kingdom' && o.ticketingProviderName === 'Tessitura') {
-        ukTessitura = true;
+      if (o.country === 'United Kingdom') {
+        for (const l of o.links) {
+          if (l.systemName === 'Tessitura' && l.role === 'INTEGRATED_SUITE') {
+            ukTessituraSuite = true;
+          }
+        }
       }
-      if (o.ticketingProviderName) hasTp = true;
-      if (o.crmPlatformName) hasCrm = true;
+      for (const l of o.links) {
+        if (l.role === 'SECONDARY') hasSecondary = true;
+      }
     }
 
-    expect(ukTessitura).toBe(true);
-    expect(hasTp).toBe(true);
-    expect(hasCrm).toBe(true);
+    expect(ukTessituraSuite).toBe(true);
+    expect(hasSecondary).toBe(true);
+    expect(maxLinks).toBeGreaterThanOrEqual(2);
     expect(caps.m.size).toBeGreaterThanOrEqual(2);
     expect(caps.d.size).toBeGreaterThanOrEqual(2);
     expect(caps.r.size).toBeGreaterThanOrEqual(2);
     expect(lastUpdated.size).toBeGreaterThan(1);
     expect(createdAt.size).toBeGreaterThan(1);
   });
+
 });

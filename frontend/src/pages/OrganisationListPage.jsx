@@ -14,21 +14,26 @@ import {
   normaliseCapabilityParam,
   parseOrganisationListInputsFromSearchParams,
 } from '../lib/organisation-list-filter-params.js'
-import {
-  useCrmPlatformsQuery,
-  useOrganisationTypesQuery,
-  useTicketingProvidersQuery,
-} from '../hooks/useMetaReferenceData.js'
+import { useOrganisationTypesQuery } from '../hooks/useMetaReferenceData.js'
+import { useSystem } from '../hooks/useSystem.js'
 import { COUNTRIES } from '../lib/countries.js'
 import { ActiveFilterChips } from '../components/ActiveFilterChips.jsx'
 import { CompareSelectionBar } from '../components/CompareSelectionBar.jsx'
+import { SystemCombobox } from '../components/SystemCombobox.jsx'
 import { Button } from '../components/ui/button.jsx'
 import { Badge } from '../components/ui/badge.jsx'
 import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
-import { useSelection } from '../hooks/useSelection.js'
+import { useOrganisationSelection } from '../hooks/useOrganisationSelection.js'
 
 const LIMIT = 20
 const BANNER_MS = 5000
+
+const ORG_LIST_SYSTEM_ROLE_VALUES = new Set([
+  'PRIMARY_TICKETING',
+  'PRIMARY_CRM',
+  'INTEGRATED_SUITE',
+  'SECONDARY',
+])
 
 /**
  * Filter bar + active chips; URL state only (Story 3.2). List fetch reads the full URL via
@@ -36,13 +41,9 @@ const BANNER_MS = 5000
  */
 function OrganisationListFilterSection() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const providersQuery = useTicketingProvidersQuery()
   const typesQuery = useOrganisationTypesQuery()
-  const crmsQuery = useCrmPlatformsQuery()
 
-  const providerOptions = providersQuery.data ?? []
   const typeOptions = typesQuery.data ?? []
-  const crmOptions = crmsQuery.data ?? []
 
   const updateParam = (key, rawValue) => {
     setSearchParams((prev) => {
@@ -61,25 +62,51 @@ function OrganisationListFilterSection() {
     'w-full min-w-[140px] max-w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-sm text-slate-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 
   const countryVal = searchParams.get('country') ?? ''
-  const providerVal = searchParams.get('provider') ?? ''
   const typeVal = searchParams.get('type') ?? ''
-  const crmVal = searchParams.get('crm') ?? ''
+  const systemId = searchParams.get('system') ?? null
+  const systemRoleRaw = searchParams.get('system_role') ?? ''
+  const systemRoleVal = ORG_LIST_SYSTEM_ROLE_VALUES.has(systemRoleRaw) ? systemRoleRaw : ''
+
+  useEffect(() => {
+    if (systemRoleRaw === '') return
+    if (!ORG_LIST_SYSTEM_ROLE_VALUES.has(systemRoleRaw)) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev)
+          next.delete('system_role')
+          return next
+        },
+        { replace: true },
+      )
+    }
+  }, [systemRoleRaw, setSearchParams])
   const membershipVal = normaliseCapabilityParam(searchParams.get('membership'))
   const donationVal = normaliseCapabilityParam(searchParams.get('donation'))
   const seatingVal = normaliseCapabilityParam(searchParams.get('seating'))
 
-  const providerNames = providerOptions.map((o) => o.name)
   const typeNames = typeOptions.map((o) => o.name)
-  const crmNames = crmOptions.map((o) => o.name)
-  const providerOrphan = Boolean(providerVal && !providerNames.includes(providerVal))
   const typeOrphan = Boolean(typeVal && !typeNames.includes(typeVal))
-  const crmOrphan = Boolean(crmVal && !crmNames.includes(crmVal))
   const countryOrphan = Boolean(countryVal && !COUNTRIES.includes(countryVal))
 
+  const { data: selectedSystemData } = useSystem(systemId)
+
+  const handleSystemSelect = (system) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      if (system == null) {
+        next.delete('system')
+        next.delete('system_role')
+      } else {
+        next.set('system', system.id)
+        next.delete('system_role')
+      }
+      next.set('page', '1')
+      return next
+    })
+  }
+
   const metaErrors = [
-    providersQuery.isError ? providersQuery.error : null,
     typesQuery.isError ? typesQuery.error : null,
-    crmsQuery.isError ? crmsQuery.error : null,
   ].filter(Boolean)
 
   return (
@@ -115,30 +142,36 @@ function OrganisationListFilterSection() {
           </select>
         </div>
 
-        <div className="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-          <label htmlFor="filter-provider" className="text-sm font-medium text-slate-700">
-            Provider
+        <div className="flex min-w-[200px] flex-1 flex-col gap-1">
+          <label htmlFor="filter-adopted-system" className="text-sm font-medium text-slate-700">
+            Adopted system
           </label>
-          <select
-            id="filter-provider"
-            className={selectClass}
-            value={providerVal}
-            onChange={(e) => updateParam('provider', e.target.value)}
-            aria-busy={providersQuery.isFetching || undefined}
-          >
-            <option value="">All providers</option>
-            {providerOrphan ? (
-              <option value={providerVal}>
-                {providerVal}
-              </option>
-            ) : null}
-            {providerOptions.map((o) => (
-              <option key={o.id} value={o.name}>
-                {o.name}
-              </option>
-            ))}
-          </select>
+          <SystemCombobox
+            selectedId={systemId}
+            onSelect={handleSystemSelect}
+            placeholder="Search by adopted system…"
+          />
         </div>
+
+        {systemId ? (
+          <div className="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
+            <label htmlFor="filter-system-role" className="text-sm font-medium text-slate-700">
+              Role
+            </label>
+            <select
+              id="filter-system-role"
+              className={selectClass}
+              value={systemRoleVal}
+              onChange={(e) => updateParam('system_role', e.target.value)}
+            >
+              <option value="">Any role</option>
+              <option value="PRIMARY_TICKETING">Primary ticketing</option>
+              <option value="PRIMARY_CRM">Primary CRM</option>
+              <option value="INTEGRATED_SUITE">Integrated suite</option>
+              <option value="SECONDARY">Secondary</option>
+            </select>
+          </div>
+        ) : null}
 
         <div className="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
           <label htmlFor="filter-type" className="text-sm font-medium text-slate-700">
@@ -154,27 +187,6 @@ function OrganisationListFilterSection() {
             <option value="">All types</option>
             {typeOrphan ? <option value={typeVal}>{typeVal}</option> : null}
             {typeOptions.map((o) => (
-              <option key={o.id} value={o.name}>
-                {o.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex min-w-[160px] flex-1 flex-col gap-1 sm:max-w-[220px]">
-          <label htmlFor="filter-crm" className="text-sm font-medium text-slate-700">
-            CRM
-          </label>
-          <select
-            id="filter-crm"
-            className={selectClass}
-            value={crmVal}
-            onChange={(e) => updateParam('crm', e.target.value)}
-            aria-busy={crmsQuery.isFetching || undefined}
-          >
-            <option value="">All CRM platforms</option>
-            {crmOrphan ? <option value={crmVal}>{crmVal}</option> : null}
-            {crmOptions.map((o) => (
               <option key={o.id} value={o.name}>
                 {o.name}
               </option>
@@ -234,7 +246,11 @@ function OrganisationListFilterSection() {
         </div>
       </div>
 
-      <ActiveFilterChips searchParams={searchParams} setSearchParams={setSearchParams} />
+      <ActiveFilterChips
+        searchParams={searchParams}
+        setSearchParams={setSearchParams}
+        resolvedSystemName={selectedSystemData?.data?.name ?? null}
+      />
     </>
   )
 }
@@ -267,7 +283,7 @@ function pageItems(page, totalPages) {
 }
 
 function TableSkeleton() {
-  const cols = 10
+  const cols = 8
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
@@ -290,7 +306,7 @@ function TableSkeleton() {
 function OrganisationListResults({ onClearSearch }) {
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { selectedIds, toggleSelection } = useSelection()
+  const { selectedIds, toggleSelection } = useOrganisationSelection()
   const listInputs = parseOrganisationListInputsFromSearchParams(searchParams, LIMIT)
   const page = listInputs.page
   const hasFilters = hasActiveListFilters(searchParams)
@@ -354,8 +370,6 @@ function OrganisationListResults({ onClearSearch }) {
                   <th className="px-3 py-3 min-w-[200px]">Name</th>
                   <th className="px-3 py-3 min-w-[120px]">Type</th>
                   <th className="px-3 py-3 min-w-[100px]">Country</th>
-                  <th className="px-3 py-3 min-w-[140px]">Ticketing Provider</th>
-                  <th className="px-3 py-3 min-w-[120px]">CRM Platform</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Membership</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Donation</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Reserved Seating</th>
@@ -363,7 +377,7 @@ function OrganisationListResults({ onClearSearch }) {
                 </tr>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
                   <th className="px-2 py-2" />
-                  <th colSpan={6} className="px-3 py-2 text-left text-xs font-normal normal-case text-slate-500">
+                  <th colSpan={4} className="px-3 py-2 text-left text-xs font-normal normal-case text-slate-500">
                     Capabilities: <span className="text-emerald-600 font-medium">✓</span> = Yes,{' '}
                     <span className="text-slate-500 font-medium">✕</span> = No,{' '}
                     <span className="text-slate-400 font-medium">–</span> = Not recorded
@@ -376,7 +390,7 @@ function OrganisationListResults({ onClearSearch }) {
                   <TableSkeleton />
                 ) : !isLoading && total === 0 && hasQ && !hasFilters ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-slate-600">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-600">
                       <p>
                         No organisations found for &apos;{listInputs.q}&apos;. Try a shorter search or check
                         the spelling.
@@ -388,7 +402,7 @@ function OrganisationListResults({ onClearSearch }) {
                   </tr>
                 ) : !isLoading && total === 0 && hasFilters ? (
                   <tr>
-                    <td colSpan={10} className="px-6 py-12 text-center text-slate-600">
+                    <td colSpan={8} className="px-6 py-12 text-center text-slate-600">
                       <p>No organisations match these filters. Try removing a filter or clearing all.</p>
                       <Button
                         type="button"
@@ -438,20 +452,6 @@ function OrganisationListResults({ onClearSearch }) {
                         )}
                       </td>
                       <td className="px-3 py-3 min-w-[100px]">{org.country}</td>
-                      <td className="px-3 py-3 min-w-[140px]">
-                        {org.ticketingProvider ? (
-                          <Badge tone="ticketing">{org.ticketingProvider.name}</Badge>
-                        ) : (
-                          <span className="text-slate-400">–</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-3 min-w-[120px]">
-                        {org.crmPlatform ? (
-                          <Badge tone="crm">{org.crmPlatform.name}</Badge>
-                        ) : (
-                          <span className="text-slate-400">–</span>
-                        )}
-                      </td>
                       <td className="px-3 py-3 text-center min-w-[80px]">
                         <CapabilityBadge value={org.membershipCapability} />
                       </td>
@@ -614,14 +614,14 @@ function OrganisationListSearchInput({ onProvideClearSearch }) {
         placeholder="Search organisations…"
         className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
         autoComplete="off"
-        aria-label="Search organisations by name, city, notes, or ticketing provider"
+        aria-label="Search organisations by name, city, or notes"
       />
     </div>
   )
 }
 
 export default function OrganisationListPage() {
-  const { selectedIds } = useSelection()
+  const { selectedIds } = useOrganisationSelection()
   const location = useLocation()
   const clearSearchRef = useRef(() => {})
   const handleProvideClearSearch = useCallback((fn) => {
@@ -689,7 +689,9 @@ export default function OrganisationListPage() {
 
       <OrganisationListResults onClearSearch={() => clearSearchRef.current()} />
 
-      {selectedIds.length > 0 ? <CompareSelectionBar /> : null}
+      {selectedIds.length > 0 ? (
+        <CompareSelectionBar entityLabel="organisations" useSelectionHook={useOrganisationSelection} />
+      ) : null}
     </div>
   )
 }

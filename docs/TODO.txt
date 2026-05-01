@@ -1,0 +1,2 @@
+1. Implement sorting (e.g alphabetically)
+2. Prohibit duplicate entries with same core attributes

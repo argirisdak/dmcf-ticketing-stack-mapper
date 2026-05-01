@@ -767,3 +767,565 @@ Using Tailwind's default breakpoints throughout — no custom breakpoints introd
 **Responsive:** Use `max-w-7xl mx-auto` container for all page content. Use `overflow-x-auto` on table wrapper for narrow-screen horizontal scroll. Use `flex flex-wrap gap-3` on filter bar for natural wrapping. Prefer `min-w-[Xpx]` on table columns to enforce minimum readable widths before scroll activates.
 
 **Accessibility:** Every form field has an associated `<label>` via `htmlFor`/`id` — never `placeholder` as a label substitute. Error messages linked to inputs via `aria-describedby`. Dynamic content changes announced via `role="status"` live regions. Tab order follows visual reading order — no `tabindex` values other than `0` and `-1`. Never use `outline: none` — Tailwind's `ring-*` utilities implement `focus-visible` correctly.
+
+---
+
+## UX Design Specification — v2 Delta
+
+**Author:** Argirisdak
+**Date:** 2026-04-29
+**Source documents:** [architecture-v2-delta.md](architecture-v2-delta.md), [prd-v2-delta.md](prd-v2-delta.md)
+
+**Scope:** This is a *delta*, not a rewrite. It adds new screens and documents changes to existing ones. Everything in the sections above holds without modification unless explicitly superseded here. Patterns (Direction 1 Clean Admin layout, GOV.UK form anatomy, Rightmove compare structure, colour tokens, typography) extend unchanged to all new surfaces.
+
+---
+
+### D1. Navigation Shell Update
+
+**Top navigation bar** gains a second primary link. Updated nav:
+
+```
+[App name]    Organisations    Systems
+```
+
+Both links use the same active/inactive treatment as the existing "Organisations" link. Active state: `text-white font-medium`; inactive: `text-slate-400 hover:text-white`.
+
+**Two `SelectionContext` providers** are mounted in `App.jsx`:
+- `OrganisationSelectionContext` — feeds the Organisation list and `/compare/organisations`
+- `SystemSelectionContext` — feeds the System list and `/compare/systems`
+
+Each exposes the same shape: `{ selectedIds: string[], toggleSelection(id), clearSelection() }`. They are entirely independent — selecting organisations does not affect system selection and vice versa.
+
+**`CompareSelectionBar`** is rendered once per list page, bound to the appropriate context. It receives entity-specific copy via props (`entityLabel`: `"organisations"` or `"systems"`). No internal logic changes.
+
+---
+
+### D2. System List Page (`/systems`)
+
+**Layout:** Identical to the Direction 1 — Clean Admin structure used for the Organisation list. Horizontal filter bar above table, active filter chips row, full-width paginated table, `CompareSelectionBar` on selection.
+
+#### D2.1 Filter bar
+
+Filters rendered reactively in a horizontal row, no "Apply" button:
+
+| Control | Type | Notes |
+|---------|------|-------|
+| Search | Text input | Placeholder "Search systems…"; debounced ~300ms; searches `name`, `vendor`, `description` |
+| Category | Toggle chips | Three chips: "Integrated" / "Ticketing" / "Audience management". Multi-value — any combination active simultaneously. Active chip: `bg-blue-600 text-white`; inactive: `bg-white border-slate-300 text-slate-600 hover:bg-slate-50` |
+| Deployment | Select | SaaS / Self-hosted / Hybrid / All deployments |
+| Pricing | Select | Subscription / Transaction fee / Licence / Hybrid / Unknown / All pricing |
+| Geographic focus | Select | UK / Europe / North America / Global / Other / All regions |
+| Capabilities | Three Selects | Membership / Donation / Reserved seating — each: Yes / No / Unknown / Any |
+
+**Why category is chips, not a select:** Category supports multi-value filtering (select `INTEGRATED` *and* `TICKETING` simultaneously — architecture §3.1). The three-chip toggle makes multi-selection obvious without a custom multi-select component.
+
+Category chip labels render as plain British English with spaces: `INTEGRATED` → "Integrated", `AUDIENCE_MANAGEMENT` → "Audience management". Same rendering rule as capability values.
+
+#### D2.2 Active filter chips
+
+`ActiveFilterChips` extended to handle system filter params:
+
+| Param | Chip label pattern |
+|-------|--------------------|
+| `category` (multi) | One chip per active value: "Category: Integrated" |
+| `deployment_model` | "Deployment: SaaS" |
+| `pricing_model` | "Pricing: Subscription" |
+| `geographic_focus` | "Region: UK" |
+| `membership` / `donation` / `seating` | "Membership: Yes" (same pattern as Org list) |
+| `q` | "Search: [term]" |
+
+Dismiss and "Clear all" behaviour: identical to Organisation list.
+
+#### D2.3 Table columns
+
+| # | Column | Notes |
+|---|--------|-------|
+| 1 | Checkbox | Row selection for compare |
+| 2 | Name | Link to `/systems/:id`; `font-medium text-slate-800` |
+| 3 | Vendor | `text-sm text-slate-500`; same row as name, on a second line at narrow widths |
+| 4 | Category | `Badge` — colour tokens below |
+| 5 | Deployment | Text, `text-sm text-slate-600`; "—" if null |
+| 6 | Pricing | Text, `text-sm text-slate-600`; "—" if null |
+| 7 | Membership | `CapabilityBadge` compact (icon only) |
+| 8 | Donation | `CapabilityBadge` compact |
+| 9 | Reserved seating | `CapabilityBadge` compact |
+| 10 | Last updated | `text-xs text-slate-500`, relative date |
+
+**Category badge colour tokens:**
+
+| Value | Background | Text | Border |
+|-------|------------|------|--------|
+| Integrated | `blue-50` | `blue-700` | `blue-200` |
+| Ticketing | `amber-50` | `amber-700` | `amber-200` |
+| Audience management | `purple-50` | `purple-700` | `purple-200` |
+
+These three tokens are new. All other colour usage follows the v1 token set.
+
+#### D2.4 Selection and compare
+
+`CompareSelectionBar` (bound to `SystemSelectionContext`):
+- Activates when ≥1 system row is checked
+- Active 1–4: "Compare selected (N) →" — primary blue button; navigates to `/compare/systems?ids=<id>,<id>,...`
+- Active 5+: button disabled with tooltip "Select up to 4 systems to compare"
+- "Clear selection" resets `SystemSelectionContext`
+
+Selection persists across navigation to system detail and back, matching Organisation list behaviour (filter state in URL; selection state in context).
+
+#### D2.5 Empty states
+
+| Context | Message | Action |
+|---------|---------|--------|
+| No results for active filters | "No systems match these filters. Try removing a filter or clearing all." | "Clear all filters" |
+| Search returns nothing | "No systems found for '[term]'. Try a shorter search or check the spelling." | Clear search |
+| Catalogue empty | "No systems yet. Add the first one to get started." | "Add system" button |
+
+---
+
+### D3. System Detail Page (`/systems/:id`)
+
+**Back link:** `← Back to systems`
+
+**Page header:** System name (`text-2xl font-semibold`). Subtitle: Vendor in `text-base text-slate-500`. Category badge (D2.3 tokens) inline. Right-aligned actions: "Edit system" (secondary outlined button); "Delete system" (ghost destructive).
+
+#### D3.1 System facts panel
+
+Rendered as a two-column label/value grid (`grid grid-cols-[max-content_1fr] gap-x-6 gap-y-3`):
+
+| Label | Value rendering |
+|-------|-----------------|
+| Vendor | Plain text |
+| Category | Category badge |
+| Deployment | Plain text; "Not recorded" in `text-slate-400` if null |
+| Pricing model | Plain text; "Not recorded" if null |
+| Geographic focus | Plain text; "Not recorded" if null |
+| Description | Full prose, `text-sm text-slate-700`; hidden if null |
+| Membership | `CapabilityBadge` labelled variant |
+| Donation | `CapabilityBadge` labelled variant |
+| Reserved seating | `CapabilityBadge` labelled variant |
+| Source reference | Rendered as a link (`<a>` with `target="_blank"`) if it starts with `http`; otherwise plain text; "None recorded" if null |
+| Last updated | Absolute date + relative in parentheses, `text-xs text-slate-500` |
+
+#### D3.2 Adoption evidence panel
+
+**Heading:** "Organisations using this system (N)" — N is the total count; updates reactively if stale.
+
+Rows grouped by `role`. Each group:
+- Group heading: role label as a muted badge ("Primary ticketing", "Integrated suite", etc.), `text-xs font-medium text-slate-500 uppercase tracking-wide`
+- Rows beneath: organisation name (link to `/organisations/:id`) | organisation type badge | country | per-link source reference | per-link note (truncated, with tooltip) | per-link last updated
+
+If no organisations are linked: "No organisations have linked to this system yet."
+
+This panel is read-only on the System detail page. Adding/removing links is done from the Organisation side (Organisation form, Organisation detail linked-systems panel).
+
+#### D3.3 Custom attributes panel
+
+**Heading:** "Additional attributes"
+
+Rendered as a compact table: Label column | Value column | Source column.
+
+Each row: `{ label, value, sourceReference }` from `System.custom_attributes` JSON.
+- Source reference rendered as a link if it starts with `http`; omitted if null.
+- Read-only. No add/edit/remove controls in MVP.
+
+If `custom_attributes` is null or empty: panel is hidden entirely (no empty state shown — absence means no additional attributes, not missing data).
+
+#### D3.4 Compare shortcut from system detail
+
+Not applicable — system detail does not offer a compare-from-here shortcut. Compare is initiated from the System list or via contextual entry points from Organisation pages (see D7).
+
+---
+
+### D4. System Form Page (`/systems/new` and `/systems/:id/edit`)
+
+**Pattern:** Mirrors `OrganisationFormPage` exactly. Single page handles create and edit. Edit pre-fills all fields from the fetched system record.
+
+**Back link (create):** `← Back to systems`
+**Back link (edit):** `← Back to [System name]`
+**Page title (create):** "Add system"
+**Page title (edit):** "Edit system"
+
+#### D4.1 Fields
+
+GOV.UK anatomy throughout (label → hint → input → inline error):
+
+| Field | Type | Required | Width | Hint |
+|-------|------|----------|-------|------|
+| Name | Text input | Yes | `max-w-md` | "Must be unique. Use the canonical product name (e.g. "Tessitura", not "Tess")." |
+| Vendor | Text input | Yes | `max-w-md` | "The supplier organisation (e.g. "Tessitura Network")." |
+| Category | Select | Yes | `max-w-xs` | Options: Integrated / Ticketing / Audience management |
+| Deployment model | Select | No (optional) | `max-w-xs` | Options: SaaS / Self-hosted / Hybrid; default "Select deployment model (optional)" |
+| Pricing model | Select | No (optional) | `max-w-xs` | Options: Subscription / Transaction fee / Licence / Hybrid / Unknown |
+| Geographic focus | Select | No (optional) | `max-w-xs` | Options from seeded constant list |
+| Description | Textarea | No (optional) | Full width | "Include typical audience size and sector specialisation." |
+| Membership capability | Select | Yes | `max-w-xs` | Default: Unknown. Options: Yes / No / Unknown |
+| Donation capability | Select | Yes | `max-w-xs` | Default: Unknown |
+| Reserved seating capability | Select | Yes | `max-w-xs` | Default: Unknown |
+| Source reference | Text input | No (optional) | Full width | "URL or citation for this record." |
+
+**Custom attributes — read-only note** (shown below source reference, in a `bg-slate-50 rounded p-3 text-sm text-slate-600`): "Custom attributes are managed via seed data. Full editing will be available in a future update."
+
+#### D4.2 Validation messages
+
+| Condition | Message |
+|-----------|---------|
+| Name empty | "Enter the system name" |
+| Name taken (409 from API) | "A system with this name already exists" |
+| Vendor empty | "Enter the vendor name" |
+| Category not selected | "Select a category" |
+
+**Error summary heading:** "There is a problem."
+
+#### D4.3 Save and delete flows
+
+**Save (create):** On success → redirect to `/systems/:newId` with success banner "System added."
+**Save (edit):** On success → redirect to `/systems/:id` with success banner "System saved."
+**Delete:** Triggered from the detail page header only — never from the list. Dialog content: system name in bold; "This cannot be undone. Any organisations linked to this system must be unlinked first." If the API returns `409 Conflict` (system has adopters): show inline error "Remove all organisation links before deleting this system." rather than proceeding.
+
+---
+
+### D5. System Compare Page (`/compare/systems?ids=...`)
+
+**Route:** `/compare/systems?ids=<id1>,<id2>,...` — 2 to 4 system IDs.
+
+**Fetch strategy:** Parallel `GET /api/systems/:id` calls via `Promise.all`, identical to the Organisation compare pattern (v1 architecture §6.5). Results rendered as soon as all resolve.
+
+**Layout:** Mirrors the Organisation compare structure. Fixed attribute label column on the left; one `SystemCard` column per system; card headers sticky on scroll. `max-w-7xl` container; horizontally scrollable on narrow viewports.
+
+#### D5.1 Attribute label column
+
+```
+Name
+Vendor
+Category
+Deployment
+Pricing
+Geographic focus
+─────────────────
+Membership
+Donation
+Reserved seating
+─────────────────
+Description
+─────────────────
+Source reference
+Last updated
+─────────────────
+Additional attributes
+  [label 1]
+  [label 2]
+  ...
+─────────────────
+Adopted by
+```
+
+The "Additional attributes" section expands to show the **union** of all `custom_attribute` labels across all selected systems. A label that appears in one system's attributes but not another's still gets a row; the absent system shows "—".
+
+#### D5.2 `SystemCard` component
+
+**Anatomy:**
+
+- **Sticky header:** System name (`text-lg font-semibold`); Category badge; Vendor (`text-sm text-slate-500`). Right-aligned: "Edit" link → `/systems/:id/edit`; "×" remove from compare (removes this column, updates URL `ids` param).
+- **Attribute cells** (aligned to label column): Plain text for scalar attributes; "—" in `text-slate-300` for null values; `CapabilityBadge` (labelled variant) for capability rows; prose truncated to 4 lines with "Show more" expand for Description.
+- **Custom attributes section:** `value` per label from this system's JSON; "—" for labels that belong to another selected system but not this one.
+- **Adopted by row:** "N organisations" — plain text count, linked to `/systems/:id` (opens system detail where adoption evidence is listed).
+
+**Never blank:** Every cell renders an explicit value or "—". The "—" glyph in `text-slate-300` visually communicates "not recorded" without being confused with an empty cell.
+
+#### D5.3 Compare page behaviours
+
+**URL is the selection:** `ids` param is the source of truth. Removing a column updates the URL and re-renders. Sharing the URL recreates the exact compare view.
+
+**Minimum 2 columns:** If `ids` resolves to fewer than 2 valid systems (e.g. one 404), show an error state: "One or more systems could not be found. [Return to systems list]."
+
+**Add to compare:** Not a v2 MVP feature. To add a system, user returns to the System list (back navigation) and selects from there. Compare bar in the list pre-selects the `ids` from the URL if returning from compare.
+
+**Empty state (no `ids`):** "Select systems from the list to compare them here. [Go to systems →]"
+
+---
+
+### D6. Organisation Page Updates
+
+#### D6.1 `OrganisationCard` — system chips
+
+Replace the `ticketingProvider` and `crmPlatform` text fields with a compact **system chips strip**:
+
+```
+[icon] Tessitura    [icon] Spektrix    +2 more
+```
+
+- Each chip: role icon (Lucide) + system name, `text-xs text-slate-600 bg-slate-100 rounded px-2 py-0.5`
+- Role icon mapping: `PRIMARY_TICKETING` → `Ticket`; `PRIMARY_CRM` → `Users`; `INTEGRATED_SUITE` → `Layers`; `SECONDARY` → `Link2`
+- Cap at 3 chips; overflow: "+N more" in `text-xs text-slate-400`
+- Chips are informational only — not links (the card itself is the navigation target in compare view)
+- If no systems linked: "No systems linked" in `text-xs text-slate-400 italic`
+
+#### D6.2 Organisation list — filter sidebar update
+
+**Remove:** Provider dropdown, CRM dropdown.
+
+**Add (in their place):**
+
+1. **Adopted system** — Combobox (search-as-you-type). Placeholder: "Search by adopted system…". On input, calls `GET /api/systems?q=[term]&limit=20`. Each result shows system name + category badge. Selecting a system sets the `system` filter param (UUID).
+
+2. **Role** (sub-filter, conditional) — appears directly below the Adopted system combobox only when a system is selected. Select with options: Any role / Primary ticketing / Primary CRM / Integrated suite / Secondary. Sets the `system_role` filter param. Hidden and cleared when Adopted system is cleared.
+
+ActiveFilterChips extension for these params:
+- `system`: chip reads "Adopted system: [System name]" — name looked up from the system cache (the combobox already holds the selected system's data)
+- `system_role`: chip reads "Role: [humanised role]" — shown only when `system` is also active
+
+#### D6.3 Organisation detail — Linked Systems panel
+
+**Panel heading:** "Linked systems"
+
+Rendered as a grouped list. Each `role` value that has at least one link becomes a group:
+
+```
+[Role badge: Integrated suite]
+  Tessitura          Tessitura Network    [source link]   [note (truncated)]   Updated 12 Apr 2026   [Edit]  [Remove]
+
+[Role badge: Secondary]
+  Eventbrite         Eventbrite, Inc.     —               —                    Updated 3 Jan 2026    [Edit]  [Remove]
+```
+
+- System name is a link to `/systems/:id`
+- "Edit" opens an inline dialog: system combobox (pre-selected, changeable), role select, source input, note textarea, Save / Cancel buttons
+- "Remove" shows a confirmation dialog: "[System name] will be unlinked from [Org name]. This cannot be undone." with "Remove link" (destructive) and "Cancel" buttons
+- "Add system" button below all groups: opens the same inline dialog with empty fields
+
+**Compare shortcut** (see D7.1): rendered as a ghost link beneath the panel when ≥2 systems are linked.
+
+If no systems linked: "No systems linked yet. [Add system →]" as the panel body.
+
+#### D6.4 Organisation form — Linked Systems editor
+
+A separate section below the core fields, with heading "Linked systems" and hint: "Link this organisation to the systems it uses. Add a source reference and role for each."
+
+**Row anatomy** (one row per link):
+
+```
+[System combobox     ▼] [Role        ▼] [Source reference input            ] [Note textarea] [× Remove]
+```
+
+- System combobox: same search-as-you-type behaviour as D6.2
+- Role select: required when a system is chosen
+- Source and note: optional
+- Remove (×): removes the row; no confirmation (the form has not saved yet)
+- "Add system" button beneath all rows: appends a new empty row
+
+**Validation:**
+- A row with a system selected but no role: "Select a role for [System name]"
+- Duplicate system in two rows: "This system is already linked. Remove the duplicate row."
+
+**Orchestration on save:**
+1. PUT the organisation (core fields)
+2. Diff current link rows against the existing links fetched on form load
+3. POST new links; PUT changed links (role, source, note); DELETE removed links
+4. Any link-write error surfaces as a page-level banner: "Organisation saved, but one or more system links could not be updated. Check the linked systems panel."
+
+This orchestration is a UX concern, not just an API concern — Sam sees a consistent, non-partial result or a clear explanation of what did/did not save.
+
+---
+
+### D7. 'Systems Used by These Organisations' — Contextual Compare
+
+This is a lightweight navigation shortcut that pre-populates the System compare page from the Organisation side of the product. It is **not Mode B** (the organisation-filtered System compare, which is Growth). It is a convenience entry point, not a new page.
+
+#### D7.1 Entry point: Organisation detail page
+
+When the Linked Systems panel contains **≥2 systems**, render a ghost link below the panel list:
+
+> "Compare these systems →"
+
+Behaviour: collects all distinct `system.id` values from the org's links, navigates to `/compare/systems?ids=<id1>,<id2>,...`.
+
+If the org has 5+ systems: the first 4 by `last_updated` desc are included and the link copy updates to "Compare the 4 most recently updated systems →". (This keeps the compare URL valid — compare accepts max 4.)
+
+If only 1 system linked: link is absent.
+
+#### D7.2 Entry point: Organisation Compare page (`/compare/organisations?ids=...`)
+
+After comparing 2–4 organisations side-by-side, if the **union of system IDs** across those organisations is 2–4 distinct systems, render a contextual action link below the compare grid:
+
+> "Compare systems used by these organisations →"
+
+Navigates to `/compare/systems?ids=<union of systemIds>`. The union is computed client-side from the fetched organisation data (organisations are fetched individually for the compare page anyway).
+
+**Conditions for the link to appear:**
+- Union of distinct system IDs is 2, 3, or 4 — link appears
+- Union is 0 or 1 — link absent (nothing meaningful to compare)
+- Union is 5+ — link absent; instead show a note in muted text: "These organisations use [N] different systems. Open the [System list →] to select which to compare."
+
+**Visual placement:** Below the last compare card row, in a `border-t border-slate-200 pt-4 mt-6` strip. Ghost link style: `text-sm text-blue-600 hover:text-blue-800`.
+
+---
+
+### D8. Updated and New User Journeys
+
+#### Journey 1 (rewritten) — System filter → Compare → Decide
+
+Sam needs to brief a colleague on differences between Tessitura, Spektrix, and AudienceView Professional for a procurement question. This replaces the v1 Organisation-first Journey 1 as the headline success path.
+
+```mermaid
+flowchart TD
+    A([Sam opens the app]) --> B[Clicks 'Systems' in nav\nSystem list loads]
+    B --> C[Clicks 'Integrated' category chip\nResults narrow reactively]
+    C --> D[Active filter chip appears\nResult count updates]
+    D --> E{Needs to narrow further?}
+    E -- Yes --> F[Adds Geographic focus: UK\nor types a name in search]
+    F --> D
+    E -- No --> G[Scans table\nName · Vendor · Category · Capabilities · Last updated]
+    G --> H{Results look trustworthy?}
+    H -- No --> I[Journey 2 equivalent:\nOpens system detail · checks source]
+    H -- Yes --> J[Ticks 3 rows\nCompare bar activates at bottom]
+    J --> K[Clicks 'Compare selected 3 →']
+    K --> L[Navigates to /compare/systems?ids=...\nStable shareable URL]
+    L --> M[Compare page loads\nOne SystemCard per system\nFixed attribute rows · sticky headers]
+    M --> N[Reads aligned rows\n✓ · ✕ · – rendered distinctly\nCustom attributes union panel visible]
+    N --> O{Confident answer?}
+    O -- Yes --> P([Copies URL · shares in meeting note\nLeaves with citable sourced answer])
+    O -- No --> Q[Opens system detail from card 'Edit' link\nChecks source + last updated]
+    Q --> P
+```
+
+**Flow optimisations:** Category chips are always visible — no drawer to open. Compare URL is shareable before Sam even reads it. Custom attributes panel is clearly demarcated so Sam knows what is universal-core vs. enriched data.
+
+#### Journey 3 (extended) — Cited answer, then pivot to System detail
+
+After the existing Journey 3 resolution (Sam finds the organisation and reads its ticketing system), add:
+
+```mermaid
+flowchart TD
+    A([Sam has read org detail\nSees 'Tessitura' in Linked systems panel]) --> B{Next question in meeting:\n'What does Tessitura actually do?'}
+    B -- Yes --> C[Clicks 'Tessitura' link in Linked systems panel\nSystem detail page opens]
+    C --> D[Reads capabilities · pricing · deployment\nChecks source reference + last updated]
+    D --> E{2+ systems listed on this org?}
+    E -- Yes --> F[Clicks 'Compare these systems →'\nghost link beneath Linked systems panel]
+    F --> G[/compare/systems?ids=... loads\nSam compares Tessitura vs linked secondary system]
+    E -- No --> H([Sam answers both questions\nOrg-level and platform-level\nwithout opening a second tab])
+    G --> H
+```
+
+#### Journey 4 (both-catalogue maintenance)
+
+Sam learns two things: an org has migrated from PatronManager to Tessitura, and Spektrix has changed pricing model. Two distinct correction paths.
+
+```mermaid
+flowchart TD
+    A([Sam learns of two changes\nOrg migration + platform pricing change]) --> B1[Path 1: Organisation change]
+    A --> B2[Path 2: System change]
+
+    B1 --> C1[Searches organisation list\nOpens affected org detail]
+    C1 --> D1[Clicks 'Remove' next to PatronManager link\nConfirmation dialog appears]
+    D1 --> E1[Confirms removal\nLink deleted · panel updates]
+    E1 --> F1[Clicks 'Add system'\nSelects Tessitura · role: Integrated suite\nAdds source reference · saves]
+    F1 --> G1[Per-link last updated refreshes automatically\nOrg record reflects new stack]
+
+    B2 --> C2[Navigates to /systems\nSearches 'Spektrix'\nOpens system detail]
+    C2 --> D2[Clicks 'Edit system' from header\nEdit form opens pre-filled]
+    D2 --> E2[Changes pricing model field\nUpdates source reference to announcement URL]
+    E2 --> F2[Saves\nSystem last updated refreshes automatically]
+    F2 --> G2[Every compare view including Spektrix\nnow reflects the corrected pricing model]
+
+    G1 --> H([Both catalogues updated\nInstitutional memory separates\nplatform facts from adoption facts])
+    G2 --> H
+```
+
+**Design principle reinforced:** A single edit to a System record corrects every downstream comparison. An edit to an organisation's link captures adoption change without touching platform facts. These are structurally separate operations and the UX should make that feel natural, not confusing.
+
+#### Journey 5 — System catalogue curation (new)
+
+Sam discovers a regional ticketing provider not yet in the System catalogue.
+
+```mermaid
+flowchart TD
+    A([Sam sees an unfamiliar platform\nmentioned in research]) --> B[Navigates to /systems\nSearches by name — no result]
+    B --> C[Clicks 'Add system' in page header\n/systems/new opens]
+    C --> D[Fills required fields:\nName · Vendor · Category]
+    D --> E[Fills optional enrichment:\nDeployment · Pricing · Geographic focus\nDescription · Capability flags]
+    E --> F[Adds source reference URL\nto evidence for this platform]
+    F --> G{Validation passes?}
+    G -- No --> H[Inline errors shown per field\nError summary at top\nSam corrects and resubmits]
+    H --> G
+    G -- Yes --> I[System saved\nRedirects to /systems/:id\nSuccess banner: 'System added.']
+    I --> J[New system appears in System list\nFilterable · selectable · comparable]
+    J --> K([Platform is first-class\nNot buried in an organisation note])
+```
+
+---
+
+### D9. Component Strategy — v2 Updates
+
+#### `ActiveFilterChips` — extended
+
+**New param handlers:**
+- `system` → "Adopted system: [name]" — display name looked up from the `useSystems` cache by the ID stored in the param. Falls back to "Adopted system: [id]" while loading.
+- `system_role` → "Role: [humanised value]" — only rendered when `system` is also active; humanise: `PRIMARY_TICKETING` → "Primary ticketing", `INTEGRATED_SUITE` → "Integrated suite", etc.
+- `category` (multi-value, system list only) → one chip per active value: "Category: Integrated"
+- `deployment_model` → "Deployment: SaaS"
+- `pricing_model` → "Pricing: Subscription"
+- `geographic_focus` → "Region: UK"
+
+**Removed param handlers:** `provider`, `crm` (deprecated with the lookup tables).
+
+Component API and visual treatment unchanged.
+
+#### `CompareSelectionBar` — dual instantiation
+
+Component is unchanged. Two instances in the app, one per list page. Receives `entityLabel` prop (`"organisations"` or `"systems"`) to populate tooltip and button copy correctly. Each instance reads from its own `SelectionContext`.
+
+#### `CapabilityBadge` — unchanged
+
+Reused as-is on all System pages. `YES | NO | UNKNOWN` are the same enum values; the same icon/colour/aria-label treatment applies. No API change.
+
+#### `OrganisationCard` — updated (compare view)
+
+Replace the flat `ticketingProvider` and `crmPlatform` attribute rows with a **"Systems" section**:
+
+- In the compare column, all linked systems are listed (no cap — compare is detail-level)
+- Each: role badge (`text-xs`) + system name as a link to `/systems/:id`
+- Role badge colours match the category badge tokens (role is independent of category, but using a consistent visual language reduces cognitive load)
+- Empty: "No systems linked" in muted italic
+
+#### `SystemCard` — new component (compare view)
+
+Mirrors `OrganisationCard` structure. See D5.2 for full anatomy. Key differences from `OrganisationCard`:
+
+| `OrganisationCard` | `SystemCard` |
+|--------------------|--------------|
+| Header: name, type badge, country | Header: name, category badge, vendor |
+| Capability rows: 3 | Capability rows: 3 (same) |
+| Provider/CRM/systems section | Custom attributes section (union, read-only) |
+| Footer: source + last updated | Footer: source + last updated + "Adopted by N organisations" |
+
+Both components share the same sticky header, attribute-row, never-blank, and provenance footer contracts.
+
+---
+
+### D10. Open Questions Resolved for UX
+
+The following open questions from [architecture-v2-delta.md §11](architecture-v2-delta.md) are resolved here:
+
+1. **Linked-systems editor on Organisation form:** Row-based (inline rows, not dialog-based add). Each row is always visible once added; editing happens in-place. An inline dialog is used only for adding new links from the Organisation detail page (where a full editor form is not in context). Rationale: the form already has vertical space; rows are scannable and editable without a modal interrupt.
+
+2. **System Compare custom attributes union panel:** Merges by `label` string (case-insensitive). If two systems have a custom attribute with the same label, they share a row. If labels differ, each gets its own row and other systems show "—". No attempt to deduplicate semantically equivalent labels — that is a data quality concern, not a display concern.
+
+3. **System list adoption count column:** Not shown as a table column in MVP. The adoption count is accessible from the System detail page (Adoption evidence panel heading). Rationale: the table is already wide; adding a count column before anyone has asked for it is premature. The architecture supports adding `_count` server-side trivially when requested.
+
+4. **Deletion of System with adopters:** Two-step flow. The "Delete system" button on System detail is always visible. If clicked and the API returns `409 Conflict`, the delete dialog is replaced by an error state: "This system is linked to [N] organisations. Remove all organisation links before deleting." — with a "View linked organisations" link into the Adoption evidence panel. No auto-unlink, no cascade-delete shortcut in MVP.
+
+---
+
+### D11. Navigation and URL Reference — v2
+
+| Path | Page | Entry points |
+|------|------|-------------|
+| `/organisations` | Organisation list (re-shaped) | Nav · root redirect |
+| `/organisations/new` | Create organisation (re-shaped form) | List page header |
+| `/organisations/:id` | Organisation detail (re-shaped) | List row · compare card · system adoption evidence |
+| `/organisations/:id/edit` | Edit organisation (re-shaped form) | Detail header |
+| `/compare/organisations?ids=...` | Organisation compare (legacy, retained) | Org list CompareSelectionBar |
+| `/systems` | System list (new) | Nav |
+| `/systems/new` | Create system (new) | System list header |
+| `/systems/:id` | System detail (new) | System list row · compare card · org linked systems panel · org adoption evidence |
+| `/systems/:id/edit` | Edit system (new) | System detail header · SystemCard edit link |
+| `/compare/systems?ids=...` | System compare (new, headline) | System list CompareSelectionBar · org detail contextual link · org compare contextual link |

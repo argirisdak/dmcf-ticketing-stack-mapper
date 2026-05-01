@@ -1,11 +1,19 @@
 import { cn } from '../lib/utils.js'
 
 /**
- * @param {{ value: string | null | undefined, inheritPlainTextColor?: boolean }} props
+ * @param {{
+ *   value: string | null | undefined
+ *   inheritPlainTextColor?: boolean
+ *   emptyLabel?: string
+ * }} props
  */
-export function SourceReferenceDisplay({ value, inheritPlainTextColor = false }) {
+export function SourceReferenceDisplay({
+  value,
+  inheritPlainTextColor = false,
+  emptyLabel = 'Not recorded',
+}) {
   if (value == null || value === '') {
-    return <span className="text-slate-500">Not recorded</span>
+    return <span className="text-slate-500">{emptyLabel}</span>
   }
   const s = String(value)
   if (s.startsWith('http://') || s.startsWith('https://')) {

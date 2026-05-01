@@ -3,8 +3,12 @@ const { toOrganisationDto } = require('./organisation-list-dto');
 
 const organisationInclude = {
   organisation_type: true,
-  ticketing_provider: true,
-  crm_platform: true,
+  systems: {
+    include: {
+      system: { select: { id: true, name: true, vendor: true, category: true } },
+    },
+    orderBy: [{ role: 'asc' }, { system: { name: 'asc' } }],
+  },
 };
 
 /**
@@ -16,11 +20,6 @@ function buildOrganisationListWhere(q) {
       { name: { contains: q, mode: 'insensitive' } },
       { city: { contains: q, mode: 'insensitive' } },
       { notes: { contains: q, mode: 'insensitive' } },
-      {
-        ticketing_provider: {
-          is: { name: { contains: q, mode: 'insensitive' } },
-        },
-      },
     ],
   };
 }
@@ -29,9 +28,9 @@ function buildOrganisationListWhere(q) {
  * @param {{
  *   q?: string
  *   country?: string
- *   provider?: string
  *   type?: string
- *   crm?: string
+ *   system?: string
+ *   system_role?: string
  *   membership?: string
  *   donation?: string
  *   seating?: string
@@ -46,20 +45,15 @@ function buildOrganisationListCompositeWhere(filters) {
   if (filters.country) {
     parts.push({ country: filters.country });
   }
-  if (filters.provider) {
-    parts.push({
-      ticketing_provider: { is: { name: filters.provider } },
-    });
-  }
   if (filters.type) {
     parts.push({
       organisation_type: { is: { name: filters.type } },
     });
   }
-  if (filters.crm) {
-    parts.push({
-      crm_platform: { is: { name: filters.crm } },
-    });
+  if (filters.system) {
+    const linkFilter = { system_id: filters.system };
+    if (filters.system_role) linkFilter.role = filters.system_role;
+    parts.push({ systems: { some: linkFilter } });
   }
   if (filters.membership) {
     parts.push({ membership_capability: filters.membership });
@@ -81,23 +75,23 @@ function buildOrganisationListCompositeWhere(filters) {
  *   limit: number
  *   q?: string
  *   country?: string
- *   provider?: string
  *   type?: string
- *   crm?: string
+ *   system?: string
+ *   system_role?: string
  *   membership?: string
  *   donation?: string
  *   seating?: string
  * }} params
  */
 async function listOrganisations(params) {
-  const { page, limit, q, country, provider, type, crm, membership, donation, seating } = params;
+  const { page, limit, q, country, type, system, system_role, membership, donation, seating } = params;
   const skip = (page - 1) * limit;
   const where = buildOrganisationListCompositeWhere({
     q,
     country,
-    provider,
     type,
-    crm,
+    system,
+    system_role,
     membership,
     donation,
     seating,
@@ -130,8 +124,6 @@ async function createOrganisation(payload) {
       city: payload.city,
       country: payload.country,
       organisation_type_id: payload.organisationTypeId,
-      ticketing_provider_id: payload.ticketingProviderId,
-      crm_platform_id: payload.crmPlatformId,
       membership_capability: payload.membershipCapability,
       donation_capability: payload.donationCapability,
       reserved_seating_capability: payload.reservedSeatingCapability,
@@ -172,8 +164,6 @@ async function updateOrganisation(id, payload) {
         city: payload.city,
         country: payload.country,
         organisation_type_id: payload.organisationTypeId,
-        ticketing_provider_id: payload.ticketingProviderId,
-        crm_platform_id: payload.crmPlatformId,
         membership_capability: payload.membershipCapability,
         donation_capability: payload.donationCapability,
         reserved_seating_capability: payload.reservedSeatingCapability,

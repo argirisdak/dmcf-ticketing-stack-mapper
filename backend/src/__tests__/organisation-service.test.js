@@ -15,16 +15,25 @@ const {
   listOrganisations,
 } = require('../services/organisation-service');
 
+/** Mirrors `organisationInclude` in organisation-service (AC5/AC6 link ordering). */
+const organisationSystemsIncludeExpectation = {
+  organisation_type: true,
+  systems: {
+    include: {
+      system: { select: { id: true, name: true, vendor: true, category: true } },
+    },
+    orderBy: [{ role: 'asc' }, { system: { name: 'asc' } }],
+  },
+};
+
 describe('toOrganisationListDto', () => {
-  it('maps Prisma snake_case row to camelCase DTO with ISO dates', () => {
+  it('maps Prisma snake_case row to camelCase DTO with ISO dates and systems array', () => {
     const row = {
       id: 'org-1',
       name: 'Royal Opera House',
       city: 'London',
       country: 'United Kingdom',
       organisation_type_id: 't1',
-      ticketing_provider_id: 'p1',
-      crm_platform_id: null,
       membership_capability: 'YES',
       donation_capability: 'NO',
       reserved_seating_capability: 'UNKNOWN',
@@ -34,21 +43,83 @@ describe('toOrganisationListDto', () => {
       last_updated: new Date('2026-03-01T12:00:00.000Z'),
       created_at: new Date('2025-06-01T08:00:00.000Z'),
       organisation_type: { id: 't1', name: 'Venue' },
-      ticketing_provider: { id: 'p1', name: 'Spektrix' },
-      crm_platform: null,
+      systems: [],
     };
 
     const dto = toOrganisationListDto(row);
     expect(dto.city).toBe('London');
     expect(dto.organisationType.name).toBe('Venue');
-    expect(dto.ticketingProvider.name).toBe('Spektrix');
-    expect(dto.crmPlatform).toBeNull();
     expect(dto.lastUpdated).toBe('2026-03-01T12:00:00.000Z');
     expect(dto.createdAt).toBe('2025-06-01T08:00:00.000Z');
     expect(dto.updatedAt).toBe('2026-03-01T12:00:00.000Z');
     expect(dto.membershipCapability).toBe('YES');
+    expect(dto.systems).toEqual([]);
+    expect(dto).not.toHaveProperty('ticketingProvider');
+    expect(dto).not.toHaveProperty('crmPlatform');
     expect(dto).not.toHaveProperty('organisation_type');
     expect(dto).not.toHaveProperty('last_updated');
+  });
+
+  it('maps embedded systems links using toLinkDto shape', () => {
+    const row = {
+      id: 'org-2',
+      name: 'Barbican',
+      city: 'London',
+      country: 'United Kingdom',
+      organisation_type_id: 't1',
+      membership_capability: 'UNKNOWN',
+      donation_capability: 'UNKNOWN',
+      reserved_seating_capability: 'YES',
+      source_reference: null,
+      notes: null,
+      capacity: null,
+      last_updated: new Date('2026-04-01T00:00:00.000Z'),
+      created_at: new Date('2026-01-01T00:00:00.000Z'),
+      organisation_type: { id: 't1', name: 'Venue' },
+      systems: [
+        {
+          id: 'link-1',
+          role: 'PRIMARY_TICKETING',
+          source_reference: 'https://example.com',
+          note: 'Main system',
+          last_updated: new Date('2026-04-01T00:00:00.000Z'),
+          system: { id: 'sys-1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED' },
+        },
+      ],
+    };
+
+    const dto = toOrganisationListDto(row);
+    expect(dto.systems).toHaveLength(1);
+    expect(dto.systems[0]).toEqual({
+      id: 'link-1',
+      role: 'PRIMARY_TICKETING',
+      sourceReference: 'https://example.com',
+      note: 'Main system',
+      lastUpdated: '2026-04-01T00:00:00.000Z',
+      system: { id: 'sys-1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED' },
+    });
+  });
+
+  it('returns empty systems array when systems is absent from row (defensive)', () => {
+    const row = {
+      id: 'org-3',
+      name: 'Test',
+      city: null,
+      country: 'France',
+      organisation_type_id: 't1',
+      membership_capability: 'UNKNOWN',
+      donation_capability: 'UNKNOWN',
+      reserved_seating_capability: 'UNKNOWN',
+      source_reference: null,
+      notes: null,
+      capacity: null,
+      last_updated: new Date('2026-01-01T00:00:00.000Z'),
+      created_at: new Date('2026-01-01T00:00:00.000Z'),
+      organisation_type: { id: 't1', name: 'Venue' },
+      // systems absent — simulates old code path without include
+    };
+    const dto = toOrganisationListDto(row);
+    expect(dto.systems).toEqual([]);
   });
 });
 
@@ -73,12 +144,13 @@ describe('listOrganisations', () => {
         skip: 0,
         take: 20,
         orderBy: { name: 'asc' },
+        include: organisationSystemsIncludeExpectation,
       }),
     );
     expect(prisma.organisation.count).toHaveBeenCalledWith({ where: {} });
   });
 
-  it('applies OR filter across name, city, notes, and ticketing provider name', async () => {
+  it('applies OR filter across name, city, and notes only (ticketing provider removed)', async () => {
     prisma.organisation.findMany.mockResolvedValue([]);
     prisma.organisation.count.mockResolvedValue(0);
 
@@ -87,11 +159,6 @@ describe('listOrganisations', () => {
         { name: { contains: 'spek', mode: 'insensitive' } },
         { city: { contains: 'spek', mode: 'insensitive' } },
         { notes: { contains: 'spek', mode: 'insensitive' } },
-        {
-          ticketing_provider: {
-            is: { name: { contains: 'spek', mode: 'insensitive' } },
-          },
-        },
       ],
     };
 
@@ -122,7 +189,7 @@ describe('listOrganisations', () => {
     );
   });
 
-  it('combines q with country and relation filters using AND', async () => {
+  it('combines q with country and type filters using AND', async () => {
     prisma.organisation.findMany.mockResolvedValue([]);
     prisma.organisation.count.mockResolvedValue(0);
 
@@ -131,11 +198,6 @@ describe('listOrganisations', () => {
         { name: { contains: 'royal', mode: 'insensitive' } },
         { city: { contains: 'royal', mode: 'insensitive' } },
         { notes: { contains: 'royal', mode: 'insensitive' } },
-        {
-          ticketing_provider: {
-            is: { name: { contains: 'royal', mode: 'insensitive' } },
-          },
-        },
       ],
     };
 
@@ -144,9 +206,7 @@ describe('listOrganisations', () => {
       limit: 20,
       q: 'royal',
       country: 'United Kingdom',
-      provider: 'Spektrix',
       type: 'Venue',
-      crm: 'HubSpot',
       membership: 'YES',
       donation: 'NO',
       seating: 'UNKNOWN',
@@ -156,9 +216,7 @@ describe('listOrganisations', () => {
       AND: [
         qWhere,
         { country: 'United Kingdom' },
-        { ticketing_provider: { is: { name: 'Spektrix' } } },
         { organisation_type: { is: { name: 'Venue' } } },
-        { crm_platform: { is: { name: 'HubSpot' } } },
         { membership_capability: 'YES' },
         { donation_capability: 'NO' },
         { reserved_seating_capability: 'UNKNOWN' },
@@ -184,6 +242,34 @@ describe('listOrganisations', () => {
       where: { country: 'France' },
     });
   });
+
+  it('applies system filter using systems.some with system_id', async () => {
+    prisma.organisation.findMany.mockResolvedValue([]);
+    prisma.organisation.count.mockResolvedValue(0);
+
+    const sysUuid = '550e8400-e29b-41d4-a716-446655440000';
+    await listOrganisations({ page: 1, limit: 20, system: sysUuid });
+
+    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { systems: { some: { system_id: sysUuid } } },
+      }),
+    );
+  });
+
+  it('applies system filter with system_role when both provided', async () => {
+    prisma.organisation.findMany.mockResolvedValue([]);
+    prisma.organisation.count.mockResolvedValue(0);
+
+    const sysUuid = '550e8400-e29b-41d4-a716-446655440000';
+    await listOrganisations({ page: 1, limit: 20, system: sysUuid, system_role: 'PRIMARY_TICKETING' });
+
+    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { systems: { some: { system_id: sysUuid, role: 'PRIMARY_TICKETING' } } },
+      }),
+    );
+  });
 });
 
 describe('getOrganisationById', () => {
@@ -196,22 +282,17 @@ describe('getOrganisationById', () => {
     await expect(getOrganisationById('550e8400-e29b-41d4-a716-446655440000')).resolves.toBeNull();
     expect(prisma.organisation.findUnique).toHaveBeenCalledWith({
       where: { id: '550e8400-e29b-41d4-a716-446655440000' },
-      include: {
-        organisation_type: true,
-        ticketing_provider: true,
-        crm_platform: true,
-      },
+      include: organisationSystemsIncludeExpectation,
     });
   });
 
-  it('returns DTO when row exists', async () => {
+  it('returns DTO when row exists with systems array', async () => {
     prisma.organisation.findUnique.mockResolvedValue({
       id: '550e8400-e29b-41d4-a716-446655440000',
       name: 'Test Hall',
       country: 'United Kingdom',
+      city: null,
       organisation_type_id: 't1',
-      ticketing_provider_id: null,
-      crm_platform_id: null,
       membership_capability: 'UNKNOWN',
       donation_capability: 'YES',
       reserved_seating_capability: 'NO',
@@ -221,14 +302,15 @@ describe('getOrganisationById', () => {
       last_updated: new Date('2026-01-01T00:00:00.000Z'),
       created_at: new Date('2026-01-01T00:00:00.000Z'),
       organisation_type: { id: 't1', name: 'Venue' },
-      ticketing_provider: null,
-      crm_platform: null,
+      systems: [],
     });
     const dto = await getOrganisationById('550e8400-e29b-41d4-a716-446655440000');
     expect(dto.id).toBe('550e8400-e29b-41d4-a716-446655440000');
     expect(dto.name).toBe('Test Hall');
     expect(dto.organisationType.name).toBe('Venue');
-    expect(dto.ticketingProvider).toBeNull();
+    expect(dto.systems).toEqual([]);
+    expect(dto).not.toHaveProperty('ticketingProvider');
+    expect(dto).not.toHaveProperty('crmPlatform');
     expect(dto.lastUpdated).toBe('2026-01-01T00:00:00.000Z');
   });
 });
@@ -247,8 +329,6 @@ describe('updateOrganisation', () => {
         city: null,
         country: 'United Kingdom',
         organisationTypeId: 't1',
-        ticketingProviderId: null,
-        crmPlatformId: null,
         membershipCapability: 'YES',
         donationCapability: 'NO',
         reservedSeatingCapability: 'UNKNOWN',
@@ -259,15 +339,13 @@ describe('updateOrganisation', () => {
     ).resolves.toBeNull();
   });
 
-  it('returns DTO on success', async () => {
+  it('returns DTO on success and does NOT include ticketing_provider_id or crm_platform_id in Prisma data', async () => {
     prisma.organisation.update.mockResolvedValue({
       id: '550e8400-e29b-41d4-a716-446655440000',
       name: 'Updated',
       city: null,
       country: 'United Kingdom',
       organisation_type_id: 't1',
-      ticketing_provider_id: null,
-      crm_platform_id: null,
       membership_capability: 'YES',
       donation_capability: 'NO',
       reserved_seating_capability: 'UNKNOWN',
@@ -277,16 +355,13 @@ describe('updateOrganisation', () => {
       last_updated: new Date('2026-02-01T00:00:00.000Z'),
       created_at: new Date('2026-01-01T00:00:00.000Z'),
       organisation_type: { id: 't1', name: 'Venue' },
-      ticketing_provider: null,
-      crm_platform: null,
+      systems: [],
     });
     const dto = await updateOrganisation('550e8400-e29b-41d4-a716-446655440000', {
       name: 'Updated',
       city: null,
       country: 'United Kingdom',
       organisationTypeId: 't1',
-      ticketingProviderId: null,
-      crmPlatformId: null,
       membershipCapability: 'YES',
       donationCapability: 'NO',
       reservedSeatingCapability: 'UNKNOWN',
@@ -296,6 +371,7 @@ describe('updateOrganisation', () => {
     });
     expect(dto.name).toBe('Updated');
     expect(dto.capacity).toBe(100);
+    expect(dto.systems).toEqual([]);
     expect(prisma.organisation.update).toHaveBeenCalledWith({
       where: { id: '550e8400-e29b-41d4-a716-446655440000' },
       data: {
@@ -303,8 +379,6 @@ describe('updateOrganisation', () => {
         city: null,
         country: 'United Kingdom',
         organisation_type_id: 't1',
-        ticketing_provider_id: null,
-        crm_platform_id: null,
         membership_capability: 'YES',
         donation_capability: 'NO',
         reserved_seating_capability: 'UNKNOWN',
@@ -312,11 +386,11 @@ describe('updateOrganisation', () => {
         notes: null,
         capacity: 100,
       },
-      include: {
-        organisation_type: true,
-        ticketing_provider: true,
-        crm_platform: true,
-      },
+      include: organisationSystemsIncludeExpectation,
     });
+    // Confirm legacy FK fields are NOT in the Prisma data call
+    const dataArg = prisma.organisation.update.mock.calls[0][0].data;
+    expect(dataArg).not.toHaveProperty('ticketing_provider_id');
+    expect(dataArg).not.toHaveProperty('crm_platform_id');
   });
 });
