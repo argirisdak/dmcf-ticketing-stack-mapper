@@ -30,6 +30,21 @@ describe('createSystem', () => {
       expect(/** @type {{ fields: typeof fields }} */ (e).fields).toEqual(fields)
     }
   })
+
+  it('throws with .fields array on 409 duplicate name', async () => {
+    const fields = [{ field: 'name', message: 'A system with this name already exists' }]
+    globalThis.fetch.mockResolvedValue({
+      status: 409,
+      json: async () => ({ data: null, error: { message: 'A system with this name already exists', fields }, meta: null }),
+    })
+    try {
+      await createSystem({ name: 'Tessitura' })
+      expect.fail('expected throw')
+    } catch (e) {
+      expect(e).toBeInstanceOf(Error)
+      expect(/** @type {{ fields?: unknown[] }} */ (e).fields).toEqual(fields)
+    }
+  })
 })
 
 describe('updateSystem', () => {

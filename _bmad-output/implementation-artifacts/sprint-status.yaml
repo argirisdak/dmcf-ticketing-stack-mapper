@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-30T23:00:00Z
-last_updated: 2026-05-01T12:00:00Z
+last_updated: 2026-05-02T00:00:00Z
 project: dmcf-app
 project_key: NOKEY
 tracking_system: file-system
@@ -95,14 +95,14 @@ development_status:
   epic-7-retrospective: done
 
   # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
-  epic-8: in-progress
+  epic-8: done
   8-1-organisation-system-link-api-junction-crud: done
   8-2-organisation-api-filter-and-response-re-shape: done
   8-3-organisation-list-filter-sidebar-re-shape-adopted-system-role: done
   8-4-organisation-detail-linked-systems-panel: done
   8-5-organisation-form-linked-systems-editor: done
   8-6-organisationcard-system-chips-and-compare-view-updates: done
-  epic-8-retrospective: optional
+  epic-8-retrospective: done
 
   # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
   epic-9: in-progress
