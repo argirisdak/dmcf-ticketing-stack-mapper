@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-30T23:00:00Z
-last_updated: 2026-05-02T00:00:00Z
+last_updated: 2026-05-02T22:25:00Z
 project: dmcf-app
 project_key: NOKEY
 tracking_system: file-system
@@ -105,15 +105,15 @@ development_status:
   epic-8-retrospective: done
 
   # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
-  epic-9: in-progress
-  9-1-compare-route-shell-compare-systems-and-compare-organisations: ready-for-dev
-  9-2-systemcard-component-compare-column: backlog
-  9-3-compare-union-panel-and-contextual-compare-entry-points: backlog
-  epic-9-retrospective: optional
+  epic-9: done
+  9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+  9-2-systemcard-component-compare-column: done
+  9-3-compare-union-panel-and-contextual-compare-entry-points: done
+  epic-9-retrospective: done
 
   # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
-  epic-10: backlog
-  10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: backlog
-  10-2-drop-legacy-meta-endpoints-and-frontend-helpers: backlog
+  epic-10: in-progress
+  10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
+  10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
   10-3-readme-and-docs-decisions-md-v2-updates: backlog
   epic-10-retrospective: optional

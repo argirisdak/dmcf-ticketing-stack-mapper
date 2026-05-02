@@ -1,5 +1,42 @@
 # Deferred work
 
+## Deferred from: code review of 10-2-drop-legacy-meta-endpoints-and-frontend-helpers.md (2026-05-02)
+
+- **Mixed-epic diff and bisection** — Large combined diff complicates rollback and story-isolated review; prefer smaller PRs per epic/story when practical.
+
+- **Compare organisations strip only when union kind is ready** — If `deriveCompareOrganisationsSystemUnion` can remain non-ready on errors, `ComparePage.jsx` may show no system-compare strip without explanation; verify behaviour once union module is committed and covered.
+
+## Deferred from: code review of 10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns.md (2026-05-02)
+
+- **Frontend meta API wrappers vs removed routes** — `frontend/src/api/meta.js` still calls `/api/meta/ticketing-providers` and `/api/meta/crm-platforms`, which this story removes from the backend. Story 10.1 defers cleanup to Epic 10.2; remove or stub those fetchers when 10.2 runs.
+
+- **Operational backup before Migration C** — AC #3 is process/runbook; README/decisions updates are Story 10.3.
+
+- **`IF EXISTS` on Migration C** — Trade-off between idempotent re-run and silent skip when object names differ; verify constraint names against production before apply.
+
+## Deferred from: code review of 9-3-compare-union-panel-and-contextual-compare-entry-points.md (2026-05-02)
+
+- **Manual AC smoke and 5+ contextual-compare E2E** — Task 6 manual checks were not run in-session; the public `buildOrganisationContextualSystemCompare` path for five or more linked systems is not covered end-to-end in tests.
+
+- **Optional UX for single-id system compare URL** — When `ids` resolves to a single column, there is no in-page guidance; acceptable gap unless product wants explicit copy.
+
+- **Tie-break when all junction `lastUpdated` values are equal or unparseable** — `topFourSystemIdsByJunctionLastUpdated` relies on id ordering as fallback; document or adjust if stakeholders need a different deterministic rule.
+
+## Deferred from: code review of 9-2-systemcard-component-compare-column.md (2026-05-02)
+
+- **Organisation detail system compare CTA** — “Compare these systems →” still links to `/compare/organisations`; Epic 9.3 AC §5 expects `/compare/systems` with distinct system ids. Not changed in the Story 9.2 diff; track under 9.3 / `OrganisationDetailPage.jsx`.
+
+- **Org compare → system compare strip** — Epic 9.3 AC §6 (union of systems across compared orgs, 2–4 vs 5+ copy) not implemented in `ComparePage.jsx` in this diff; track under 9.3.
+
+## Deferred from: code review of 9-1-compare-route-shell-compare-systems-and-compare-organisations.md (2026-05-02)
+
+- **Legacy compare page title vs copy** — `CompareLegacyPathPage` uses “Page not found” while the body explains dedicated URLs; revisit wording if users confuse app-wide failure with deprecated `/compare` only.
+- **`CompareColumnShell` imported from `OrganisationCard.jsx`** — Works but couples system compare to an organisation-named module; extract a shared shell when convenient.
+- **Loading / skeleton accessibility** — Column skeletons use `aria-hidden`; consider a page-level busy/status pattern for screen readers during compare load.
+- **`useMemo` phase keyed on `queries` array** — If `useQueries` returns a new array reference each render, phase recalculates every time; confirm TanStack behaviour or narrow dependencies.
+- **Test coverage** — Story adds `getSystemComparePhase` tests only; routing (`/compare/*`), legacy page, and `SystemComparePage` branches remain manual or untested.
+- **`/compare/foo` vs bare `/compare`** — Catch-all renders the same legacy helper page; optional improvement to hint invalid path segments.
+
 ## Deferred from: code review of 8-5-organisation-form-linked-systems-editor.md (2026-05-01)
 
 - **`fetchOrganisations` param rename (`provider`/`crm` → `system`/`system_role`)** — All callers must use the new query keys; verify list/filter hooks and URL sync outside the reviewed chunk.

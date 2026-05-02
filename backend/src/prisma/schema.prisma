@@ -46,8 +46,6 @@ model Organisation {
   city                        String?
   country                     String
   organisation_type_id        String
-  ticketing_provider_id       String?
-  crm_platform_id             String?
   membership_capability       CapabilityState @default(UNKNOWN)
   donation_capability         CapabilityState @default(UNKNOWN)
   reserved_seating_capability CapabilityState @default(UNKNOWN)
@@ -58,31 +56,9 @@ model Organisation {
   created_at                  DateTime        @default(now())
 
   organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
-  ticketing_provider TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])
-  crm_platform       CrmPlatform?       @relation(fields: [crm_platform_id], references: [id])
   systems            OrganisationSystem[]
 
   @@map("organisation")
-}
-
-model TicketingProvider {
-  id            String @id @default(uuid())
-  name          String @unique
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  organisations Organisation[]
-
-  @@map("ticketing_provider")
-}
-
-model CrmPlatform {
-  id            String @id @default(uuid())
-  name          String @unique
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
-  organisations Organisation[]
-
-  @@map("crm_platform")
 }
 
 model OrganisationType {

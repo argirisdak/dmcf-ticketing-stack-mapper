@@ -1,6 +1,6 @@
 # Story 9.1: Compare route shell — `/compare/systems` and `/compare/organisations`
 
-Status: ready-for-dev
+Status: done
 
 <!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
 
@@ -48,27 +48,31 @@ so that bookmarks and shared links are unambiguous and the System list compare f
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Routing cleanup (`App.jsx`)**
-  - [ ] Remove `<Route path="/compare" element={<ComparePage />} />`.
-  - [ ] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
-  - [ ] Replace `/compare/systems` stub route element with new `SystemComparePage`.
-  - [ ] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
+- [x] **Task 1 — Routing cleanup (`App.jsx`)**
+  - [x] Remove `<Route path="/compare" element={<ComparePage />} />`.
+  - [x] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
+  - [x] Replace `/compare/systems` stub route element with new `SystemComparePage`.
+  - [x] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
 
-- [ ] **Task 2 — `useCompareSystems` hook**
-  - [ ] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
+- [x] **Task 2 — `useCompareSystems` hook**
+  - [x] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
 
-- [ ] **Task 3 — `SystemComparePage.jsx`**
-  - [ ] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
-  - [ ] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
-  - [ ] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
+- [x] **Task 3 — `SystemComparePage.jsx`**
+  - [x] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
+  - [x] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
+  - [x] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
 
-- [ ] **Task 4 — Remove / relocate stub**
-  - [ ] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
+- [x] **Task 4 — Remove / relocate stub**
+  - [x] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
 
-- [ ] **Task 5 — Regression sweep**
-  - [ ] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
-  - [ ] `cd frontend && npm run lint` and `npm run test`.
-  - [ ] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
+- [x] **Task 5 — Regression sweep**
+  - [x] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
+  - [x] `cd frontend && npm run lint` and `npm run test`.
+  - [x] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
+
+## Change Log
+
+- 2026-05-02 — Story 9.1: `/compare/organisations` + `/compare/systems` compare shells, legacy `/compare` → links page, `useCompareSystems`, Vitest for compare phase helper.
 
 ## Dev Notes
 
@@ -121,12 +125,39 @@ so that bookmarks and shared links are unambiguous and the System list compare f
 
 ### Agent Model Used
 
-_(filled by dev agent)_
+Cursor agent
 
 ### Debug Log References
 
 ### Completion Notes List
 
+- Routing: specific compare routes before `path="/compare/*"` so `/compare/organisations` and `/compare/systems` stay correct; legacy bookmarks hit `CompareLegacyPathPage` with **← Go to organisations** / **Go to systems**.
+- `useCompareSystems` uses `['systems', id]` + `fetchSystem` (full envelope) and no retry on `SystemNotFoundError`, matching `useCompareOrganisations` / `useSystem` cache shape.
+- `SystemComparePage`: empty state, per-column loading skeletons, page-level error when fewer than 2 successful columns after settle, grid with sticky label column + `CompareColumnShell` columns (exported from `OrganisationCard.jsx`). Placeholder attribute rows filled for successful columns; 9.2 can swap in `SystemCard`.
+- Vitest: `getSystemComparePhase` unit tests in `system-compare-view-state.test.js`.
+
 ### File List
 
-_(filled by dev agent)_
+- `frontend/src/App.jsx`
+- `frontend/src/components/OrganisationCard.jsx`
+- `frontend/src/hooks/useCompareSystems.js`
+- `frontend/src/lib/system-compare-view-state.js`
+- `frontend/src/lib/system-compare-view-state.test.js`
+- `frontend/src/pages/CompareLegacyPathPage.jsx`
+- `frontend/src/pages/SystemComparePage.jsx`
+- `frontend/src/pages/SystemRouteStubs.jsx`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+
+### Review Findings
+
+- [x] [Review][Patch] Cap compare `ids` to the intended 2–4 column maximum before `useQueries` — [`frontend/src/hooks/useCompareSystems.js`] — fixed (`MAX_SYSTEM_COMPARE_IDS`, slice in hook + page)
+- [x] [Review][Patch] Guard `formatCompareDateTime` when `Date` parses to NaN (avoid displaying “Invalid Date”) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+- [x] [Review][Patch] Replace `null` return in `SystemCompareColumn` when envelope/`data` is missing with visible column-level error UI — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+- [x] [Review][Patch] Add a page-level `<h1>` (e.g. **Compare systems**) to the empty-`ids` branch for consistent document outline — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+- [x] [Review][Patch] Normalise unknown `category` values in `SystemCategoryBadge` (avoid leaking raw enum tokens) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+- [x] [Review][Defer] Soften or clarify legacy compare `CompareLegacyPathPage` H1 (“Page not found” vs explanatory body) — [`frontend/src/pages/CompareLegacyPathPage.jsx`] — deferred, follow-up copy
+- [x] [Review][Defer] `SystemComparePage` imports layout shell from `OrganisationCard.jsx` — consider a shared presentational module — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, structural follow-up
+- [x] [Review][Defer] Loading/compare skeleton a11y (`aria-hidden`, status for in-flight compare) — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
+- [x] [Review][Defer] `useMemo(..., [queries])` depends on `useQueries` array identity — verify stability or derive phase from primitive signals — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
+- [x] [Review][Defer] Broaden tests beyond `getSystemComparePhase` (routing, legacy page, page branches) — deferred, follow-up
+- [x] [Review][Defer] Unknown `/compare/...` segments share the same legacy page as bare `/compare` — [`frontend/src/App.jsx`] — deferred, optional UX distinction

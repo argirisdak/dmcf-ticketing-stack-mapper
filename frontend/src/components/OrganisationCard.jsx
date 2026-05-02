@@ -5,7 +5,7 @@ import { Button } from './ui/button.jsx'
 import { CapabilityBadge } from './CapabilityBadge.jsx'
 import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
 import { OrganisationNotFoundError } from '../api/organisations.js'
-import { cn } from '../lib/utils.js'
+import { CompareColumnShell } from './CompareColumnShell.jsx'
 
 const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
 
@@ -97,22 +97,6 @@ function SystemsCompareList({ systems }) {
           </div>
         )
       })}
-    </div>
-  )
-}
-
-/** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
-function CompareColumnShell({ gridColumn, className, children, ...rest }) {
-  return (
-    <div
-      className={cn(
-        'row-span-full grid min-w-0 grid-rows-subgrid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm',
-        className,
-      )}
-      style={{ gridColumn }}
-      {...rest}
-    >
-      {children}
     </div>
   )
 }

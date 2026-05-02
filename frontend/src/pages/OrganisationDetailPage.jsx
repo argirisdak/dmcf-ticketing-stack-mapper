@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useOrganisation } from '../hooks/useOrganisation.js'
@@ -20,6 +20,7 @@ import {
 import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
 import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
 import { SystemCombobox } from '../components/SystemCombobox.jsx'
+import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
 
 const BANNER_MS = 5000
 
@@ -31,6 +32,7 @@ const ROLE_LABELS = {
   SECONDARY: 'Secondary',
 }
 const KNOWN_ROLES = Object.keys(ROLE_LABELS)
+const NO_LINKED_SYSTEMS = []
 
 function formatDateTime(iso) {
   if (!iso) return '—'
@@ -192,11 +194,17 @@ export default function OrganisationDetailPage() {
   const missingId = !id
 
   // Group systems by role in display order
-  const systems = (isSuccess && data?.systems) ? data.systems : []
+  const systems =
+    isSuccess && Array.isArray(data?.systems) ? data.systems : NO_LINKED_SYSTEMS
   const grouped = ROLE_ORDER.reduce((acc, role) => {
     acc[role] = systems.filter((l) => l.role === role)
     return acc
   }, {})
+
+  const contextualSystemCompare = useMemo(
+    () => buildOrganisationContextualSystemCompare(systems, ROLE_ORDER),
+    [systems],
+  )
 
   const handleSaveEdit = () => {
     if (!editLink?.system?.id || !id) return
@@ -597,7 +605,7 @@ export default function OrganisationDetailPage() {
                   ))}
                 </div>
 
-                <div className="mt-4 flex flex-wrap items-center gap-3">
+                <div className="mt-4 space-y-3">
                   <Button
                     type="button"
                     variant="secondary"
@@ -605,13 +613,15 @@ export default function OrganisationDetailPage() {
                   >
                     Add system
                   </Button>
-                  {systems.length >= 2 && (
-                    <Link
-                      to="/compare/organisations"
-                      className="text-sm text-slate-500 hover:text-slate-700"
-                    >
-                      Compare these systems →
-                    </Link>
+                  {contextualSystemCompare != null && (
+                    <div>
+                      <Link
+                        to={contextualSystemCompare.to}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        {contextualSystemCompare.label}
+                      </Link>
+                    </div>
                   )}
                 </div>
               </>

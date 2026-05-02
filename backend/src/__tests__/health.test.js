@@ -1,6 +1,4 @@
 jest.mock('../lib/prisma', () => ({
-  ticketingProvider: { findMany: jest.fn() },
-  crmPlatform: { findMany: jest.fn() },
   organisationType: { findMany: jest.fn() },
   $disconnect: jest.fn(),
 }));

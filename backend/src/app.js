@@ -18,4 +18,8 @@ app.use('/api/meta', metaRoutes);
 app.use('/api/organisations', organisationRoutes);
 app.use('/api/systems', systemRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ data: null, error: { message: 'Route not found' }, meta: null });
+});
+
 module.exports = app;

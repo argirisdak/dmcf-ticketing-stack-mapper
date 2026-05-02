@@ -28,11 +28,3 @@ async function fetchMetaOptions(path) {
 export function fetchOrganisationTypes() {
   return fetchMetaOptions('/api/meta/organisation-types')
 }
-
-export function fetchTicketingProviders() {
-  return fetchMetaOptions('/api/meta/ticketing-providers')
-}
-
-export function fetchCrmPlatforms() {
-  return fetchMetaOptions('/api/meta/crm-platforms')
-}

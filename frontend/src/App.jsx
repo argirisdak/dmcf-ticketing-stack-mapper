@@ -8,7 +8,8 @@ import ComparePage from './pages/ComparePage.jsx'
 import SystemListPage from './pages/SystemListPage.jsx'
 import SystemDetailPage from './pages/SystemDetailPage.jsx'
 import SystemFormPage from './pages/SystemFormPage.jsx'
-import { SystemCompareStubPage } from './pages/SystemRouteStubs.jsx'
+import SystemComparePage from './pages/SystemComparePage.jsx'
+import CompareLegacyPathPage from './pages/CompareLegacyPathPage.jsx'
 
 function NavLinks() {
   const { pathname } = useLocation()
@@ -62,9 +63,9 @@ export default function App() {
                 <Route path="/systems/new" element={<SystemFormPage />} />
                 <Route path="/systems/:id" element={<SystemDetailPage />} />
                 <Route path="/systems/:id/edit" element={<SystemFormPage />} />
-                <Route path="/compare/systems" element={<SystemCompareStubPage />} />
                 <Route path="/compare/organisations" element={<ComparePage />} />
-                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/compare/systems" element={<SystemComparePage />} />
+                <Route path="/compare/*" element={<CompareLegacyPathPage />} />
               </Routes>
             </SystemSelectionProvider>
           </OrganisationSelectionProvider>

@@ -1,7 +1,12 @@
 import { useCallback, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { OrganisationCard } from '../components/OrganisationCard.jsx'
-import { parseCompareIds } from '../lib/compare-url-params.js'
+import { deriveCompareOrganisationsSystemUnion } from '../lib/compare-organisations-system-union.js'
+import {
+  encodeCompareIdsForQuery,
+  MAX_SYSTEM_COMPARE_IDS,
+  parseCompareIds,
+} from '../lib/compare-url-params.js'
 import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
 
 const ROW_LABELS = [
@@ -20,6 +25,7 @@ export default function ComparePage() {
   const idsParam = searchParams.get('ids')
   const ids = useMemo(() => parseCompareIds(idsParam), [idsParam])
   const queries = useCompareOrganisations(ids)
+  const organisationsSystemUnion = deriveCompareOrganisationsSystemUnion(ids, queries)
 
   const removeId = useCallback(
     (idToRemove) => {
@@ -99,6 +105,33 @@ export default function ComparePage() {
           ))}
         </div>
       </div>
+
+      {organisationsSystemUnion.kind === 'ready' &&
+        (() => {
+          const n = organisationsSystemUnion.orderedSystemIds.length
+          if (n <= 1) return null
+          if (n >= 2 && n <= MAX_SYSTEM_COMPARE_IDS) {
+            return (
+              <div className="mt-6 border-t border-slate-200 pt-4">
+                <Link
+                  to={`/compare/systems?ids=${encodeCompareIdsForQuery(organisationsSystemUnion.orderedSystemIds)}`}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Compare systems used by these organisations →
+                </Link>
+              </div>
+            )
+          }
+          return (
+            <p className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
+              These organisations use {n} different systems. Open the{' '}
+              <Link to="/systems" className="text-blue-600 hover:text-blue-800">
+                System list →
+              </Link>{' '}
+              to select which to compare.
+            </p>
+          )
+        })()}
     </div>
   )
 }

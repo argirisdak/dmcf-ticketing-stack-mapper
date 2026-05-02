@@ -1,10 +1,7 @@
 const prisma = require('../lib/prisma');
 const { COUNTRIES } = require('../lib/countries');
 const { SAMPLE_ORGANISATIONS } = require('./sample-organisations-seed-data');
-const {
-  SYSTEM_SEED_DEFINITIONS,
-  systemCategoryByName,
-} = require('./system-seed-catalog');
+const { SYSTEM_SEED_DEFINITIONS } = require('./system-seed-catalog');
 
 /** Re-export for callers that previously imported `COUNTRIES` from seed. */
 module.exports = { COUNTRIES };
@@ -25,77 +22,14 @@ function requireLookup(map, name, kind) {
   return id;
 }
 
-function legacyTicketingLookupName(systemName, category) {
-  if (category === 'AUDIENCE_MANAGEMENT') return null;
-  return systemName === 'Ticketsolve' ? 'TicketSolve' : systemName;
-}
-
-function legacyCrmLookupName(systemName, category) {
-  if (category === 'TICKETING') return null;
-  if (systemName === 'Tessitura') return 'Tessitura CRM';
-  return systemName;
-}
-
-function deriveLegacyFkLookupNames(links, categoryByName) {
-  let tpName = null;
-  let crmName = null;
-
-  for (const link of links) {
-    const cat = categoryByName[link.systemName];
-    if (!cat) {
-      throw new Error(`Seed: unknown system "${link.systemName}" in organisation links`);
-    }
-    if (link.role === 'PRIMARY_TICKETING') {
-      const n = legacyTicketingLookupName(link.systemName, cat);
-      if (n && !tpName) tpName = n;
-    }
-  }
-  for (const link of links) {
-    const cat = categoryByName[link.systemName];
-    if (link.role === 'INTEGRATED_SUITE' && (cat === 'INTEGRATED' || cat === 'TICKETING')) {
-      const n = legacyTicketingLookupName(link.systemName, cat);
-      if (n && !tpName) tpName = n;
-    }
-  }
-  for (const link of links) {
-    const cat = categoryByName[link.systemName];
-    if (link.role === 'SECONDARY') {
-      const n = legacyTicketingLookupName(link.systemName, cat);
-      if (n && !tpName) tpName = n;
-    }
-  }
-
-  for (const link of links) {
-    const cat = categoryByName[link.systemName];
-    if (link.role === 'PRIMARY_CRM') {
-      const n = legacyCrmLookupName(link.systemName, cat);
-      if (n && !crmName) crmName = n;
-    }
-  }
-  for (const link of links) {
-    const cat = categoryByName[link.systemName];
-    if (link.role === 'INTEGRATED_SUITE' && cat === 'INTEGRATED') {
-      const n = legacyCrmLookupName(link.systemName, cat);
-      if (n && !crmName) crmName = n;
-    }
-  }
-
-  return { tpName, crmName };
-}
-
-function buildOrganisationScalars(org, typeByName, providerByName, crmByName, categoryByName) {
+function buildOrganisationScalars(org, typeByName) {
   const organisation_type_id = requireLookup(typeByName, org.organisationTypeName, 'organisation type');
-  const { tpName, crmName } = deriveLegacyFkLookupNames(org.links, categoryByName);
-  const ticketing_provider_id = tpName == null ? null : requireLookup(providerByName, tpName, 'ticketing provider');
-  const crm_platform_id = crmName == null ? null : requireLookup(crmByName, crmName, 'CRM platform');
 
   return {
     name: org.name,
     city: org.city ?? null,
     country: org.country,
     organisation_type_id,
-    ticketing_provider_id,
-    crm_platform_id,
     membership_capability: org.membership_capability,
     donation_capability: org.donation_capability,
     reserved_seating_capability: org.reserved_seating_capability,
@@ -107,30 +41,7 @@ function buildOrganisationScalars(org, typeByName, providerByName, crmByName, ca
   };
 }
 
-async function seedReferenceLookups() {
-  const ticketingProviders = [
-    'Tessitura', 'Spektrix', 'Ticketmaster', 'PatronBase',
-    'Eventbrite', 'AudienceView', 'TicketSolve', 'Universe',
-  ];
-  for (const name of ticketingProviders) {
-    await prisma.ticketingProvider.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
-  }
-
-  const crmPlatforms = [
-    'Salesforce', 'HubSpot', 'Spektrix', 'Tessitura CRM', 'Donorfy',
-  ];
-  for (const name of crmPlatforms) {
-    await prisma.crmPlatform.upsert({
-      where: { name },
-      update: {},
-      create: { name },
-    });
-  }
-
+async function seedOrganisationTypes() {
   const organisationTypes = [
     'Venue', 'Festival', 'Promoter', 'Cultural Organisation',
   ];
@@ -178,17 +89,13 @@ async function seedSystems() {
   }
 }
 
-async function seedSampleOrganisationsAndLinks(categoryByName) {
-  const [types, providers, crms, systems] = await Promise.all([
+async function seedSampleOrganisationsAndLinks() {
+  const [types, systems] = await Promise.all([
     prisma.organisationType.findMany(),
-    prisma.ticketingProvider.findMany(),
-    prisma.crmPlatform.findMany(),
     prisma.system.findMany(),
   ]);
 
   const typeByName = mapByName(types);
-  const providerByName = mapByName(providers);
-  const crmByName = mapByName(crms);
   const systemByName = mapByName(systems);
 
   const seedIds = SAMPLE_ORGANISATIONS.map((o) => o.id);
@@ -199,7 +106,7 @@ async function seedSampleOrganisationsAndLinks(categoryByName) {
   const preCount = preexisting.length;
 
   for (const org of SAMPLE_ORGANISATIONS) {
-    const data = buildOrganisationScalars(org, typeByName, providerByName, crmByName, categoryByName);
+    const data = buildOrganisationScalars(org, typeByName);
     await prisma.organisation.upsert({
       where: { id: org.id },
       create: { id: org.id, ...data },
@@ -299,14 +206,13 @@ async function seedSampleOrganisationsAndLinks(categoryByName) {
 }
 
 async function main() {
-  await seedReferenceLookups();
+  await seedOrganisationTypes();
   console.log('Reference data seeded.');
 
   await seedSystems();
   console.log(`Systems: ${SYSTEM_SEED_DEFINITIONS.length} upserted.`);
 
-  const categoryByName = systemCategoryByName();
-  await seedSampleOrganisationsAndLinks(categoryByName);
+  await seedSampleOrganisationsAndLinks();
 }
 
 if (require.main === module) {
