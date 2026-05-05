@@ -48,6 +48,13 @@ function assertListResponse(body) {
  *   membership?: string
  *   donation?: string
  *   seating?: string
+ *   seasonSubscriptionsCapability?: string
+ *   dynamicPricingCapability?: string
+ *   multiVenueSupportCapability?: string
+ *   marketingAutomationCapability?: string
+ *   accessibilityFeaturesCapability?: string
+ *   sort?: string
+ *   order?: string
  * }} params
  * @returns {Promise<{ data: unknown[]; error: null; meta: { page: number; limit: number; total: number; totalPages: number } }>}
  */
@@ -63,6 +70,13 @@ export async function fetchSystems(params = {}) {
     membership,
     donation,
     seating,
+    seasonSubscriptionsCapability,
+    dynamicPricingCapability,
+    multiVenueSupportCapability,
+    marketingAutomationCapability,
+    accessibilityFeaturesCapability,
+    sort,
+    order,
   } = params
 
   const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
@@ -80,6 +94,14 @@ export async function fetchSystems(params = {}) {
   if (membership) qs.set('membership', membership)
   if (donation) qs.set('donation', donation)
   if (seating) qs.set('seating', seating)
+  if (seasonSubscriptionsCapability) qs.set('seasonSubscriptionsCapability', seasonSubscriptionsCapability)
+  if (dynamicPricingCapability) qs.set('dynamicPricingCapability', dynamicPricingCapability)
+  if (multiVenueSupportCapability) qs.set('multiVenueSupportCapability', multiVenueSupportCapability)
+  if (marketingAutomationCapability) qs.set('marketingAutomationCapability', marketingAutomationCapability)
+  if (accessibilityFeaturesCapability)
+    qs.set('accessibilityFeaturesCapability', accessibilityFeaturesCapability)
+  if (sort) qs.set('sort', sort)
+  if (order) qs.set('order', order)
 
   const res = await fetch(`${base}/api/systems?${qs}`)
   const body = await res.json()

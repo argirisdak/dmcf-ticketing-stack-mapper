@@ -16,6 +16,9 @@ import {
   DialogTrigger,
 } from '../components/ui/dialog.jsx'
 import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
+import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
+import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
+import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
 
 const BANNER_MS = 5000
 
@@ -544,28 +547,69 @@ export default function SystemDetailPage() {
           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-slate-700">System details</h2>
             <dl className="space-y-3">
-              <FactRow label="Vendor">{displayText(data.vendor)}</FactRow>
-              <FactRow label="Category">
-                <SystemCategoryBadge category={data.category} />
+              <FactRow label="Vendor">
+                <span className="inline-flex items-center gap-1">
+                  {displayText(data.vendor)}
+                  {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'vendor')}
+                    fieldLabel="Vendor"
+                  />
+                </span>
               </FactRow>
-              <FactRow label="Deployment">{displayNullable(data.deploymentModel)}</FactRow>
-              <FactRow label="Pricing model">{displayNullable(data.pricingModel)}</FactRow>
-              <FactRow label="Geographic focus">{displayNullable(data.geographicFocus)}</FactRow>
+              <FactRow label="Category">
+                <span className="inline-flex items-center gap-1">
+                  <SystemCategoryBadge category={data.category} />
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'category')}
+                    fieldLabel="Category"
+                  />
+                </span>
+              </FactRow>
+              <FactRow label="Deployment">
+                <span className="inline-flex items-center gap-1">
+                  {displayNullable(data.deploymentModel)}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'deploymentModel')}
+                    fieldLabel="Deployment"
+                  />
+                </span>
+              </FactRow>
+              <FactRow label="Pricing model">
+                <span className="inline-flex items-center gap-1">
+                  {displayNullable(data.pricingModel)}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'pricingModel')}
+                    fieldLabel="Pricing model"
+                  />
+                </span>
+              </FactRow>
+              <FactRow label="Geographic focus">
+                <span className="inline-flex items-center gap-1">
+                  {displayNullable(data.geographicFocus)}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'geographicFocus')}
+                    fieldLabel="Geographic focus"
+                  />
+                </span>
+              </FactRow>
               {data.description != null && (
                 <FactRow label="Description">
                   <span className="text-sm text-slate-700">{data.description}</span>
                 </FactRow>
               )}
-              <FactRow label="Membership">
-                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
-              </FactRow>
-              <FactRow label="Donation">
-                <CapabilityBadge value={data.donationCapability} variant="labelled" />
-              </FactRow>
-              <FactRow label="Reserved seating">
-                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
-              </FactRow>
-              <FactRow label="Source reference">
+              {CAPABILITY_ROWS.map(({ key, label }) => (
+                <FactRow key={key} label={label}>
+                  <span className="inline-flex items-center gap-1">
+                    <CapabilityBadge value={data[key]} variant="labelled" />
+                    <FieldSourceIcon
+                      url={pickFieldSourceUrl(data.fieldSources, key)}
+                      fieldLabel={label}
+                    />
+                  </span>
+                </FactRow>
+              ))}
+              <FactRow label="General source">
                 <SourceReferenceDisplay value={data.sourceReference} />
               </FactRow>
               <FactRow label="Last updated">

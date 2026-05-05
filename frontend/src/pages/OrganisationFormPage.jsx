@@ -3,7 +3,9 @@ import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { COUNTRIES } from '../lib/countries.js'
 import { Button } from '../components/ui/button.jsx'
 import { useOrganisation } from '../hooks/useOrganisation.js'
+import { useSimilarOrganisations } from '../hooks/useSimilarOrganisations.js'
 import { useOrganisationTypesQuery } from '../hooks/useMetaReferenceData.js'
+import SimilarOrganisationsWarning from '../components/SimilarOrganisationsWarning.jsx'
 import { OrganisationNotFoundError, createOrganisation, updateOrganisation } from '../api/organisations.js'
 import {
   createOrganisationSystemLink,
@@ -11,6 +13,13 @@ import {
   deleteOrganisationSystemLink,
 } from '../api/organisation-systems.js'
 import { SystemCombobox } from '../components/SystemCombobox.jsx'
+import FieldWithSource from '../components/FieldWithSource.jsx'
+import {
+  buildFieldSourcesPayload,
+  mapServerFieldErrorsToSummaryAndSources,
+  normaliseFieldSourcesFromDto,
+} from '../lib/field-sources-form.js'
+import { SOURCE_URL_CLIENT_ERROR, isValidSourceUrl } from '../lib/source-url-validation.js'
 
 /** Match server `MAX_CAPACITY` in `organisation-controller.js` */
 const MAX_CAPACITY = 2_147_483_647
@@ -43,6 +52,31 @@ function mapServerFieldsToSummary(fields) {
     message: f.message,
     anchorId: FIELD_IDS[f.field] ?? `field-${f.field}`,
   }))
+}
+
+/** Use full server message for composite unique conflicts on the name field (AC7). */
+function mergeCompositeConflictNameMessage(err, summary) {
+  if (
+    err?.statusCode === 409 &&
+    typeof err.message === 'string' &&
+    err.message.includes('already exists in')
+  ) {
+    const hasName = summary.some((item) => item.field === 'name')
+    const base = hasName
+      ? summary
+      : [
+          ...summary,
+          {
+            field: 'name',
+            message: err.message,
+            anchorId: FIELD_IDS.name,
+          },
+        ]
+    return base.map((item) =>
+      item.field === 'name' ? { ...item, message: err.message, anchorId: FIELD_IDS.name } : item,
+    )
+  }
+  return summary
 }
 
 function validateClient(values) {
@@ -211,7 +245,7 @@ function dtoToFormState(dto) {
   }
 }
 
-function buildSubmitBody(form) {
+function buildSubmitBody(form, fieldSources) {
   const body = {
     name: form.name.trim(),
     country: form.country,
@@ -219,6 +253,7 @@ function buildSubmitBody(form) {
     membershipCapability: form.membershipCapability,
     donationCapability: form.donationCapability,
     reservedSeatingCapability: form.reservedSeatingCapability,
+    fieldSources: buildFieldSourcesPayload(fieldSources),
   }
   const cityTrim = form.city.trim()
   if (cityTrim) body.city = cityTrim
@@ -334,6 +369,10 @@ function OrganisationFormBody({
   subtitle,
   form,
   setField,
+  fieldSources,
+  onFieldSourceChange,
+  onFieldSourceBlur,
+  sourceErrors,
   summaryErrors,
   submitError,
   metaLoading,
@@ -344,7 +383,13 @@ function OrganisationFormBody({
   setLinkRows,
   linkRowErrors,
   onSubmit,
+  nameInputOnBlur,
+  beforeSubmitSlot,
 }) {
+  const hasSourceUrlErrors = useMemo(
+    () => Object.values(sourceErrors).some(Boolean),
+    [sourceErrors],
+  )
   const invalidFields = useMemo(() => new Set(summaryErrors.map((e) => e.field)), [summaryErrors])
 
   const fieldMessages = useMemo(() => {
@@ -438,6 +483,7 @@ function OrganisationFormBody({
             autoComplete="organization"
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
+            onBlur={(e) => nameInputOnBlur?.(e)}
             aria-invalid={invalidFields.has('name')}
             aria-describedby={controlDescribedBy(FIELD_IDS.name, 'name')}
             className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('name')}`}
@@ -445,152 +491,209 @@ function OrganisationFormBody({
           <FieldInlineError id={`${FIELD_IDS.name}-error`} message={fieldMessages.get('name')} />
         </div>
 
-        <div>
-          <label htmlFor={FIELD_IDS.country} className="mb-1 block text-sm font-medium text-slate-800">
-            Country
-          </label>
-          <select
-            id={FIELD_IDS.country}
-            name="country"
-            value={form.country}
-            onChange={(e) => setField('country', e.target.value)}
-            aria-invalid={invalidFields.has('country')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.country, 'country')}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('country')}`}
-          >
-            <option value="">Select a country</option>
-            {COUNTRIES.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <FieldInlineError id={`${FIELD_IDS.country}-error`} message={fieldMessages.get('country')} />
-        </div>
+        <FieldWithSource
+          fieldName="country"
+          label="Country"
+          sourceValue={fieldSources.country ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.country}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.country} className="mb-1 block text-sm font-medium text-slate-800">
+              Country
+            </label>
+            <select
+              id={FIELD_IDS.country}
+              name="country"
+              value={form.country}
+              onChange={(e) => setField('country', e.target.value)}
+              aria-invalid={invalidFields.has('country')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.country, 'country')}
+              className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('country')}`}
+            >
+              <option value="">Select a country</option>
+              {COUNTRIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <FieldInlineError id={`${FIELD_IDS.country}-error`} message={fieldMessages.get('country')} />
+          </div>
+        </FieldWithSource>
 
-        <div>
-          <label htmlFor={FIELD_IDS.city} className="mb-1 block text-sm font-medium text-slate-800">
-            City <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <input
-            id={FIELD_IDS.city}
-            name="city"
-            type="text"
-            autoComplete="address-level2"
-            value={form.city}
-            onChange={(e) => setField('city', e.target.value)}
-            aria-invalid={invalidFields.has('city')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.city, 'city')}
-            className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('city')}`}
-          />
-          <FieldInlineError id={`${FIELD_IDS.city}-error`} message={fieldMessages.get('city')} />
-        </div>
+        <FieldWithSource
+          fieldName="city"
+          label="City"
+          sourceValue={fieldSources.city ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.city}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.city} className="mb-1 block text-sm font-medium text-slate-800">
+              City <span className="font-normal text-slate-500">(optional)</span>
+            </label>
+            <p className="mb-1 text-sm text-slate-500">
+              Recommended — helps distinguish organisations with the same name in different cities.
+            </p>
+            <input
+              id={FIELD_IDS.city}
+              name="city"
+              type="text"
+              autoComplete="address-level2"
+              value={form.city}
+              onChange={(e) => setField('city', e.target.value)}
+              aria-invalid={invalidFields.has('city')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.city, 'city')}
+              className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('city')}`}
+            />
+            <FieldInlineError id={`${FIELD_IDS.city}-error`} message={fieldMessages.get('city')} />
+          </div>
+        </FieldWithSource>
 
-        <div>
-          <label htmlFor={FIELD_IDS.organisationTypeId} className="mb-1 block text-sm font-medium text-slate-800">
-            Organisation type
-          </label>
-          <select
-            id={FIELD_IDS.organisationTypeId}
-            name="organisationTypeId"
-            value={form.organisationTypeId}
-            onChange={(e) => setField('organisationTypeId', e.target.value)}
-            disabled={metaLoading}
-            aria-invalid={invalidFields.has('organisationTypeId')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.organisationTypeId, 'organisationTypeId')}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('organisationTypeId')}`}
-          >
-            <option value="">Select an organisation type</option>
-            {(orgTypesQ.data ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.organisationTypeId}-error`}
-            message={fieldMessages.get('organisationTypeId')}
-          />
-        </div>
+        <FieldWithSource
+          fieldName="organisationType"
+          label="Organisation type"
+          sourceValue={fieldSources.organisationType ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.organisationType}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.organisationTypeId} className="mb-1 block text-sm font-medium text-slate-800">
+              Organisation type
+            </label>
+            <select
+              id={FIELD_IDS.organisationTypeId}
+              name="organisationTypeId"
+              value={form.organisationTypeId}
+              onChange={(e) => setField('organisationTypeId', e.target.value)}
+              disabled={metaLoading}
+              aria-invalid={invalidFields.has('organisationTypeId')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.organisationTypeId, 'organisationTypeId')}
+              className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('organisationTypeId')}`}
+            >
+              <option value="">Select an organisation type</option>
+              {(orgTypesQ.data ?? []).map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            <FieldInlineError
+              id={`${FIELD_IDS.organisationTypeId}-error`}
+              message={fieldMessages.get('organisationTypeId')}
+            />
+          </div>
+        </FieldWithSource>
 
-        <div>
-          <label htmlFor={FIELD_IDS.membershipCapability} className="mb-1 block text-sm font-medium text-slate-800">
-            Membership capability
-          </label>
-          <select
-            id={FIELD_IDS.membershipCapability}
-            name="membershipCapability"
-            value={form.membershipCapability}
-            onChange={(e) => setField('membershipCapability', e.target.value)}
-            aria-invalid={invalidFields.has('membershipCapability')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.membershipCapability, 'membershipCapability')}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('membershipCapability')}`}
-          >
-            <option value="UNKNOWN">Unknown</option>
-            <option value="YES">Yes</option>
-            <option value="NO">No</option>
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.membershipCapability}-error`}
-            message={fieldMessages.get('membershipCapability')}
-          />
-        </div>
+        <FieldWithSource
+          fieldName="membershipCapability"
+          label="Membership capability"
+          sourceValue={fieldSources.membershipCapability ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.membershipCapability}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.membershipCapability} className="mb-1 block text-sm font-medium text-slate-800">
+              Membership capability
+            </label>
+            <select
+              id={FIELD_IDS.membershipCapability}
+              name="membershipCapability"
+              value={form.membershipCapability}
+              onChange={(e) => setField('membershipCapability', e.target.value)}
+              aria-invalid={invalidFields.has('membershipCapability')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.membershipCapability, 'membershipCapability')}
+              className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('membershipCapability')}`}
+            >
+              <option value="UNKNOWN">Unknown</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+            <FieldInlineError
+              id={`${FIELD_IDS.membershipCapability}-error`}
+              message={fieldMessages.get('membershipCapability')}
+            />
+          </div>
+        </FieldWithSource>
 
-        <div>
-          <label htmlFor={FIELD_IDS.donationCapability} className="mb-1 block text-sm font-medium text-slate-800">
-            Donation capability
-          </label>
-          <select
-            id={FIELD_IDS.donationCapability}
-            name="donationCapability"
-            value={form.donationCapability}
-            onChange={(e) => setField('donationCapability', e.target.value)}
-            aria-invalid={invalidFields.has('donationCapability')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.donationCapability, 'donationCapability')}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('donationCapability')}`}
-          >
-            <option value="UNKNOWN">Unknown</option>
-            <option value="YES">Yes</option>
-            <option value="NO">No</option>
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.donationCapability}-error`}
-            message={fieldMessages.get('donationCapability')}
-          />
-        </div>
+        <FieldWithSource
+          fieldName="donationCapability"
+          label="Donation capability"
+          sourceValue={fieldSources.donationCapability ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.donationCapability}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.donationCapability} className="mb-1 block text-sm font-medium text-slate-800">
+              Donation capability
+            </label>
+            <select
+              id={FIELD_IDS.donationCapability}
+              name="donationCapability"
+              value={form.donationCapability}
+              onChange={(e) => setField('donationCapability', e.target.value)}
+              aria-invalid={invalidFields.has('donationCapability')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.donationCapability, 'donationCapability')}
+              className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('donationCapability')}`}
+            >
+              <option value="UNKNOWN">Unknown</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+            <FieldInlineError
+              id={`${FIELD_IDS.donationCapability}-error`}
+              message={fieldMessages.get('donationCapability')}
+            />
+          </div>
+        </FieldWithSource>
 
-        <div>
-          <label
-            htmlFor={FIELD_IDS.reservedSeatingCapability}
-            className="mb-1 block text-sm font-medium text-slate-800"
-          >
-            Reserved seating capability
-          </label>
-          <select
-            id={FIELD_IDS.reservedSeatingCapability}
-            name="reservedSeatingCapability"
-            value={form.reservedSeatingCapability}
-            onChange={(e) => setField('reservedSeatingCapability', e.target.value)}
-            aria-invalid={invalidFields.has('reservedSeatingCapability')}
-            aria-describedby={controlDescribedBy(
-              FIELD_IDS.reservedSeatingCapability,
-              'reservedSeatingCapability',
-            )}
-            className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('reservedSeatingCapability')}`}
-          >
-            <option value="UNKNOWN">Unknown</option>
-            <option value="YES">Yes</option>
-            <option value="NO">No</option>
-          </select>
-          <FieldInlineError
-            id={`${FIELD_IDS.reservedSeatingCapability}-error`}
-            message={fieldMessages.get('reservedSeatingCapability')}
-          />
-        </div>
+        <FieldWithSource
+          fieldName="reservedSeatingCapability"
+          label="Reserved seating capability"
+          sourceValue={fieldSources.reservedSeatingCapability ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.reservedSeatingCapability}
+        >
+          <div>
+            <label
+              htmlFor={FIELD_IDS.reservedSeatingCapability}
+              className="mb-1 block text-sm font-medium text-slate-800"
+            >
+              Reserved seating capability
+            </label>
+            <select
+              id={FIELD_IDS.reservedSeatingCapability}
+              name="reservedSeatingCapability"
+              value={form.reservedSeatingCapability}
+              onChange={(e) => setField('reservedSeatingCapability', e.target.value)}
+              aria-invalid={invalidFields.has('reservedSeatingCapability')}
+              aria-describedby={controlDescribedBy(
+                FIELD_IDS.reservedSeatingCapability,
+                'reservedSeatingCapability',
+              )}
+              className={`w-full rounded-md border px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('reservedSeatingCapability')}`}
+            >
+              <option value="UNKNOWN">Unknown</option>
+              <option value="YES">Yes</option>
+              <option value="NO">No</option>
+            </select>
+            <FieldInlineError
+              id={`${FIELD_IDS.reservedSeatingCapability}-error`}
+              message={fieldMessages.get('reservedSeatingCapability')}
+            />
+          </div>
+        </FieldWithSource>
 
         <div>
           <label htmlFor={FIELD_IDS.sourceReference} className="mb-1 block text-sm font-medium text-slate-800">
-            Source reference <span className="font-normal text-slate-500">(optional)</span>
+            General source <span className="font-normal text-slate-500">(optional)</span>
           </label>
           <input
             id={FIELD_IDS.sourceReference}
@@ -625,23 +728,32 @@ function OrganisationFormBody({
           <FieldInlineError id={`${FIELD_IDS.notes}-error`} message={fieldMessages.get('notes')} />
         </div>
 
-        <div>
-          <label htmlFor={FIELD_IDS.capacity} className="mb-1 block text-sm font-medium text-slate-800">
-            Capacity <span className="font-normal text-slate-500">(optional)</span>
-          </label>
-          <input
-            id={FIELD_IDS.capacity}
-            name="capacity"
-            type="text"
-            inputMode="numeric"
-            value={form.capacity}
-            onChange={(e) => setField('capacity', e.target.value)}
-            aria-invalid={invalidFields.has('capacity')}
-            aria-describedby={controlDescribedBy(FIELD_IDS.capacity, 'capacity')}
-            className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('capacity')}`}
-          />
-          <FieldInlineError id={`${FIELD_IDS.capacity}-error`} message={fieldMessages.get('capacity')} />
-        </div>
+        <FieldWithSource
+          fieldName="capacity"
+          label="Capacity"
+          sourceValue={fieldSources.capacity ?? ''}
+          onSourceChange={onFieldSourceChange}
+          onSourceBlur={onFieldSourceBlur}
+          sourceError={sourceErrors.capacity}
+        >
+          <div>
+            <label htmlFor={FIELD_IDS.capacity} className="mb-1 block text-sm font-medium text-slate-800">
+              Capacity <span className="font-normal text-slate-500">(optional)</span>
+            </label>
+            <input
+              id={FIELD_IDS.capacity}
+              name="capacity"
+              type="text"
+              inputMode="numeric"
+              value={form.capacity}
+              onChange={(e) => setField('capacity', e.target.value)}
+              aria-invalid={invalidFields.has('capacity')}
+              aria-describedby={controlDescribedBy(FIELD_IDS.capacity, 'capacity')}
+              className={`w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('capacity')}`}
+            />
+            <FieldInlineError id={`${FIELD_IDS.capacity}-error`} message={fieldMessages.get('capacity')} />
+          </div>
+        </FieldWithSource>
 
         {/* Linked systems section */}
         <div className="border-t border-slate-200 pt-6">
@@ -667,10 +779,12 @@ function OrganisationFormBody({
           </div>
         </div>
 
+        {beforeSubmitSlot ? <div className="pt-2">{beforeSubmitSlot}</div> : null}
+
         <div className="pt-2">
           <Button
             type="submit"
-            disabled={isSaving || metaLoading || metaError}
+            disabled={isSaving || metaLoading || metaError || hasSourceUrlErrors}
             className="bg-blue-600 hover:bg-blue-700"
           >
             {isSaving ? (
@@ -694,18 +808,99 @@ function OrganisationFormBody({
 function OrganisationCreateForm() {
   const navigate = useNavigate()
   const [form, setForm] = useState(initialFormState)
+  const [fieldSources, setFieldSources] = useState({})
+  const [sourceErrors, setSourceErrors] = useState({})
   const [summaryErrors, setSummaryErrors] = useState([])
   const [submitError, setSubmitError] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
   const [linkRows, setLinkRows] = useState([])
   const [linkRowErrors, setLinkRowErrors] = useState([])
+  const [userAcknowledgedDuplicates, setUserAcknowledgedDuplicates] = useState(false)
+  const [nameForSimilarCheck, setNameForSimilarCheck] = useState('')
 
   const orgTypesQ = useOrganisationTypesQuery()
   const metaLoading = orgTypesQ.isLoading
   const metaError = orgTypesQ.isError
 
+  const {
+    matches: similarMatches,
+    isLoading: similarLoading,
+    error: similarLookupError,
+  } = useSimilarOrganisations(nameForSimilarCheck)
+
   const setField = useCallback((key, value) => {
+    if (key === 'name') {
+      setUserAcknowledgedDuplicates(false)
+      setNameForSimilarCheck('')
+    }
     setForm((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const handleNameBlurSimilar = useCallback(() => {
+    const t = form.name.trim()
+    if (t.length >= 3) {
+      setNameForSimilarCheck(form.name)
+    }
+  }, [form.name])
+
+  const showSimilarWarning =
+    similarMatches.length > 0 && !userAcknowledgedDuplicates && !similarLoading
+
+  const similarCheckFailed =
+    Boolean(similarLookupError) && nameForSimilarCheck.trim().length >= 3
+
+  const beforeSubmitSlot =
+    similarCheckFailed || showSimilarWarning ? (
+      <>
+        {similarCheckFailed ? (
+          <div
+            className="rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-800 shadow-sm"
+            role="status"
+          >
+            <p className="font-medium text-slate-900">Could not check for similar names</p>
+            <p className="mt-1 text-slate-700">
+              You can still save. The server will reject an exact duplicate in the same city and
+              country.
+            </p>
+          </div>
+        ) : null}
+        {showSimilarWarning ? (
+          <SimilarOrganisationsWarning
+            matches={similarMatches}
+            currentName={form.name.trim() || form.name}
+            onContinue={() => setUserAcknowledgedDuplicates(true)}
+            onCancel={() => {
+              setField('name', '')
+              focusFormControl(FIELD_IDS.name)
+            }}
+          />
+        ) : null}
+      </>
+    ) : null
+
+  const onFieldSourceChange = useCallback((fieldName, value) => {
+    setFieldSources((prev) => ({ ...prev, [fieldName]: value }))
+    if (isValidSourceUrl(value)) {
+      setSourceErrors((prev) => {
+        if (!(fieldName in prev)) return prev
+        const next = { ...prev }
+        delete next[fieldName]
+        return next
+      })
+    }
+  }, [])
+
+  const onFieldSourceBlur = useCallback((fieldName, value) => {
+    if (isValidSourceUrl(value)) {
+      setSourceErrors((prev) => {
+        if (!(fieldName in prev)) return prev
+        const next = { ...prev }
+        delete next[fieldName]
+        return next
+      })
+    } else {
+      setSourceErrors((prev) => ({ ...prev, [fieldName]: SOURCE_URL_CLIENT_ERROR }))
+    }
   }, [])
 
   const handleSubmit = async (e) => {
@@ -722,15 +917,34 @@ function OrganisationCreateForm() {
     }
     setLinkRowErrors([])
 
+    /** @type {Record<string, string>} */
+    const urlErrs = {}
+    for (const [k, v] of Object.entries(fieldSources)) {
+      if (!isValidSourceUrl(v)) urlErrs[k] = SOURCE_URL_CLIENT_ERROR
+    }
+    if (Object.keys(urlErrs).length > 0) {
+      setSourceErrors((prev) => ({ ...prev, ...urlErrs }))
+      return
+    }
+
     setIsSaving(true)
-    const body = buildSubmitBody(form)
+    const body = buildSubmitBody(form, fieldSources)
     let savedOrgId
     try {
       const result = await createOrganisation(body)
       savedOrgId = result.id
     } catch (err) {
+      let summary = []
+      let se = {}
       if (Array.isArray(err.fields) && err.fields.length > 0) {
-        setSummaryErrors(mapServerFieldsToSummary(err.fields))
+        const mapped = mapServerFieldErrorsToSummaryAndSources(err.fields, mapServerFieldsToSummary)
+        summary = mapped.summary
+        se = mapped.sourceErrors
+      }
+      summary = mergeCompositeConflictNameMessage(err, summary)
+      if (summary.length > 0) {
+        setSourceErrors(se)
+        setSummaryErrors(summary)
       } else {
         setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
       }
@@ -783,6 +997,10 @@ function OrganisationCreateForm() {
       subtitle="Create a new catalogue entry with full provenance."
       form={form}
       setField={setField}
+      fieldSources={fieldSources}
+      onFieldSourceChange={onFieldSourceChange}
+      onFieldSourceBlur={onFieldSourceBlur}
+      sourceErrors={sourceErrors}
       summaryErrors={summaryErrors}
       submitError={submitError}
       metaLoading={metaLoading}
@@ -793,6 +1011,8 @@ function OrganisationCreateForm() {
       setLinkRows={setLinkRows}
       linkRowErrors={linkRowErrors}
       onSubmit={handleSubmit}
+      nameInputOnBlur={handleNameBlurSimilar}
+      beforeSubmitSlot={beforeSubmitSlot}
     />
   )
 }
@@ -801,6 +1021,8 @@ function OrganisationCreateForm() {
 function OrganisationEditForm({ id }) {
   const navigate = useNavigate()
   const [form, setForm] = useState(initialFormState)
+  const [fieldSources, setFieldSources] = useState({})
+  const [sourceErrors, setSourceErrors] = useState({})
   const [summaryErrors, setSummaryErrors] = useState([])
   const [submitError, setSubmitError] = useState(null)
   const [isSaving, setIsSaving] = useState(false)
@@ -823,6 +1045,8 @@ function OrganisationEditForm({ id }) {
     hydratedRef.current = true
     startTransition(() => {
       setForm(dtoToFormState(data))
+      setFieldSources(normaliseFieldSourcesFromDto(data.fieldSources))
+      setSourceErrors({})
       setLinkRows(hydrateLinkRows(data.systems ?? []))
       setOriginalLinks(data.systems ?? [])
     })
@@ -830,6 +1054,31 @@ function OrganisationEditForm({ id }) {
 
   const setField = useCallback((key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const onFieldSourceChange = useCallback((fieldName, value) => {
+    setFieldSources((prev) => ({ ...prev, [fieldName]: value }))
+    if (isValidSourceUrl(value)) {
+      setSourceErrors((prev) => {
+        if (!(fieldName in prev)) return prev
+        const next = { ...prev }
+        delete next[fieldName]
+        return next
+      })
+    }
+  }, [])
+
+  const onFieldSourceBlur = useCallback((fieldName, value) => {
+    if (isValidSourceUrl(value)) {
+      setSourceErrors((prev) => {
+        if (!(fieldName in prev)) return prev
+        const next = { ...prev }
+        delete next[fieldName]
+        return next
+      })
+    } else {
+      setSourceErrors((prev) => ({ ...prev, [fieldName]: SOURCE_URL_CLIENT_ERROR }))
+    }
   }, [])
 
   const handleSubmit = async (e) => {
@@ -847,13 +1096,32 @@ function OrganisationEditForm({ id }) {
     }
     setLinkRowErrors([])
 
+    /** @type {Record<string, string>} */
+    const urlErrs = {}
+    for (const [k, v] of Object.entries(fieldSources)) {
+      if (!isValidSourceUrl(v)) urlErrs[k] = SOURCE_URL_CLIENT_ERROR
+    }
+    if (Object.keys(urlErrs).length > 0) {
+      setSourceErrors((prev) => ({ ...prev, ...urlErrs }))
+      return
+    }
+
     setIsSaving(true)
-    const body = buildSubmitBody(form)
+    const body = buildSubmitBody(form, fieldSources)
     try {
       await updateOrganisation(id, body)
     } catch (err) {
+      let summary = []
+      let se = {}
       if (Array.isArray(err.fields) && err.fields.length > 0) {
-        setSummaryErrors(mapServerFieldsToSummary(err.fields))
+        const mapped = mapServerFieldErrorsToSummaryAndSources(err.fields, mapServerFieldsToSummary)
+        summary = mapped.summary
+        se = mapped.sourceErrors
+      }
+      summary = mergeCompositeConflictNameMessage(err, summary)
+      if (summary.length > 0) {
+        setSourceErrors(se)
+        setSummaryErrors(summary)
       } else {
         setSubmitError(err?.message ?? 'Could not save the organisation. Try again.')
       }
@@ -978,6 +1246,10 @@ function OrganisationEditForm({ id }) {
       subtitle={null}
       form={form}
       setField={setField}
+      fieldSources={fieldSources}
+      onFieldSourceChange={onFieldSourceChange}
+      onFieldSourceBlur={onFieldSourceBlur}
+      sourceErrors={sourceErrors}
       summaryErrors={summaryErrors}
       submitError={submitError}
       metaLoading={metaLoading}

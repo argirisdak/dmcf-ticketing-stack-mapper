@@ -24,6 +24,8 @@ import { Button } from '../components/ui/button.jsx'
 import { Badge } from '../components/ui/badge.jsx'
 import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
 import { useOrganisationSelection } from '../hooks/useOrganisationSelection.js'
+import SortDropdown from '../components/SortDropdown.jsx'
+import { ORGANISATION_SORT_OPTIONS, normaliseOrganisationSortFromUrl } from '../lib/sort-options.js'
 
 const LIMIT = 20
 const BANNER_MS = 5000
@@ -282,8 +284,36 @@ function pageItems(page, totalPages) {
   return out
 }
 
+const ROLE_ORDER = ['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']
+
+function OrgSystemsBadges({ systems }) {
+  if (!systems || systems.length === 0) return <span className="text-slate-400">–</span>
+  const sorted = [...systems].sort(
+    (a, b) => (ROLE_ORDER.indexOf(a.role) + 1 || 99) - (ROLE_ORDER.indexOf(b.role) + 1 || 99)
+  )
+  const shown = sorted.slice(0, 2)
+  const extra = sorted.length - 2
+  return (
+    <div className="flex flex-wrap gap-1">
+      {shown.map((link) => (
+        <span
+          key={link.id}
+          className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200"
+        >
+          {link.system?.name ?? '–'}
+        </span>
+      ))}
+      {extra > 0 && (
+        <span className="inline-flex items-center rounded px-1.5 py-0.5 text-xs text-slate-400">
+          +{extra} more
+        </span>
+      )}
+    </div>
+  )
+}
+
 function TableSkeleton() {
-  const cols = 8
+  const cols = 9
   return (
     <>
       {Array.from({ length: 8 }).map((_, i) => (
@@ -370,6 +400,7 @@ function OrganisationListResults({ onClearSearch }) {
                   <th className="px-3 py-3 min-w-[200px]">Name</th>
                   <th className="px-3 py-3 min-w-[120px]">Type</th>
                   <th className="px-3 py-3 min-w-[100px]">Country</th>
+                  <th className="px-3 py-3 min-w-[180px]">Systems</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Membership</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Donation</th>
                   <th className="px-3 py-3 min-w-[80px] text-center">Reserved Seating</th>
@@ -377,7 +408,7 @@ function OrganisationListResults({ onClearSearch }) {
                 </tr>
                 <tr className="border-b border-slate-100 bg-slate-50/80">
                   <th className="px-2 py-2" />
-                  <th colSpan={4} className="px-3 py-2 text-left text-xs font-normal normal-case text-slate-500">
+                  <th colSpan={5} className="px-3 py-2 text-left text-xs font-normal normal-case text-slate-500">
                     Capabilities: <span className="text-emerald-600 font-medium">✓</span> = Yes,{' '}
                     <span className="text-slate-500 font-medium">✕</span> = No,{' '}
                     <span className="text-slate-400 font-medium">–</span> = Not recorded
@@ -390,7 +421,7 @@ function OrganisationListResults({ onClearSearch }) {
                   <TableSkeleton />
                 ) : !isLoading && total === 0 && hasQ && !hasFilters ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-slate-600">
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-600">
                       <p>
                         No organisations found for &apos;{listInputs.q}&apos;. Try a shorter search or check
                         the spelling.
@@ -402,7 +433,7 @@ function OrganisationListResults({ onClearSearch }) {
                   </tr>
                 ) : !isLoading && total === 0 && hasFilters ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-12 text-center text-slate-600">
+                    <td colSpan={9} className="px-6 py-12 text-center text-slate-600">
                       <p>No organisations match these filters. Try removing a filter or clearing all.</p>
                       <Button
                         type="button"
@@ -452,6 +483,9 @@ function OrganisationListResults({ onClearSearch }) {
                         )}
                       </td>
                       <td className="px-3 py-3 min-w-[100px]">{org.country}</td>
+                      <td className="px-3 py-3 min-w-[180px]">
+                        <OrgSystemsBadges systems={org.systems} />
+                      </td>
                       <td className="px-3 py-3 text-center min-w-[80px]">
                         <CapabilityBadge value={org.membershipCapability} />
                       </td>
@@ -620,6 +654,47 @@ function OrganisationListSearchInput({ onProvideClearSearch }) {
   )
 }
 
+function OrganisationListSearchAndSort({ onProvideClearSearch }) {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { sort, order } = normaliseOrganisationSortFromUrl(
+    searchParams.get('sort'),
+    searchParams.get('order'),
+  )
+
+  const handleSortChange = (next) => {
+    setSearchParams((prev) => {
+      const nextParams = new URLSearchParams(prev)
+      nextParams.set('sort', next.sort)
+      nextParams.set('order', next.order)
+      nextParams.set('page', '1')
+      return nextParams
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+      <div className="w-full min-w-0 flex-1 sm:max-w-xl">
+        <OrganisationListSearchInput onProvideClearSearch={onProvideClearSearch} />
+      </div>
+      <div className="inline-flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
+        <label
+          htmlFor="organisation-list-sort"
+          className="whitespace-nowrap text-sm font-medium text-slate-700"
+        >
+          Sort by
+        </label>
+        <SortDropdown
+          id="organisation-list-sort"
+          options={[...ORGANISATION_SORT_OPTIONS]}
+          sort={sort}
+          order={order}
+          onChange={handleSortChange}
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function OrganisationListPage() {
   const { selectedIds } = useOrganisationSelection()
   const location = useLocation()
@@ -683,7 +758,7 @@ export default function OrganisationListPage() {
       </header>
 
       <div className="mb-6 space-y-3 rounded-lg border border-slate-200 bg-slate-50/80 px-4 py-3 sm:px-5">
-        <OrganisationListSearchInput onProvideClearSearch={handleProvideClearSearch} />
+        <OrganisationListSearchAndSort onProvideClearSearch={handleProvideClearSearch} />
         <OrganisationListFilterSection />
       </div>
 

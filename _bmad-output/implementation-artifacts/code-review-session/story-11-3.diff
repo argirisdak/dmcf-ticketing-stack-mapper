@@ -1,0 +1,683 @@
+diff --git a/frontend/src/components/OrganisationCard.jsx b/frontend/src/components/OrganisationCard.jsx
+index 27308a6..b70bb54 100644
+--- a/frontend/src/components/OrganisationCard.jsx
++++ b/frontend/src/components/OrganisationCard.jsx
+@@ -6,6 +6,8 @@ import { CapabilityBadge } from './CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
+ import { OrganisationNotFoundError } from '../api/organisations.js'
+ import { CompareColumnShell } from './CompareColumnShell.jsx'
++import FieldSourceIcon from './FieldSourceIcon.jsx'
++import { ORGANISATION_COMPARE_ROW_SOURCE_KEYS, pickFieldSourceUrl } from '../lib/field-source-keys.js'
+ 
+ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+ 
+@@ -257,10 +259,39 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
+       ? /** @type {{ name?: string }} */ (org.organisationType).name
+       : undefined
+   const systems = Array.isArray(org.systems) ? org.systems : []
++  const fieldSources = org.fieldSources
+ 
+   const headerCountry =
+     org.country != null && org.country !== '' ? String(org.country) : 'Not recorded'
+ 
++  /**
++   * @param {number} compareRowIndex
++   * @param {string} fieldLabel
++   * @param {'middle' | 'last'} position
++   * @param {import('react').ReactNode} node
++   */
++  const compareDataRow = (compareRowIndex, fieldLabel, position, node) => {
++    const key = ORGANISATION_COMPARE_ROW_SOURCE_KEYS[compareRowIndex]
++    const rowCls =
++      position === 'last'
++        ? ATTR_ROW_CLASS
++        : `${ATTR_ROW_CLASS} border-b border-slate-100`
++    const showIcon = variant === 'compare' && key != null
++    return (
++      <div className={rowCls}>
++        <span className="inline-flex min-w-0 items-center gap-1">
++          {node}
++          {showIcon ? (
++            <>
++              {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
++              <FieldSourceIcon url={pickFieldSourceUrl(fieldSources, key)} fieldLabel={fieldLabel} />
++            </>
++          ) : null}
++        </span>
++      </div>
++    )
++  }
++
+   const inner = (
+     <>
+       <div className="sticky top-0 z-10 space-y-2 border-b bg-white p-4 shadow-sm">
+@@ -283,35 +314,58 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
+         </div>
+       </div>
+ 
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>{textCell(org.country)}</div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        {typeName != null && String(typeName).trim() !== '' ? (
++      {compareDataRow(
++        0,
++        'Country',
++        'middle',
++        textCell(org.country),
++      )}
++      {compareDataRow(
++        1,
++        'Type',
++        'middle',
++        typeName != null && String(typeName).trim() !== '' ? (
+           <Badge tone="type">{String(typeName)}</Badge>
+         ) : (
+           textCell(null)
+-        )}
+-      </div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        {variant === 'compare'
+-          ? <SystemsCompareList systems={systems} />
+-          : <SystemsChipStrip systems={systems} />
+-        }
+-      </div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        <CapabilityBadge variant="labelled" value={org.membershipCapability} />
+-      </div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        <CapabilityBadge variant="labelled" value={org.donationCapability} />
+-      </div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        <CapabilityBadge variant="labelled" value={org.reservedSeatingCapability} />
+-      </div>
+-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
+-        <SourceReferenceDisplay value={org.sourceReference} />
+-      </div>
+-      <div className={ATTR_ROW_CLASS}>
+-        <span className="text-slate-800">{formatCompareDateTime(org.lastUpdated)}</span>
+-      </div>
++        ),
++      )}
++      {compareDataRow(
++        2,
++        'Systems',
++        'middle',
++        variant === 'compare' ? <SystemsCompareList systems={systems} /> : <SystemsChipStrip systems={systems} />,
++      )}
++      {compareDataRow(
++        3,
++        'Membership Capability',
++        'middle',
++        <CapabilityBadge variant="labelled" value={org.membershipCapability} />,
++      )}
++      {compareDataRow(
++        4,
++        'Donation Capability',
++        'middle',
++        <CapabilityBadge variant="labelled" value={org.donationCapability} />,
++      )}
++      {compareDataRow(
++        5,
++        'Reserved Seating Capability',
++        'middle',
++        <CapabilityBadge variant="labelled" value={org.reservedSeatingCapability} />,
++      )}
++      {compareDataRow(
++        6,
++        'Source Reference',
++        'middle',
++        <SourceReferenceDisplay value={org.sourceReference} />,
++      )}
++      {compareDataRow(
++        7,
++        'Last Updated',
++        'last',
++        <span className="text-slate-800">{formatCompareDateTime(org.lastUpdated)}</span>,
++      )}
+     </>
+   )
+ 
+diff --git a/frontend/src/components/SystemCard.jsx b/frontend/src/components/SystemCard.jsx
+index 69b853b..7df3667 100644
+--- a/frontend/src/components/SystemCard.jsx
++++ b/frontend/src/components/SystemCard.jsx
+@@ -7,12 +7,14 @@ import { CompareColumnShell } from './CompareColumnShell.jsx'
+ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
+ import { Button } from './ui/button.jsx'
+ import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
++import { pickFieldSourceUrl, systemCompareRowFieldSourceKey } from '../lib/field-source-keys.js'
+ import {
+   SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT,
+   buildSystemCompareRowLabels,
+   findCustomAttributeByLabel,
+   systemCompareSectionDividerRowIndexes,
+ } from '../lib/system-compare-union-labels.js'
++import FieldSourceIcon from './FieldSourceIcon.jsx'
+ import { cn } from '../lib/utils.js'
+ 
+ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+@@ -340,6 +342,29 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
+   const attrs = Array.isArray(sys.customAttributes) ? sys.customAttributes : []
+   const unionStartRow = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT + 2
+   const L = unionCustomAttributeLabels.length
++  const fieldSources = sys.fieldSources
++
++  /**
++   * @param {number} rowIndex
++   * @param {string} fieldLabel
++   * @param {import('react').ReactNode} node
++   */
++  const cellWithFieldSource = (rowIndex, fieldLabel, node) => {
++    const k = systemCompareRowFieldSourceKey(rowIndex, L)
++    return (
++      <div className={bodyRowClass(rowIndex)}>
++        <span className="inline-flex min-w-0 items-center gap-1">
++          {node}
++          {k ? (
++            <>
++              {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
++              <FieldSourceIcon url={pickFieldSourceUrl(fieldSources, k)} fieldLabel={fieldLabel} />
++            </>
++          ) : null}
++        </span>
++      </div>
++    )
++  }
+ 
+   const inner = (
+     <>
+@@ -379,26 +404,16 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
+         </div>
+       </div>
+ 
+-      <div className={bodyRowClass(0)}>{scalarCompareCell(sys.name)}</div>
+-      <div className={bodyRowClass(1)}>{scalarCompareCell(sys.vendor)}</div>
+-      <div className={bodyRowClass(2)}>
+-        <SystemCategoryBadge category={sys.category} />
+-      </div>
+-      <div className={bodyRowClass(3)}>{scalarCompareCell(sys.deploymentModel)}</div>
+-      <div className={bodyRowClass(4)}>{scalarCompareCell(sys.pricingModel)}</div>
+-      <div className={bodyRowClass(5)}>{scalarCompareCell(sys.geographicFocus)}</div>
+-      <div className={bodyRowClass(6)}>
+-        <CapabilityBadge variant="labelled" value={sys.membershipCapability} />
+-      </div>
+-      <div className={bodyRowClass(7)}>
+-        <CapabilityBadge variant="labelled" value={sys.donationCapability} />
+-      </div>
+-      <div className={bodyRowClass(8)}>
+-        <CapabilityBadge variant="labelled" value={sys.reservedSeatingCapability} />
+-      </div>
+-      <div className={bodyRowClass(9)}>
+-        <DescriptionCompareCell text={sys.description} />
+-      </div>
++      {cellWithFieldSource(0, 'Name', scalarCompareCell(sys.name))}
++      {cellWithFieldSource(1, 'Vendor', scalarCompareCell(sys.vendor))}
++      {cellWithFieldSource(2, 'Category', <SystemCategoryBadge category={sys.category} />)}
++      {cellWithFieldSource(3, 'Deployment model', scalarCompareCell(sys.deploymentModel))}
++      {cellWithFieldSource(4, 'Pricing model', scalarCompareCell(sys.pricingModel))}
++      {cellWithFieldSource(5, 'Geographic focus', scalarCompareCell(sys.geographicFocus))}
++      {cellWithFieldSource(6, 'Membership capability', <CapabilityBadge variant="labelled" value={sys.membershipCapability} />)}
++      {cellWithFieldSource(7, 'Donation capability', <CapabilityBadge variant="labelled" value={sys.donationCapability} />)}
++      {cellWithFieldSource(8, 'Reserved seating capability', <CapabilityBadge variant="labelled" value={sys.reservedSeatingCapability} />)}
++      {cellWithFieldSource(9, 'Description', <DescriptionCompareCell text={sys.description} />)}
+ 
+       <div className={bodyRowClass(10)}>
+         <SourceReferenceDisplay value={sys.sourceReference} emptyLabel="None recorded" />
+diff --git a/frontend/src/pages/ComparePage.jsx b/frontend/src/pages/ComparePage.jsx
+index 43548e3..c48c1e0 100644
+--- a/frontend/src/pages/ComparePage.jsx
++++ b/frontend/src/pages/ComparePage.jsx
+@@ -9,6 +9,7 @@ import {
+ } from '../lib/compare-url-params.js'
+ import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
+ 
++/** Row order matches `ORGANISATION_COMPARE_ROW_SOURCE_KEYS` in `lib/field-source-keys.js`. */
+ const ROW_LABELS = [
+   'Country',
+   'Type',
+diff --git a/frontend/src/pages/OrganisationDetailPage.jsx b/frontend/src/pages/OrganisationDetailPage.jsx
+index 3eeb241..14c2993 100644
+--- a/frontend/src/pages/OrganisationDetailPage.jsx
++++ b/frontend/src/pages/OrganisationDetailPage.jsx
+@@ -21,6 +21,8 @@ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
+ import { SystemCombobox } from '../components/SystemCombobox.jsx'
+ import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
++import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
++import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -489,14 +491,42 @@ export default function OrganisationDetailPage() {
+             <h2 className="mb-4 text-sm font-semibold text-slate-700">Details</h2>
+             <dl className="space-y-3">
+               <DetailRow label="Name">{data.name}</DetailRow>
+-              <DetailRow label="Country">{data.country}</DetailRow>
+-              <DetailRow label="City">{displayText(data.city)}</DetailRow>
++              <DetailRow label="Country">
++                <span className="inline-flex items-center gap-1">
++                  {data.country}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'country')}
++                    fieldLabel="Country"
++                  />
++                </span>
++              </DetailRow>
++              <DetailRow label="City">
++                <span className="inline-flex items-center gap-1">
++                  {displayText(data.city)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'city')}
++                    fieldLabel="City"
++                  />
++                </span>
++              </DetailRow>
+               <DetailRow label="Type">
+-                {data.organisationType?.name ?? '—'}
++                <span className="inline-flex items-center gap-1">
++                  {data.organisationType?.name ?? '—'}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'organisationType')}
++                    fieldLabel="Type"
++                  />
++                </span>
+               </DetailRow>
+               <DetailRow label="Notes">{displayText(data.notes)}</DetailRow>
+               <DetailRow label="Capacity">
+-                {data.capacity != null ? String(data.capacity) : '—'}
++                <span className="inline-flex items-center gap-1">
++                  {data.capacity != null ? String(data.capacity) : '—'}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'capacity')}
++                    fieldLabel="Capacity"
++                  />
++                </span>
+               </DetailRow>
+               <DetailRow label="Created at">{formatDateTime(data.createdAt)}</DetailRow>
+             </dl>
+@@ -957,13 +987,31 @@ export default function OrganisationDetailPage() {
+             <h2 className="mb-4 text-sm font-semibold text-slate-700">Capabilities</h2>
+             <dl className="space-y-3">
+               <DetailRow label="Membership">
+-                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.membershipCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'membershipCapability')}
++                    fieldLabel="Membership"
++                  />
++                </span>
+               </DetailRow>
+               <DetailRow label="Donation">
+-                <CapabilityBadge value={data.donationCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.donationCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'donationCapability')}
++                    fieldLabel="Donation"
++                  />
++                </span>
+               </DetailRow>
+               <DetailRow label="Reserved seating">
+-                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'reservedSeatingCapability')}
++                    fieldLabel="Reserved seating"
++                  />
++                </span>
+               </DetailRow>
+             </dl>
+           </section>
+diff --git a/frontend/src/pages/SystemComparePage.jsx b/frontend/src/pages/SystemComparePage.jsx
+index 64ffa92..105a599 100644
+--- a/frontend/src/pages/SystemComparePage.jsx
++++ b/frontend/src/pages/SystemComparePage.jsx
+@@ -10,6 +10,7 @@ import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-para
+ import { useCompareSystems } from '../hooks/useCompareSystems.js'
+ import { cn } from '../lib/utils.js'
+ 
++/** Data rows per column use `systemCompareRowFieldSourceKey` / `SystemCard` (field-sources mapping matches `SYSTEM_COMPARE_ROW_LABEL_PREFIX`). */
+ export default function SystemComparePage() {
+   const [searchParams, setSearchParams] = useSearchParams()
+   const idsParam = searchParams.get('ids')
+diff --git a/frontend/src/pages/SystemDetailPage.jsx b/frontend/src/pages/SystemDetailPage.jsx
+index 713060a..f1ee3ba 100644
+--- a/frontend/src/pages/SystemDetailPage.jsx
++++ b/frontend/src/pages/SystemDetailPage.jsx
+@@ -16,6 +16,8 @@ import {
+   DialogTrigger,
+ } from '../components/ui/dialog.jsx'
+ import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
++import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
++import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -544,26 +546,83 @@ export default function SystemDetailPage() {
+           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+             <h2 className="mb-4 text-sm font-semibold text-slate-700">System details</h2>
+             <dl className="space-y-3">
+-              <FactRow label="Vendor">{displayText(data.vendor)}</FactRow>
++              <FactRow label="Vendor">
++                <span className="inline-flex items-center gap-1">
++                  {displayText(data.vendor)}
++                  {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'vendor')}
++                    fieldLabel="Vendor"
++                  />
++                </span>
++              </FactRow>
+               <FactRow label="Category">
+-                <SystemCategoryBadge category={data.category} />
++                <span className="inline-flex items-center gap-1">
++                  <SystemCategoryBadge category={data.category} />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'category')}
++                    fieldLabel="Category"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Deployment">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.deploymentModel)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'deploymentModel')}
++                    fieldLabel="Deployment"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Pricing model">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.pricingModel)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'pricingModel')}
++                    fieldLabel="Pricing model"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Geographic focus">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.geographicFocus)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'geographicFocus')}
++                    fieldLabel="Geographic focus"
++                  />
++                </span>
+               </FactRow>
+-              <FactRow label="Deployment">{displayNullable(data.deploymentModel)}</FactRow>
+-              <FactRow label="Pricing model">{displayNullable(data.pricingModel)}</FactRow>
+-              <FactRow label="Geographic focus">{displayNullable(data.geographicFocus)}</FactRow>
+               {data.description != null && (
+                 <FactRow label="Description">
+                   <span className="text-sm text-slate-700">{data.description}</span>
+                 </FactRow>
+               )}
+               <FactRow label="Membership">
+-                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.membershipCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'membershipCapability')}
++                    fieldLabel="Membership"
++                  />
++                </span>
+               </FactRow>
+               <FactRow label="Donation">
+-                <CapabilityBadge value={data.donationCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.donationCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'donationCapability')}
++                    fieldLabel="Donation"
++                  />
++                </span>
+               </FactRow>
+               <FactRow label="Reserved seating">
+-                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
++                <span className="inline-flex items-center gap-1">
++                  <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'reservedSeatingCapability')}
++                    fieldLabel="Reserved seating"
++                  />
++                </span>
+               </FactRow>
+               <FactRow label="Source reference">
+                 <SourceReferenceDisplay value={data.sourceReference} />
+diff --git a/frontend/vitest.config.js b/frontend/vitest.config.js
+index 737b41c..f1e29c9 100644
+--- a/frontend/vitest.config.js
++++ b/frontend/vitest.config.js
+@@ -1,8 +1,13 @@
+-import { defineConfig } from 'vitest/config'
++import { defineConfig, mergeConfig } from 'vitest/config'
++import viteConfig from './vite.config.js'
+ 
+-export default defineConfig({
+-  test: {
+-    environment: 'node',
+-    include: ['src/**/*.test.js'],
+-  },
+-})
++export default mergeConfig(
++  viteConfig,
++  defineConfig({
++    test: {
++      environment: 'node',
++      include: ['src/**/*.test.js'],
++      setupFiles: ['./vitest.setup.js'],
++    },
++  }),
++)
+diff --git a/frontend/src/components/FieldSourceIcon.jsx b/frontend/src/components/FieldSourceIcon.jsx
+new file mode 100644
+index 0000000..cdc8d2a
+--- /dev/null
++++ b/frontend/src/components/FieldSourceIcon.jsx
+@@ -0,0 +1,25 @@
++import { Info } from 'lucide-react'
++
++/**
++ * @param {{ url: string | null | undefined, fieldLabel: string }} props
++ */
++export default function FieldSourceIcon({ url, fieldLabel }) {
++  if (url == null || String(url).trim() === '') return null
++
++  const href = String(url)
++  const labelText = String(fieldLabel ?? '').trim() || 'field'
++  const ariaLabel = `View source for ${labelText}`
++
++  return (
++    <a
++      href={href}
++      target="_blank"
++      rel="noopener noreferrer"
++      title={href}
++      aria-label={ariaLabel}
++      className="inline-flex shrink-0 text-slate-400 hover:text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 rounded-sm"
++    >
++      <Info className="size-3.5" aria-hidden />
++    </a>
++  )
++}
+diff --git a/frontend/src/components/FieldSourceIcon.test.js b/frontend/src/components/FieldSourceIcon.test.js
+new file mode 100644
+index 0000000..e74f2d3
+--- /dev/null
++++ b/frontend/src/components/FieldSourceIcon.test.js
+@@ -0,0 +1,30 @@
++import { createElement } from 'react'
++import { renderToString } from 'react-dom/server'
++import { describe, expect, it } from 'vitest'
++import FieldSourceIcon from './FieldSourceIcon.jsx'
++
++describe('FieldSourceIcon', () => {
++  it('renders nothing when url is null', () => {
++    const html = renderToString(createElement(FieldSourceIcon, { url: null, fieldLabel: 'Test' }))
++    expect(html).toBe('')
++  })
++
++  it('renders nothing when url is blank', () => {
++    const html = renderToString(createElement(FieldSourceIcon, { url: '   ', fieldLabel: 'Test' }))
++    expect(html).toBe('')
++  })
++
++  it('renders an anchor with correct attributes when url is valid', () => {
++    const html = renderToString(
++      createElement(FieldSourceIcon, {
++        url: 'https://example.com/doc',
++        fieldLabel: 'Vendor',
++      }),
++    )
++    expect(html).toContain('href="https://example.com/doc"')
++    expect(html).toContain('target="_blank"')
++    expect(html).toContain('rel="noopener noreferrer"')
++    expect(html).toContain('title="https://example.com/doc"')
++    expect(html).toContain('View source for Vendor')
++  })
++})
+diff --git a/frontend/src/lib/field-source-keys.js b/frontend/src/lib/field-source-keys.js
+new file mode 100644
+index 0000000..a7e9134
+--- /dev/null
++++ b/frontend/src/lib/field-source-keys.js
+@@ -0,0 +1,93 @@
++/**
++ * Mirrors `backend/src/lib/field-source-keys.js`. When either side changes, update the other in the same change-set (see docs/decisions.md ADR-025).
++ */
++
++/** @readonly */
++export const SYSTEM_FIELD_SOURCE_KEYS = Object.freeze([
++  'category',
++  'vendor',
++  'deploymentModel',
++  'pricingModel',
++  'geographicFocus',
++  'membershipCapability',
++  'donationCapability',
++  'reservedSeatingCapability',
++  'seasonSubscriptionsCapability',
++  'dynamicPricingCapability',
++  'multiVenueSupportCapability',
++  'marketingAutomationCapability',
++  'accessibilityFeaturesCapability',
++])
++
++/** @readonly */
++export const ORGANISATION_FIELD_SOURCE_KEYS = Object.freeze([
++  'country',
++  'city',
++  'organisationType',
++  'membershipCapability',
++  'donationCapability',
++  'reservedSeatingCapability',
++  'capacity',
++])
++
++/**
++ * Static compare rows (Epic 9.3) map 1:1 to indices 0–9; provenance and union rows use null.
++ * @see SYSTEM_COMPARE_ROW_LABEL_PREFIX in system-compare-union-labels.js
++ */
++const SYSTEM_COMPARE_STATIC_ROW_SOURCE_KEYS = Object.freeze([
++  null,
++  'vendor',
++  'category',
++  'deploymentModel',
++  'pricingModel',
++  'geographicFocus',
++  'membershipCapability',
++  'donationCapability',
++  'reservedSeatingCapability',
++  null,
++])
++
++/** Matches ComparePage ROW_LABELS order. */
++export const ORGANISATION_COMPARE_ROW_SOURCE_KEYS = Object.freeze([
++  'country',
++  'organisationType',
++  null,
++  'membershipCapability',
++  'donationCapability',
++  'reservedSeatingCapability',
++  null,
++  null,
++])
++
++/**
++ * @param {unknown} fieldSources
++ * @param {string} fieldKey
++ * @returns {string | null}
++ */
++export function pickFieldSourceUrl(fieldSources, fieldKey) {
++  if (fieldSources == null || typeof fieldSources !== 'object' || Array.isArray(fieldSources)) {
++    return null
++  }
++  const raw = /** @type {Record<string, unknown>} */ (fieldSources)[fieldKey]
++  if (raw == null || String(raw).trim() === '') return null
++  return String(raw)
++}
++
++/**
++ * Field-source key for a system compare body row, or null when this row is not in the allow-list.
++ * @param {number} rowIndex Row index within SystemCard body (0 = first data row under header).
++ * @param {number} unionLabelCount
++ * @returns {string | null}
++ */
++export function systemCompareRowFieldSourceKey(rowIndex, unionLabelCount) {
++  const L = Math.max(0, unionLabelCount)
++  const provenanceRows = 2
++  const staticCount = SYSTEM_COMPARE_STATIC_ROW_SOURCE_KEYS.length
++  const unionStart = staticCount + provenanceRows
++  const adoptedRow = unionStart + L
++  if (rowIndex < staticCount) return SYSTEM_COMPARE_STATIC_ROW_SOURCE_KEYS[rowIndex]
++  if (rowIndex < unionStart) return null
++  if (rowIndex < adoptedRow) return null
++  if (rowIndex === adoptedRow) return null
++  return null
++}
+diff --git a/frontend/src/lib/field-source-keys.test.js b/frontend/src/lib/field-source-keys.test.js
+new file mode 100644
+index 0000000..37b12cf
+--- /dev/null
++++ b/frontend/src/lib/field-source-keys.test.js
+@@ -0,0 +1,28 @@
++import { describe, expect, it } from 'vitest'
++import { pickFieldSourceUrl, systemCompareRowFieldSourceKey } from './field-source-keys.js'
++
++describe('pickFieldSourceUrl', () => {
++  it('returns null for missing or invalid fieldSources', () => {
++    expect(pickFieldSourceUrl(null, 'vendor')).toBeNull()
++    expect(pickFieldSourceUrl(undefined, 'vendor')).toBeNull()
++    expect(pickFieldSourceUrl([], 'vendor')).toBeNull()
++  })
++
++  it('returns trimmed string URL when present', () => {
++    expect(pickFieldSourceUrl({ vendor: 'https://a.test' }, 'vendor')).toBe('https://a.test')
++    expect(pickFieldSourceUrl({ vendor: '' }, 'vendor')).toBeNull()
++  })
++})
++
++describe('systemCompareRowFieldSourceKey', () => {
++  it('maps static compare rows to field keys', () => {
++    expect(systemCompareRowFieldSourceKey(1, 0)).toBe('vendor')
++    expect(systemCompareRowFieldSourceKey(6, 2)).toBe('membershipCapability')
++  })
++
++  it('returns null for provenance, union, and adopted rows', () => {
++    expect(systemCompareRowFieldSourceKey(10, 1)).toBeNull()
++    expect(systemCompareRowFieldSourceKey(12, 1)).toBeNull()
++    expect(systemCompareRowFieldSourceKey(14, 1)).toBeNull()
++  })
++})
+diff --git a/frontend/vitest.setup.js b/frontend/vitest.setup.js
+new file mode 100644
+index 0000000..83828e7
+--- /dev/null
++++ b/frontend/vitest.setup.js
+@@ -0,0 +1,4 @@
++import React from 'react'
++
++// Vitest + node resolves some JSX to classic runtime for components under test; match runtime globals.
++globalThis.React = React

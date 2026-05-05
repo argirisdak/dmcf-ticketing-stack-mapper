@@ -10,6 +10,7 @@ import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-para
 import { useCompareSystems } from '../hooks/useCompareSystems.js'
 import { cn } from '../lib/utils.js'
 
+/** Data rows per column use `systemCompareRowFieldSourceKey` / `SystemCard` (field-sources mapping matches `SYSTEM_COMPARE_ROW_LABEL_PREFIX`). */
 export default function SystemComparePage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const idsParam = searchParams.get('ids')

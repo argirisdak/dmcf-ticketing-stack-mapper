@@ -1,0 +1,2725 @@
+diff --git a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
+index 002a6a7..b8ff9b4 100644
+--- a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
++++ b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
+@@ -1,6 +1,6 @@
+ # Story 9.1: Compare route shell — `/compare/systems` and `/compare/organisations`
+ 
+-Status: ready-for-dev
++Status: done
+ 
+ <!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
+ 
+@@ -48,27 +48,31 @@ so that bookmarks and shared links are unambiguous and the System list compare f
+ 
+ ## Tasks / Subtasks
+ 
+-- [ ] **Task 1 — Routing cleanup (`App.jsx`)**
+-  - [ ] Remove `<Route path="/compare" element={<ComparePage />} />`.
+-  - [ ] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
+-  - [ ] Replace `/compare/systems` stub route element with new `SystemComparePage`.
+-  - [ ] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
++- [x] **Task 1 — Routing cleanup (`App.jsx`)**
++  - [x] Remove `<Route path="/compare" element={<ComparePage />} />`.
++  - [x] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
++  - [x] Replace `/compare/systems` stub route element with new `SystemComparePage`.
++  - [x] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
+ 
+-- [ ] **Task 2 — `useCompareSystems` hook**
+-  - [ ] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
++- [x] **Task 2 — `useCompareSystems` hook**
++  - [x] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
+ 
+-- [ ] **Task 3 — `SystemComparePage.jsx`**
+-  - [ ] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
+-  - [ ] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
+-  - [ ] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
++- [x] **Task 3 — `SystemComparePage.jsx`**
++  - [x] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
++  - [x] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
++  - [x] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
+ 
+-- [ ] **Task 4 — Remove / relocate stub**
+-  - [ ] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
++- [x] **Task 4 — Remove / relocate stub**
++  - [x] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
+ 
+-- [ ] **Task 5 — Regression sweep**
+-  - [ ] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
+-  - [ ] `cd frontend && npm run lint` and `npm run test`.
+-  - [ ] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
++- [x] **Task 5 — Regression sweep**
++  - [x] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
++  - [x] `cd frontend && npm run lint` and `npm run test`.
++  - [x] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
++
++## Change Log
++
++- 2026-05-02 — Story 9.1: `/compare/organisations` + `/compare/systems` compare shells, legacy `/compare` → links page, `useCompareSystems`, Vitest for compare phase helper.
+ 
+ ## Dev Notes
+ 
+@@ -121,12 +125,39 @@ so that bookmarks and shared links are unambiguous and the System list compare f
+ 
+ ### Agent Model Used
+ 
+-_(filled by dev agent)_
++Cursor agent
+ 
+ ### Debug Log References
+ 
+ ### Completion Notes List
+ 
++- Routing: specific compare routes before `path="/compare/*"` so `/compare/organisations` and `/compare/systems` stay correct; legacy bookmarks hit `CompareLegacyPathPage` with **← Go to organisations** / **Go to systems**.
++- `useCompareSystems` uses `['systems', id]` + `fetchSystem` (full envelope) and no retry on `SystemNotFoundError`, matching `useCompareOrganisations` / `useSystem` cache shape.
++- `SystemComparePage`: empty state, per-column loading skeletons, page-level error when fewer than 2 successful columns after settle, grid with sticky label column + `CompareColumnShell` columns (exported from `OrganisationCard.jsx`). Placeholder attribute rows filled for successful columns; 9.2 can swap in `SystemCard`.
++- Vitest: `getSystemComparePhase` unit tests in `system-compare-view-state.test.js`.
++
+ ### File List
+ 
+-_(filled by dev agent)_
++- `frontend/src/App.jsx`
++- `frontend/src/components/OrganisationCard.jsx`
++- `frontend/src/hooks/useCompareSystems.js`
++- `frontend/src/lib/system-compare-view-state.js`
++- `frontend/src/lib/system-compare-view-state.test.js`
++- `frontend/src/pages/CompareLegacyPathPage.jsx`
++- `frontend/src/pages/SystemComparePage.jsx`
++- `frontend/src/pages/SystemRouteStubs.jsx`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++
++### Review Findings
++
++- [x] [Review][Patch] Cap compare `ids` to the intended 2–4 column maximum before `useQueries` — [`frontend/src/hooks/useCompareSystems.js`] — fixed (`MAX_SYSTEM_COMPARE_IDS`, slice in hook + page)
++- [x] [Review][Patch] Guard `formatCompareDateTime` when `Date` parses to NaN (avoid displaying “Invalid Date”) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Replace `null` return in `SystemCompareColumn` when envelope/`data` is missing with visible column-level error UI — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Add a page-level `<h1>` (e.g. **Compare systems**) to the empty-`ids` branch for consistent document outline — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Normalise unknown `category` values in `SystemCategoryBadge` (avoid leaking raw enum tokens) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Defer] Soften or clarify legacy compare `CompareLegacyPathPage` H1 (“Page not found” vs explanatory body) — [`frontend/src/pages/CompareLegacyPathPage.jsx`] — deferred, follow-up copy
++- [x] [Review][Defer] `SystemComparePage` imports layout shell from `OrganisationCard.jsx` — consider a shared presentational module — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, structural follow-up
++- [x] [Review][Defer] Loading/compare skeleton a11y (`aria-hidden`, status for in-flight compare) — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
++- [x] [Review][Defer] `useMemo(..., [queries])` depends on `useQueries` array identity — verify stability or derive phase from primitive signals — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
++- [x] [Review][Defer] Broaden tests beyond `getSystemComparePhase` (routing, legacy page, page branches) — deferred, follow-up
++- [x] [Review][Defer] Unknown `/compare/...` segments share the same legacy page as bare `/compare` — [`frontend/src/App.jsx`] — deferred, optional UX distinction
+diff --git a/_bmad-output/implementation-artifacts/deferred-work.md b/_bmad-output/implementation-artifacts/deferred-work.md
+index e3ef608..0c2022f 100644
+--- a/_bmad-output/implementation-artifacts/deferred-work.md
++++ b/_bmad-output/implementation-artifacts/deferred-work.md
+@@ -1,5 +1,20 @@
+ # Deferred work
+ 
++## Deferred from: code review of 9-2-systemcard-component-compare-column.md (2026-05-02)
++
++- **Organisation detail system compare CTA** — “Compare these systems →” still links to `/compare/organisations`; Epic 9.3 AC §5 expects `/compare/systems` with distinct system ids. Not changed in the Story 9.2 diff; track under 9.3 / `OrganisationDetailPage.jsx`.
++
++- **Org compare → system compare strip** — Epic 9.3 AC §6 (union of systems across compared orgs, 2–4 vs 5+ copy) not implemented in `ComparePage.jsx` in this diff; track under 9.3.
++
++## Deferred from: code review of 9-1-compare-route-shell-compare-systems-and-compare-organisations.md (2026-05-02)
++
++- **Legacy compare page title vs copy** — `CompareLegacyPathPage` uses “Page not found” while the body explains dedicated URLs; revisit wording if users confuse app-wide failure with deprecated `/compare` only.
++- **`CompareColumnShell` imported from `OrganisationCard.jsx`** — Works but couples system compare to an organisation-named module; extract a shared shell when convenient.
++- **Loading / skeleton accessibility** — Column skeletons use `aria-hidden`; consider a page-level busy/status pattern for screen readers during compare load.
++- **`useMemo` phase keyed on `queries` array** — If `useQueries` returns a new array reference each render, phase recalculates every time; confirm TanStack behaviour or narrow dependencies.
++- **Test coverage** — Story adds `getSystemComparePhase` tests only; routing (`/compare/*`), legacy page, and `SystemComparePage` branches remain manual or untested.
++- **`/compare/foo` vs bare `/compare`** — Catch-all renders the same legacy helper page; optional improvement to hint invalid path segments.
++
+ ## Deferred from: code review of 8-5-organisation-form-linked-systems-editor.md (2026-05-01)
+ 
+ - **`fetchOrganisations` param rename (`provider`/`crm` → `system`/`system_role`)** — All callers must use the new query keys; verify list/filter hooks and URL sync outside the reviewed chunk.
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index e382186..0275ede 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -35,7 +35,7 @@
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+ generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T00:00:00Z
++last_updated: 2026-05-02T23:50:00Z
+ project: dmcf-app
+ project_key: NOKEY
+ tracking_system: file-system
+@@ -106,9 +106,9 @@ development_status:
+ 
+   # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
+   epic-9: in-progress
+-  9-1-compare-route-shell-compare-systems-and-compare-organisations: ready-for-dev
+-  9-2-systemcard-component-compare-column: backlog
+-  9-3-compare-union-panel-and-contextual-compare-entry-points: backlog
++  9-1-compare-route-shell-compare-systems-and-compare-organisations: done
++  9-2-systemcard-component-compare-column: in-progress
++  9-3-compare-union-panel-and-contextual-compare-entry-points: review
+   epic-9-retrospective: optional
+ 
+   # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index 0e483fb..577e474 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -8,7 +8,8 @@ import ComparePage from './pages/ComparePage.jsx'
+ import SystemListPage from './pages/SystemListPage.jsx'
+ import SystemDetailPage from './pages/SystemDetailPage.jsx'
+ import SystemFormPage from './pages/SystemFormPage.jsx'
+-import { SystemCompareStubPage } from './pages/SystemRouteStubs.jsx'
++import SystemComparePage from './pages/SystemComparePage.jsx'
++import CompareLegacyPathPage from './pages/CompareLegacyPathPage.jsx'
+ 
+ function NavLinks() {
+   const { pathname } = useLocation()
+@@ -62,9 +63,9 @@ export default function App() {
+                 <Route path="/systems/new" element={<SystemFormPage />} />
+                 <Route path="/systems/:id" element={<SystemDetailPage />} />
+                 <Route path="/systems/:id/edit" element={<SystemFormPage />} />
+-                <Route path="/compare/systems" element={<SystemCompareStubPage />} />
+                 <Route path="/compare/organisations" element={<ComparePage />} />
+-                <Route path="/compare" element={<ComparePage />} />
++                <Route path="/compare/systems" element={<SystemComparePage />} />
++                <Route path="/compare/*" element={<CompareLegacyPathPage />} />
+               </Routes>
+             </SystemSelectionProvider>
+           </OrganisationSelectionProvider>
+diff --git a/frontend/src/components/OrganisationCard.jsx b/frontend/src/components/OrganisationCard.jsx
+index e5d30af..27308a6 100644
+--- a/frontend/src/components/OrganisationCard.jsx
++++ b/frontend/src/components/OrganisationCard.jsx
+@@ -5,7 +5,7 @@ import { Button } from './ui/button.jsx'
+ import { CapabilityBadge } from './CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
+ import { OrganisationNotFoundError } from '../api/organisations.js'
+-import { cn } from '../lib/utils.js'
++import { CompareColumnShell } from './CompareColumnShell.jsx'
+ 
+ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+ 
+@@ -101,22 +101,6 @@ function SystemsCompareList({ systems }) {
+   )
+ }
+ 
+-/** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
+-function CompareColumnShell({ gridColumn, className, children, ...rest }) {
+-  return (
+-    <div
+-      className={cn(
+-        'row-span-full grid min-w-0 grid-rows-subgrid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm',
+-        className,
+-      )}
+-      style={{ gridColumn }}
+-      {...rest}
+-    >
+-      {children}
+-    </div>
+-  )
+-}
+-
+ function formatCompareDateTime(iso) {
+   if (iso == null || iso === '') return 'Not recorded'
+   try {
+diff --git a/frontend/src/lib/compare-url-params.js b/frontend/src/lib/compare-url-params.js
+index 2e73399..3ee1c22 100644
+--- a/frontend/src/lib/compare-url-params.js
++++ b/frontend/src/lib/compare-url-params.js
+@@ -1,3 +1,6 @@
++/** Maximum parallel compare columns for system compare (Story 9.1 — selection bar targets 2–4). */
++export const MAX_SYSTEM_COMPARE_IDS = 4
++
+ /**
+  * Parse comma-separated compare `ids` from the URL (trim, drop empties, dedupe for stable order).
+  * @param {string | null} raw
+diff --git a/frontend/src/pages/ComparePage.jsx b/frontend/src/pages/ComparePage.jsx
+index b9a1675..cde1241 100644
+--- a/frontend/src/pages/ComparePage.jsx
++++ b/frontend/src/pages/ComparePage.jsx
+@@ -1,7 +1,8 @@
+ import { useCallback, useMemo } from 'react'
+ import { Link, useSearchParams } from 'react-router-dom'
+ import { OrganisationCard } from '../components/OrganisationCard.jsx'
+-import { parseCompareIds } from '../lib/compare-url-params.js'
++import { deriveCompareOrganisationsSystemUnion } from '../lib/compare-organisations-system-union.js'
++import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-params.js'
+ import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
+ 
+ const ROW_LABELS = [
+@@ -21,6 +22,11 @@ export default function ComparePage() {
+   const ids = useMemo(() => parseCompareIds(idsParam), [idsParam])
+   const queries = useCompareOrganisations(ids)
+ 
++  const organisationsSystemUnion = useMemo(
++    () => deriveCompareOrganisationsSystemUnion(ids, queries),
++    [ids, queries],
++  )
++
+   const removeId = useCallback(
+     (idToRemove) => {
+       setSearchParams(
+@@ -99,6 +105,33 @@ export default function ComparePage() {
+           ))}
+         </div>
+       </div>
++
++      {organisationsSystemUnion.kind === 'ready' &&
++        (() => {
++          const n = organisationsSystemUnion.orderedSystemIds.length
++          if (n <= 1) return null
++          if (n >= 2 && n <= MAX_SYSTEM_COMPARE_IDS) {
++            return (
++              <div className="mt-6 border-t border-slate-200 pt-4">
++                <Link
++                  to={`/compare/systems?ids=${organisationsSystemUnion.orderedSystemIds.join(',')}`}
++                  className="text-sm text-blue-600 hover:text-blue-800"
++                >
++                  Compare systems used by these organisations →
++                </Link>
++              </div>
++            )
++          }
++          return (
++            <p className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
++              These organisations use {n} different systems. Open the{' '}
++              <Link to="/systems" className="text-blue-600 hover:text-blue-800">
++                System list →
++              </Link>{' '}
++              to select which to compare.
++            </p>
++          )
++        })()}
+     </div>
+   )
+ }
+diff --git a/frontend/src/pages/OrganisationDetailPage.jsx b/frontend/src/pages/OrganisationDetailPage.jsx
+index 052a398..3eeb241 100644
+--- a/frontend/src/pages/OrganisationDetailPage.jsx
++++ b/frontend/src/pages/OrganisationDetailPage.jsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useEffect, useState } from 'react'
++import { useCallback, useEffect, useMemo, useState } from 'react'
+ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+ import { useQueryClient } from '@tanstack/react-query'
+ import { useOrganisation } from '../hooks/useOrganisation.js'
+@@ -20,6 +20,7 @@ import {
+ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
+ import { SystemCombobox } from '../components/SystemCombobox.jsx'
++import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -31,6 +32,7 @@ const ROLE_LABELS = {
+   SECONDARY: 'Secondary',
+ }
+ const KNOWN_ROLES = Object.keys(ROLE_LABELS)
++const NO_LINKED_SYSTEMS = []
+ 
+ function formatDateTime(iso) {
+   if (!iso) return '—'
+@@ -192,12 +194,18 @@ export default function OrganisationDetailPage() {
+   const missingId = !id
+ 
+   // Group systems by role in display order
+-  const systems = (isSuccess && data?.systems) ? data.systems : []
++  const systems =
++    isSuccess && Array.isArray(data?.systems) ? data.systems : NO_LINKED_SYSTEMS
+   const grouped = ROLE_ORDER.reduce((acc, role) => {
+     acc[role] = systems.filter((l) => l.role === role)
+     return acc
+   }, {})
+ 
++  const contextualSystemCompare = useMemo(
++    () => buildOrganisationContextualSystemCompare(systems, ROLE_ORDER),
++    [systems],
++  )
++
+   const handleSaveEdit = () => {
+     if (!editLink?.system?.id || !id) return
+     const body = {}
+@@ -597,7 +605,7 @@ export default function OrganisationDetailPage() {
+                   ))}
+                 </div>
+ 
+-                <div className="mt-4 flex flex-wrap items-center gap-3">
++                <div className="mt-4 space-y-3">
+                   <Button
+                     type="button"
+                     variant="secondary"
+@@ -605,13 +613,15 @@ export default function OrganisationDetailPage() {
+                   >
+                     Add system
+                   </Button>
+-                  {systems.length >= 2 && (
+-                    <Link
+-                      to="/compare/organisations"
+-                      className="text-sm text-slate-500 hover:text-slate-700"
+-                    >
+-                      Compare these systems →
+-                    </Link>
++                  {contextualSystemCompare != null && (
++                    <div>
++                      <Link
++                        to={contextualSystemCompare.to}
++                        className="text-sm text-blue-600 hover:text-blue-800"
++                      >
++                        {contextualSystemCompare.label}
++                      </Link>
++                    </div>
+                   )}
+                 </div>
+               </>
+diff --git a/frontend/src/pages/SystemRouteStubs.jsx b/frontend/src/pages/SystemRouteStubs.jsx
+index 866f0d2..f31e216 100644
+--- a/frontend/src/pages/SystemRouteStubs.jsx
++++ b/frontend/src/pages/SystemRouteStubs.jsx
+@@ -1,24 +1,5 @@
+ import { Link, useParams } from 'react-router-dom'
+ 
+-/** Placeholder until Epic 9 ships system-vs-system compare. */
+-export function SystemCompareStubPage() {
+-  return (
+-    <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 shadow-sm">
+-      <h1 className="text-xl font-semibold text-slate-800">Compare systems</h1>
+-      <p className="mt-3 text-slate-600">
+-        Side-by-side system comparison will be added in Epic 9. Your selection is preserved —
+-        come back here when that work lands.
+-      </p>
+-      <Link
+-        to="/systems"
+-        className="mt-6 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+-      >
+-        ← Back to systems
+-      </Link>
+-    </div>
+-  )
+-}
+-
+ /** Story 7.6 — create-system form replaces this stub. */
+ export function SystemNewStubPage() {
+   return (
+diff --git a/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md b/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md
+new file mode 100644
+index 0000000..0d3afd2
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md
+@@ -0,0 +1,160 @@
++# Story 9.2: SystemCard component (compare column)
++
++Status: in-progress
++
++<!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
++
++## Story
++
++As a staff member,
++I want each System in the compare to render as a card with sticky header, full attribute set aligned to the label column, and explicit "—" markers for missing values,
++so that I can scan rows across systems without ever seeing a blank cell that I might confuse with missing data versus "not yet loaded".
++
++## Acceptance Criteria
++
++1. **Sticky header anatomy**
++   - System name: `text-lg font-semibold`.
++   - Category: use the same visual tokens as `SystemCategoryBadge` on `SystemDetailPage` (`CATEGORY_CONFIG` — integrated / ticketing / audience management pill styles).
++   - Vendor: `text-sm text-slate-500`.
++   - Header actions (right-aligned): **Edit** as a `Link` to `/systems/:id/edit` with classes `text-sm text-blue-600` (and sensible hover); **remove** as an icon-only **ghost** button with **×** (use `lucide-react` `X` or equivalent), `aria-label` like "Remove from compare", calling `onRemove` (parent updates `ids` in the URL with `replace: true` per Story 9.1 / Epic 9).
++
++2. **Never-blank cells (UX-DR33 / Epic 9.2)**
++   - Scalar identity fields: plain text when present; when null or empty string, render an em dash `—` in `text-slate-300` (not muted prose like "Not recorded" for these rows — epic is explicit for compare).
++   - **Capabilities:** `CapabilityBadge` with `variant="labelled"` for membership, donation, reserved seating (same as `OrganisationCard` compare rows).
++   - **Description:** when null/empty, same `—` rule; when present, **clamp to 4 lines** with a **Show more** control that expands to full text and **Show less** to collapse; state is **per card instance** (local `useState`), not global.
++
++3. **Custom attributes (union-ready for Story 9.3)**
++   - The compare page will eventually compute the **ordered union of labels** across all selected Systems (case-insensitive merge at page level in 9.3).
++   - **This story:** `SystemCard` accepts props defining that ordered list (e.g. `unionCustomAttributeLabels: string[]`) **and** the current system DTO (or its `customAttributes` array). For each union label, render one row: if this system has a matching attribute (match **label case-insensitively**), show `value` and source treatment consistent with `CustomAttributesPanel` on `SystemDetailPage` (HTTP(s) → link, else plain text); if no match, show `—` in `text-slate-300`.
++   - If the **page** passes an **empty** union array because no selected system has custom attributes, render **no** extra rows (Epic 9.3: hide entire "Additional attributes" section when all empty — the page owns section visibility; the card simply renders zero union rows when the list is empty).
++
++4. **Footer block (per card, after union rows)**
++   - **Source reference:** reuse `SourceReferenceDisplay` behaviour (link when `http`/`https`, else text; when null — epic: "None recorded" if null for this field; align with how compare treats provenance — never leave the cell empty).
++   - **Last updated:** `text-xs text-slate-500`, same **absolute + relative** pattern as `formatLastUpdated` in `SystemDetailPage.jsx`.
++   - **Adopted by:** `N = Array.isArray(system.organisations) ? system.organisations.length : 0`. If `N > 0`, line reads as an adoption summary with **link to** `/systems/:id` (detail page shows adoption evidence). If `N === 0`, **"Not yet adopted"** in muted text (`text-slate-500` or similar) — not a dead blank.
++
++5. **Loading / error / not-found columns**
++   - Mirror `OrganisationCard` patterns: skeleton column inside the same grid shell when `query.isPending`; `SystemNotFoundError` column with message + remove affordance; generic error column with red treatment + remove. Use **`query`** shaped like `useCompareOrganisations` / future `useCompareSystems` results (full `UseQueryResult` for that id).
++
++6. **Grid integration**
++   - Card must participate in the **same CSS grid** approach as `ComparePage.jsx` / Story 9.1 `SystemComparePage`: use a **column shell** with `gridColumn`, `row-span-full`, `grid-rows-subgrid`, `min-w-0`, border/shadow parity with `OrganisationCard`'s `CompareColumnShell`.
++   - **Refactor note:** `CompareColumnShell` is currently **private** inside `OrganisationCard.jsx`. Extract it to e.g. `frontend/src/components/CompareColumnShell.jsx` (or export from `OrganisationCard`) so **both** `OrganisationCard` and `SystemCard` share one implementation.
++
++## Tasks / Subtasks
++
++- [x] **Task 1 — Shared column shell**
++  - [x] Extract `CompareColumnShell` to a shared module; update `OrganisationCard.jsx` imports.
++
++- [x] **Task 2 — `SystemCard.jsx`**
++  - [x] Implement component API: `systemId`, `query`, `onRemove`, `compareGridColumn`, `unionCustomAttributeLabels` (ordered), optional `variant` if needed later.
++  - [x] Implement header, static rows (order below), description expand/collapse, union rows, footer.
++  - [x] Reuse `CapabilityBadge`, `SourceReferenceDisplay`, category badge styling consistent with `SystemDetailPage`.
++
++- [x] **Task 3 — Wire into `SystemComparePage` (Story 9.1)**
++  - [x] Replace placeholder column bodies with `SystemCard` per id.
++  - [x] Implement `removeId` / `setSearchParams` identical to `ComparePage.jsx` (drop id from `ids`, `replace: true`).
++  - [x] **Union labels (minimal until 9.3):** compute an ordered union across **currently loaded** successful system DTOs in the page: gather all `customAttributes[].label`, dedupe case-insensitively, preserve **first-seen** order left-to-right by column order — this matches Epic 9.3 intent and avoids a second pass later. Hide the union block entirely when the deduped list is empty.
++
++- [x] **Task 4 — Left label column**
++  - [x] Define `ROW_LABELS` (static prefix) consistent with Epic 9.3 section order for `/compare/systems`: Identity (Name, Vendor, Category, Deployment model, Pricing model, Geographic focus), Capabilities (Membership, Donation, Reserved seating), Description, then after the dynamic union row count, Provenance (Source reference, Last updated), then Adopted by.  
++  - [x] Grid `gridTemplateRows` must account for **dynamic** union row count (`staticRows + unionLabels.length`).
++
++- [ ] **Task 5 — Quality gates**
++  - [x] `cd frontend && npm run lint && npm run test`
++  - [ ] Manual: 2–4 systems with mixed null/custom attrs; verify remove updates URL and cache reuse; verify no blank cells.
++
++### Review Findings
++
++- [x] [Review][Patch] **Resolved (2026-05-02):** Option 1 — defer custom-attribute union until every column query for the current `ids` has settled (`!isPending`). Until then, treat union as empty so row count does not grow column-by-column. [`frontend/src/lib/system-compare-union-labels.js`, callers/tests] — addressed 2026-05-02
++
++- [x] [Review][Patch] Section dividers on system compare label column — Epic 9.3 AC §1 expects visible horizontal dividers between Identity / Capabilities / Description / Provenance / Additional attributes / Adopted by; `SystemComparePage.jsx` currently uses uniform row borders only. [`frontend/src/pages/SystemComparePage.jsx`] — addressed 2026-05-02 (`systemCompareSectionDividerRowIndexes` + `border-t` on section starts)
++
++- [x] [Review][Patch] Row label wording vs Epic 9.3 — prefix uses `Deployment`; AC §1 specifies **Deployment model**. [`frontend/src/lib/system-compare-union-labels.js`:7] — addressed 2026-05-02
++
++- [x] [Review][Patch] `SystemCard` can return `null` when `!isSuccess` after pending/error branches — rare TanStack states could yield a blank column without remove affordance. [`frontend/src/components/SystemCard.jsx`:282-284] — addressed 2026-05-02
++
++- [x] [Review][Defer] Organisation detail “Compare these systems →” still targets `/compare/organisations` — Epic 9.3 AC §5 requires `/compare/systems?ids=…`; file not touched in this diff. [`frontend/src/pages/OrganisationDetailPage.jsx`:609-614] — deferred, pre-existing
++
++- [x] [Review][Defer] Org compare page lacks cross-org system compare strip — Epic 9.3 AC §6; `ComparePage.jsx` unchanged in this diff. — deferred, pre-existing
++
++## Dev Notes
++
++### Epic cross-story context
++
++- **Epic 9** goal: System-to-system compare at `/compare/systems?ids=…` (PRD FR-S7).
++- **9.1** (ready-for-dev): route shell, `useCompareSystems`, layout skeleton — see `9-1-compare-route-shell-compare-systems-and-compare-organisations.md`. **Current repo state:** `App.jsx` still mounts `SystemCompareStubPage` for `/compare/systems`; compare implementation for systems is **not** landed yet. Story 9.2 should be implemented **on top of** the 9.1 branch/PR or in the same delivery wave so `SystemComparePage` exists.
++- **9.3** will add contextual entry points and may tweak page chrome; card contract (`unionCustomAttributeLabels` + case-insensitive row lookup) should stay stable.
++
++### Row order vs header
++
++- Epic 9.2 places **name, category badge, vendor** in the **sticky header**; Epic 9.3’s label column still lists **Name, Vendor, Category** under Identity so rows **align across columns** for scanning. Expect **intentional duplication** between header and the first rows (same pattern as organisation compare: header shows title; grid rows still align to labels).
++
++### Code anchors (UPDATE files)
++
++| File | Current role | Story impact |
++|------|----------------|-------------|
++| `frontend/src/components/OrganisationCard.jsx` | Compare column shell + org rows | Extract `CompareColumnShell`; no behaviour change intended |
++| `frontend/src/pages/ComparePage.jsx` | Reference for `removeId`, grid CSS | Mirror patterns for system compare page |
++| `frontend/src/pages/SystemDetailPage.jsx` | `SystemCategoryBadge`, `formatLastUpdated`, `CustomAttributesPanel` patterns | Reuse / factor small helpers if needed (avoid huge copy-paste) |
++| `frontend/src/App.jsx` | Routes | No change required for 9.2 alone if 9.1 adds `SystemComparePage` |
++| Story 9.1 artifacts | `useCompareSystems.js`, `SystemComparePage.jsx` | **Consumers** of `SystemCard` |
++
++### API / data shape guardrails
++
++- `GET /api/systems/:id` returns envelope `{ data, error: null, meta: null }`; TanStack Query `data` is the **envelope** when using the same pattern as `useSystem` — column UI should read **`query.data?.data`** for the system DTO (see Story 9.1 dev notes).
++- DTO fields (camelCase): `name`, `vendor`, `category`, `deploymentModel`, `pricingModel`, `geographicFocus`, `description`, `membershipCapability`, `donationCapability`, `reservedSeatingCapability`, `sourceReference`, `lastUpdated`, `customAttributes`, `organisations`.
++- Adoption count: `organisations.length` on the detail DTO.
++
++### Architecture compliance
++
++- React function components, hooks-only fetching; **no `fetch` inside `SystemCard`** — receive `query` from parent.
++- Tailwind v3; shadcn `Button`, `Link` from react-router.
++- British English in any new user-facing copy (`organisation` where referring to adopters).
++
++### Testing
++
++- Prefer unit tests for **pure helpers** if extracted (e.g. union-label merge, case-insensitive attribute lookup). Follow existing Vitest layout under `frontend/`.
++- Full grid tests optional if no harness; manual compare with 2–4 columns is required.
++
++### References
++
++- [Source: `_bmad-output/planning-artifacts/epics.md` — Epic 9, Stories 9.2–9.3]
++- [Source: `_bmad-output/planning-artifacts/architecture-v2-delta.md` — §4.4–4.6 compare routes & fetch pattern]
++- [Source: `_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md` — shell & hook expectations]
++- [Source: `_bmad-output/project-context.md` — stack & conventions]
++- [Source: `frontend/src/components/OrganisationCard.jsx` — `CompareColumnShell`, compare grid]
++- [Source: `frontend/src/pages/SystemDetailPage.jsx` — badge, dates, custom attributes]
++
++## Dev Agent Record
++
++### Agent Model Used
++
++Composer (Cursor agent)
++
++### Debug Log References
++
++- ESLint `react-hooks/set-state-in-effect` on description overflow detection — resolved by always rendering Show more/less for non-empty descriptions (line-clamp-4 when collapsed).
++
++### Completion Notes List
++
++- Extracted `CompareColumnShell` to `frontend/src/components/CompareColumnShell.jsx`; `OrganisationCard.jsx` imports it (no behaviour change intended).
++- Added `SystemCard.jsx` with sticky header (name, category badge, vendor, Edit link + ghost × remove), identity/capability/description rows, union custom-attribute rows (`findCustomAttributeByLabel`), footer (`SourceReferenceDisplay` with `emptyLabel="None recorded"`, `formatLastUpdated` parity with detail page, adoption summary), and loading/error/not-found columns aligned to dynamic row count.
++- Added `mergeCustomAttributeUnionLabels`, `buildSystemCompareRowLabels`, `findCustomAttributeByLabel` in `frontend/src/lib/system-compare-union-labels.js` with Vitest coverage.
++- Refactored `SystemComparePage.jsx` to mirror `ComparePage.jsx`: always-on grid per id, `removeId` with `replace: true`, dynamic `gridTemplateRows`, shared union labels across columns.
++- `getSystemComparePhase` remains in the codebase for its unit tests; system compare no longer gates the grid on “≥2 successful columns” so per-column errors and single-column compare match organisation compare behaviour and story AC5.
++- Automated: `frontend` lint + Vitest (all pass); `backend` Jest (all pass). **Pending:** Task 5 manual pass in the running app (`/compare/systems?ids=…`, 2–4 systems, remove from compare, no blank cells).
++
++### File List
++
++- `frontend/src/components/CompareColumnShell.jsx` (new)
++- `frontend/src/components/OrganisationCard.jsx`
++- `frontend/src/components/SystemCard.jsx` (new)
++- `frontend/src/lib/system-compare-union-labels.js` (new)
++- `frontend/src/lib/system-compare-union-labels.test.js` (new)
++- `frontend/src/pages/SystemComparePage.jsx`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++- `_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md`
++
++## Change Log
++
++- 2026-05-02: Story 9.2 — shared compare column shell, `SystemCard`, union label merge, `SystemComparePage` wiring, tests and quality gates.
+diff --git a/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md b/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md
+new file mode 100644
+index 0000000..b4177d7
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md
+@@ -0,0 +1,157 @@
++# Story 9.3: Compare union panel and contextual compare entry points
++
++Status: review
++
++<!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
++
++## Story
++
++As a staff member,
++I want the Compare page's Custom Attributes panel to merge labels across all selected Systems and contextual links to take me from Organisation surfaces straight into a relevant System compare,
++so that custom attributes are comparable side-by-side and I never have to re-pick Systems I have just been reading about.
++
++## Acceptance Criteria
++
++1. **`/compare/systems` — left label column structure**
++   - After 2–4 systems have resolved successfully, the sticky label column shows **sections in this order**, with **visible horizontal dividers** between sections (e.g. `border-t border-slate-200` on the first row of each new section, or equivalent):
++     - **Identity:** Name, Vendor, Category, Deployment model, Pricing model, Geographic focus
++     - **Capabilities:** Membership capability, Donation capability, Reserved seating capability
++     - **Description:** single row (see below)
++     - **Provenance:** Source reference, Last updated
++     - **Additional attributes:** one row per union label (see §2) — **omit the entire section** when the union list is empty (no empty state; matches UX-DR29 / detail behaviour)
++     - **Adopted by:** single row
++   - Card columns must use the **same row count and order** so every label row aligns across the grid.
++
++2. **Union panel algorithm (page-level)**
++   - From the **successful** system DTOs for the current URL `ids`, in **left-to-right column order**, collect every `customAttributes[].label`.
++   - **Normalise duplicates** with **case-insensitive** equality; keep **presentation casing** from the **first** occurrence when scanning columns left-to-right, then top-to-bottom within each card's array order as returned by the API.
++   - **No semantic deduplication** (e.g. do not merge "B Corp" with "B Corporation") — only case-insensitive label merge (Epics / UX D10 §2).
++   - For each union label, each column shows: matching attribute's **value** and **source** treatment **consistent with** `CustomAttributesPanel` in `SystemDetailPage.jsx` (`isHttpOrHttpsUrl` → external link; else plain text; no source → do not fake content). If that system has no matching label (case-insensitive), show **em dash** `—` in `text-slate-300`.
++
++3. **Description row**
++   - One row for **Description** after capability rows and before Provenance.
++   - Truncation / expand behaviour: match **Story 9.2 / Epic 9.2** (4-line clamp, Show more / Show less, state **per column/card**). If 9.2 is implemented via `SystemCard`, reuse that component's behaviour; if the page still uses an inline column component, implement the same UX there.
++
++4. **Adopted by row**
++   - After union rows (or immediately after Provenance if union section is hidden), a row whose label is **Adopted by**.
++   - Cell content: `system.organisations.length`; if `> 0`, link to `/systems/:id`; if `0`, **Not yet adopted** in muted text — never a blank cell.
++
++5. **`OrganisationDetailPage` — contextual system compare link**
++   - **Current bug:** when `systems.length >= 2`, a link labelled "Compare these systems →" points to `/compare/organisations` — **wrong**.
++   - **Fix:** place the link **beneath the role groups** (after the grouped list, with the Add system control), styled `text-sm text-blue-600 hover:text-blue-800` (ghost link).
++   - **2–4 linked systems:** copy **Compare these systems →**; `to` = `/compare/systems?ids=` + comma-separated **distinct** `link.system.id` values (stable order: follow existing role group iteration order — `ROLE_ORDER` then row order within groups).
++   - **5+ linked systems:** copy **Compare the 4 most recently updated systems →**; `ids` = the four distinct systems whose **junction** row has the highest `lastUpdated` (API field on each link object — **not** the System entity's own `lastUpdated`). Tie-break: deterministic (e.g. preserve sort stability by `link.id` or system id).
++   - **0 or 1 linked system:** **no** contextual link.
++
++6. **`ComparePage` (`/compare/organisations`) — cross-org system compare strip**
++   - When **2–4 organisation columns** have loaded successfully, compute client-side: **union of distinct** `link.system.id` across all compared organisations' `systems` arrays (from already-fetched detail DTOs in `useCompareOrganisations` results).
++   - If union size is **2, 3, or 4:** render below the compare grid a strip: `border-t border-slate-200 pt-4 mt-6` containing a ghost link **Compare systems used by these organisations →** to `/compare/systems?ids=<union preserving a stable order>` (e.g. first-seen while iterating orgs left-to-right, then links in each org).
++   - If union size is **0 or 1:** render **nothing** (no link).
++   - If union size is **5+:** render **no** link; instead a **muted** note: `These organisations use [N] different systems. Open the` **System list →** `to select which to compare.` (link to `/systems`; use **British English** copy consistent with the app).
++
++7. **Regression / parity**
++   - Contextual navigation into `/compare/systems` must behave like list-driven entry: **`ids` in URL is source of truth**, column removal (when implemented) updates URL with `replace: true`, page remains shareable.
++   - Do **not** add `fetch` inside presentational cards — keep queries in hooks / page (`useCompareSystems`, `useCompareOrganisations`).
++
++## Tasks / Subtasks
++
++- [x] **Task 1 — Union helper**
++  - [x] Add a small pure helper (e.g. `frontend/src/lib/system-compare-custom-attributes.js`) exporting `buildUnionCustomAttributeLabels(systemDtosInColumnOrder)` → `string[]`, with unit tests in Vitest (case fold, first-seen casing, column order).
++
++- [x] **Task 2 — `SystemComparePage.jsx`**
++  - [x] Refactor static `ROW_LABELS` into section-aware structure: static prefix rows + dynamic union length + stable `gridTemplateRows: auto repeat(totalRows, auto)`.
++  - [x] Inject section divider styling in the label column (and matching spacer/divider treatment in columns if needed for alignment).
++  - [x] Compute union from successful loaded DTOs; pass union labels into each column component (or into `SystemCard` if Story 9.2 extracted it).
++  - [x] Ensure skeleton loading state uses the **same row count** as the resolved grid (including dynamic union length when known, or a conservative placeholder if union unknown until load completes — prefer matching final layout to avoid layout jump).
++
++- [x] **Task 3 — Column body**
++  - [x] Implement Description row + custom-attribute rows + Adopted by row; reuse `SourceReferenceDisplay` / HTTP link pattern from `SystemDetailPage` for per-attribute source where applicable.
++  - [x] Align **Name** row with epic: header may duplicate name (9.2 pattern); label column still includes **Name** for row alignment.
++
++- [x] **Task 4 — `OrganisationDetailPage.jsx`**
++  - [x] Replace incorrect compare href; implement 2–4 vs 5+ rules and distinct ID collection.
++  - [x] Keep link absent when fewer than two systems.
++
++- [x] **Task 5 — `ComparePage.jsx`**
++  - [x] Derive union of system ids from successful org queries; render contextual strip or muted note per AC §6.
++
++- [x] **Task 6 — Quality gates**
++  - [x] `cd frontend && npm run lint && npm run test`
++  - [x] Manual: org with 2, 4, 5+ links; org compare with 2 orgs sharing 2–4 distinct systems vs 5+; system compare with asymmetric custom attributes.
++
++## Dev Notes
++
++### Epic cross-story context
++
++- **Epic 9** delivers FR-S7 (system-to-system compare).
++- **9.1** is **done** in sprint tracking: routes, `useCompareSystems`, `SystemComparePage` shell exist.
++- **9.2** is **ready-for-dev** in sprint: spec introduces `SystemCard`, `CompareColumnShell` extraction, remove-from-compare, full compare column anatomy. **Current repo (pre-9.2 merge):** there is **no** `SystemCard.jsx`; compare UI lives in **`SystemComparePage.jsx`** as `SystemCompareColumn`. Coordinate with 9.2: either land 9.2 first and extend `SystemCard` with this story's rows/union, or implement 9.3 row structure in the inline column and refactor when `SystemCard` exists.
++
++### Current file state (must read before editing)
++
++| File | Relevant today |
++|------|----------------|
++| `frontend/src/pages/SystemComparePage.jsx` | Inline `ROW_LABELS`, `SystemCompareColumn`; **no** `customAttributes`, **no** Description, **no** Adopted by, **no** section dividers; **no** URL remove handler on columns (Edit only). |
++| `frontend/src/pages/OrganisationDetailPage.jsx` | Linked systems panel; **bug** at ~608–615: "Compare these systems →" → `/compare/organisations`. |
++| `frontend/src/pages/ComparePage.jsx` | Org compare grid only; **no** post-grid system-compare strip. |
++| `frontend/src/pages/SystemDetailPage.jsx` | `CustomAttributesPanel`, `formatLastUpdated`, category badge patterns — reuse for parity. |
++| `frontend/src/lib/compare-url-params.js` | `parseCompareIds`, `MAX_SYSTEM_COMPARE_IDS` (4). |
++
++### Architecture compliance
++
++- React function components; data via TanStack Query hooks already on the page.
++- **British English** in UI copy (`organisation`, `behaviour` in comments if needed).
++- Tailwind v3; no new dependencies for dedupe (simple loop + `Map` keyed by lowercased label).
++
++### API / DTO guardrails
++
++- System detail DTO (`GET /api/systems/:id`): `customAttributes` is an array of `{ label, value, sourceReference }` (camelCase). Compare hooks expose envelope — column UI reads **`query.data?.data`** when following existing `useCompareSystems` pattern.
++- Organisation detail DTO: `systems[]` junction objects include `lastUpdated` (junction), `system.id`, `system.name`, etc.
++
++### Testing
++
++- Unit-test `buildUnionCustomAttributeLabels` only (pure logic). Optional: thin test for "top 4 by junction lastUpdated" if extracted to a pure helper.
++
++### References
++
++- [Source: `_bmad-output/planning-artifacts/epics.md` — Epic 9, Story 9.3]
++- [Source: `_bmad-output/planning-artifacts/architecture-v2-delta.md` — §4.4–4.6 compare routes & parallel fetch]
++- [Source: `_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md` — card/union contract if 9.2 lands first]
++- [Source: `_bmad-output/project-context.md` — stack & conventions]
++
++## Change Log
++
++- 2026-05-02: Implemented union helper module, org compare system-id strip, organisation detail contextual `/compare/systems` links, capability row label copy alignment, section divider colour parity, and Vitest coverage; frontend lint + tests and backend regression suite green.
++
++## Dev Agent Record
++
++### Agent Model Used
++
++GPT-5.2 (Cursor agent)
++
++### Debug Log References
++
++### Completion Notes List
++
++- Added `buildUnionCustomAttributeLabels` and wired `mergeCustomAttributeUnionLabels` to use per-column DTO order (successful columns only; null placeholders preserve left-to-right semantics).
++- Aligned static compare labels with AC wording (`Membership capability`, etc.) and `border-t border-slate-200` on section dividers in `SystemComparePage.jsx`.
++- `OrganisationDetailPage.jsx`: contextual compare uses `buildOrganisationContextualSystemCompare` (role-order distinct ids; 5+ links → top four by junction `lastUpdated` with tie-break on link id); link styling and placement under **Add system**.
++- `ComparePage.jsx`: `deriveCompareOrganisationsSystemUnion` drives post-grid strip (2–4 distinct systems → link; 5+ → muted copy with **System list →**); pending or failed columns suppress strip.
++- New tests: `system-compare-custom-attributes.test.js`, `compare-organisations-system-union.test.js`, `organisation-linked-systems-compare.test.js`; extended `system-compare-union-labels.test.js`.
++- Task 6 manual checks: not run in this session; recommend quick UI smoke on org detail (2 / 4 / 5+ links) and org compare strip edge cases.
++
++### File List
++
++- `frontend/src/lib/system-compare-custom-attributes.js`
++- `frontend/src/lib/system-compare-custom-attributes.test.js`
++- `frontend/src/lib/system-compare-union-labels.js`
++- `frontend/src/lib/system-compare-union-labels.test.js`
++- `frontend/src/lib/compare-organisations-system-union.js`
++- `frontend/src/lib/compare-organisations-system-union.test.js`
++- `frontend/src/lib/organisation-linked-systems-compare.js`
++- `frontend/src/lib/organisation-linked-systems-compare.test.js`
++- `frontend/src/pages/SystemComparePage.jsx`
++- `frontend/src/pages/ComparePage.jsx`
++- `frontend/src/pages/OrganisationDetailPage.jsx`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++- `_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md`
+diff --git a/_bmad-output/implementation-artifacts/code-review-session/diff-uncommitted.patch b/_bmad-output/implementation-artifacts/code-review-session/diff-uncommitted.patch
+new file mode 100644
+index 0000000..800ddce
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/code-review-session/diff-uncommitted.patch
+@@ -0,0 +1,723 @@
++diff --git a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
++index 002a6a7..b8ff9b4 100644
++--- a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
+++++ b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
++@@ -1,6 +1,6 @@
++ # Story 9.1: Compare route shell — `/compare/systems` and `/compare/organisations`
++ 
++-Status: ready-for-dev
+++Status: done
++ 
++ <!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
++ 
++@@ -48,27 +48,31 @@ so that bookmarks and shared links are unambiguous and the System list compare f
++ 
++ ## Tasks / Subtasks
++ 
++-- [ ] **Task 1 — Routing cleanup (`App.jsx`)**
++-  - [ ] Remove `<Route path="/compare" element={<ComparePage />} />`.
++-  - [ ] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
++-  - [ ] Replace `/compare/systems` stub route element with new `SystemComparePage`.
++-  - [ ] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
+++- [x] **Task 1 — Routing cleanup (`App.jsx`)**
+++  - [x] Remove `<Route path="/compare" element={<ComparePage />} />`.
+++  - [x] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
+++  - [x] Replace `/compare/systems` stub route element with new `SystemComparePage`.
+++  - [x] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
++ 
++-- [ ] **Task 2 — `useCompareSystems` hook**
++-  - [ ] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
+++- [x] **Task 2 — `useCompareSystems` hook**
+++  - [x] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
++ 
++-- [ ] **Task 3 — `SystemComparePage.jsx`**
++-  - [ ] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
++-  - [ ] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
++-  - [ ] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
+++- [x] **Task 3 — `SystemComparePage.jsx`**
+++  - [x] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
+++  - [x] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
+++  - [x] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
++ 
++-- [ ] **Task 4 — Remove / relocate stub**
++-  - [ ] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
+++- [x] **Task 4 — Remove / relocate stub**
+++  - [x] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
++ 
++-- [ ] **Task 5 — Regression sweep**
++-  - [ ] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
++-  - [ ] `cd frontend && npm run lint` and `npm run test`.
++-  - [ ] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
+++- [x] **Task 5 — Regression sweep**
+++  - [x] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
+++  - [x] `cd frontend && npm run lint` and `npm run test`.
+++  - [x] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
+++
+++## Change Log
+++
+++- 2026-05-02 — Story 9.1: `/compare/organisations` + `/compare/systems` compare shells, legacy `/compare` → links page, `useCompareSystems`, Vitest for compare phase helper.
++ 
++ ## Dev Notes
++ 
++@@ -121,12 +125,39 @@ so that bookmarks and shared links are unambiguous and the System list compare f
++ 
++ ### Agent Model Used
++ 
++-_(filled by dev agent)_
+++Cursor agent
++ 
++ ### Debug Log References
++ 
++ ### Completion Notes List
++ 
+++- Routing: specific compare routes before `path="/compare/*"` so `/compare/organisations` and `/compare/systems` stay correct; legacy bookmarks hit `CompareLegacyPathPage` with **← Go to organisations** / **Go to systems**.
+++- `useCompareSystems` uses `['systems', id]` + `fetchSystem` (full envelope) and no retry on `SystemNotFoundError`, matching `useCompareOrganisations` / `useSystem` cache shape.
+++- `SystemComparePage`: empty state, per-column loading skeletons, page-level error when fewer than 2 successful columns after settle, grid with sticky label column + `CompareColumnShell` columns (exported from `OrganisationCard.jsx`). Placeholder attribute rows filled for successful columns; 9.2 can swap in `SystemCard`.
+++- Vitest: `getSystemComparePhase` unit tests in `system-compare-view-state.test.js`.
+++
++ ### File List
++ 
++-_(filled by dev agent)_
+++- `frontend/src/App.jsx`
+++- `frontend/src/components/OrganisationCard.jsx`
+++- `frontend/src/hooks/useCompareSystems.js`
+++- `frontend/src/lib/system-compare-view-state.js`
+++- `frontend/src/lib/system-compare-view-state.test.js`
+++- `frontend/src/pages/CompareLegacyPathPage.jsx`
+++- `frontend/src/pages/SystemComparePage.jsx`
+++- `frontend/src/pages/SystemRouteStubs.jsx`
+++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+++
+++### Review Findings
+++
+++- [x] [Review][Patch] Cap compare `ids` to the intended 2–4 column maximum before `useQueries` — [`frontend/src/hooks/useCompareSystems.js`] — fixed (`MAX_SYSTEM_COMPARE_IDS`, slice in hook + page)
+++- [x] [Review][Patch] Guard `formatCompareDateTime` when `Date` parses to NaN (avoid displaying “Invalid Date”) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+++- [x] [Review][Patch] Replace `null` return in `SystemCompareColumn` when envelope/`data` is missing with visible column-level error UI — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+++- [x] [Review][Patch] Add a page-level `<h1>` (e.g. **Compare systems**) to the empty-`ids` branch for consistent document outline — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+++- [x] [Review][Patch] Normalise unknown `category` values in `SystemCategoryBadge` (avoid leaking raw enum tokens) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
+++- [x] [Review][Defer] Soften or clarify legacy compare `CompareLegacyPathPage` H1 (“Page not found” vs explanatory body) — [`frontend/src/pages/CompareLegacyPathPage.jsx`] — deferred, follow-up copy
+++- [x] [Review][Defer] `SystemComparePage` imports layout shell from `OrganisationCard.jsx` — consider a shared presentational module — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, structural follow-up
+++- [x] [Review][Defer] Loading/compare skeleton a11y (`aria-hidden`, status for in-flight compare) — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
+++- [x] [Review][Defer] `useMemo(..., [queries])` depends on `useQueries` array identity — verify stability or derive phase from primitive signals — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
+++- [x] [Review][Defer] Broaden tests beyond `getSystemComparePhase` (routing, legacy page, page branches) — deferred, follow-up
+++- [x] [Review][Defer] Unknown `/compare/...` segments share the same legacy page as bare `/compare` — [`frontend/src/App.jsx`] — deferred, optional UX distinction
++diff --git a/_bmad-output/implementation-artifacts/deferred-work.md b/_bmad-output/implementation-artifacts/deferred-work.md
++index e3ef608..0c2022f 100644
++--- a/_bmad-output/implementation-artifacts/deferred-work.md
+++++ b/_bmad-output/implementation-artifacts/deferred-work.md
++@@ -1,5 +1,20 @@
++ # Deferred work
++ 
+++## Deferred from: code review of 9-2-systemcard-component-compare-column.md (2026-05-02)
+++
+++- **Organisation detail system compare CTA** — “Compare these systems →” still links to `/compare/organisations`; Epic 9.3 AC §5 expects `/compare/systems` with distinct system ids. Not changed in the Story 9.2 diff; track under 9.3 / `OrganisationDetailPage.jsx`.
+++
+++- **Org compare → system compare strip** — Epic 9.3 AC §6 (union of systems across compared orgs, 2–4 vs 5+ copy) not implemented in `ComparePage.jsx` in this diff; track under 9.3.
+++
+++## Deferred from: code review of 9-1-compare-route-shell-compare-systems-and-compare-organisations.md (2026-05-02)
+++
+++- **Legacy compare page title vs copy** — `CompareLegacyPathPage` uses “Page not found” while the body explains dedicated URLs; revisit wording if users confuse app-wide failure with deprecated `/compare` only.
+++- **`CompareColumnShell` imported from `OrganisationCard.jsx`** — Works but couples system compare to an organisation-named module; extract a shared shell when convenient.
+++- **Loading / skeleton accessibility** — Column skeletons use `aria-hidden`; consider a page-level busy/status pattern for screen readers during compare load.
+++- **`useMemo` phase keyed on `queries` array** — If `useQueries` returns a new array reference each render, phase recalculates every time; confirm TanStack behaviour or narrow dependencies.
+++- **Test coverage** — Story adds `getSystemComparePhase` tests only; routing (`/compare/*`), legacy page, and `SystemComparePage` branches remain manual or untested.
+++- **`/compare/foo` vs bare `/compare`** — Catch-all renders the same legacy helper page; optional improvement to hint invalid path segments.
+++
++ ## Deferred from: code review of 8-5-organisation-form-linked-systems-editor.md (2026-05-01)
++ 
++ - **`fetchOrganisations` param rename (`provider`/`crm` → `system`/`system_role`)** — All callers must use the new query keys; verify list/filter hooks and URL sync outside the reviewed chunk.
++diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
++index e382186..0275ede 100644
++--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
+++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
++@@ -35,7 +35,7 @@
++ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
++ 
++ generated: 2026-04-30T23:00:00Z
++-last_updated: 2026-05-02T00:00:00Z
+++last_updated: 2026-05-02T23:50:00Z
++ project: dmcf-app
++ project_key: NOKEY
++ tracking_system: file-system
++@@ -106,9 +106,9 @@ development_status:
++ 
++   # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
++   epic-9: in-progress
++-  9-1-compare-route-shell-compare-systems-and-compare-organisations: ready-for-dev
++-  9-2-systemcard-component-compare-column: backlog
++-  9-3-compare-union-panel-and-contextual-compare-entry-points: backlog
+++  9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+++  9-2-systemcard-component-compare-column: in-progress
+++  9-3-compare-union-panel-and-contextual-compare-entry-points: review
++   epic-9-retrospective: optional
++ 
++   # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
++diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
++index 0e483fb..577e474 100644
++--- a/frontend/src/App.jsx
+++++ b/frontend/src/App.jsx
++@@ -8,7 +8,8 @@ import ComparePage from './pages/ComparePage.jsx'
++ import SystemListPage from './pages/SystemListPage.jsx'
++ import SystemDetailPage from './pages/SystemDetailPage.jsx'
++ import SystemFormPage from './pages/SystemFormPage.jsx'
++-import { SystemCompareStubPage } from './pages/SystemRouteStubs.jsx'
+++import SystemComparePage from './pages/SystemComparePage.jsx'
+++import CompareLegacyPathPage from './pages/CompareLegacyPathPage.jsx'
++ 
++ function NavLinks() {
++   const { pathname } = useLocation()
++@@ -62,9 +63,9 @@ export default function App() {
++                 <Route path="/systems/new" element={<SystemFormPage />} />
++                 <Route path="/systems/:id" element={<SystemDetailPage />} />
++                 <Route path="/systems/:id/edit" element={<SystemFormPage />} />
++-                <Route path="/compare/systems" element={<SystemCompareStubPage />} />
++                 <Route path="/compare/organisations" element={<ComparePage />} />
++-                <Route path="/compare" element={<ComparePage />} />
+++                <Route path="/compare/systems" element={<SystemComparePage />} />
+++                <Route path="/compare/*" element={<CompareLegacyPathPage />} />
++               </Routes>
++             </SystemSelectionProvider>
++           </OrganisationSelectionProvider>
++diff --git a/frontend/src/components/OrganisationCard.jsx b/frontend/src/components/OrganisationCard.jsx
++index e5d30af..27308a6 100644
++--- a/frontend/src/components/OrganisationCard.jsx
+++++ b/frontend/src/components/OrganisationCard.jsx
++@@ -5,7 +5,7 @@ import { Button } from './ui/button.jsx'
++ import { CapabilityBadge } from './CapabilityBadge.jsx'
++ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
++ import { OrganisationNotFoundError } from '../api/organisations.js'
++-import { cn } from '../lib/utils.js'
+++import { CompareColumnShell } from './CompareColumnShell.jsx'
++ 
++ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
++ 
++@@ -101,22 +101,6 @@ function SystemsCompareList({ systems }) {
++   )
++ }
++ 
++-/** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
++-function CompareColumnShell({ gridColumn, className, children, ...rest }) {
++-  return (
++-    <div
++-      className={cn(
++-        'row-span-full grid min-w-0 grid-rows-subgrid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm',
++-        className,
++-      )}
++-      style={{ gridColumn }}
++-      {...rest}
++-    >
++-      {children}
++-    </div>
++-  )
++-}
++-
++ function formatCompareDateTime(iso) {
++   if (iso == null || iso === '') return 'Not recorded'
++   try {
++diff --git a/frontend/src/lib/compare-url-params.js b/frontend/src/lib/compare-url-params.js
++index 2e73399..3ee1c22 100644
++--- a/frontend/src/lib/compare-url-params.js
+++++ b/frontend/src/lib/compare-url-params.js
++@@ -1,3 +1,6 @@
+++/** Maximum parallel compare columns for system compare (Story 9.1 — selection bar targets 2–4). */
+++export const MAX_SYSTEM_COMPARE_IDS = 4
+++
++ /**
++  * Parse comma-separated compare `ids` from the URL (trim, drop empties, dedupe for stable order).
++  * @param {string | null} raw
++diff --git a/frontend/src/pages/ComparePage.jsx b/frontend/src/pages/ComparePage.jsx
++index b9a1675..cde1241 100644
++--- a/frontend/src/pages/ComparePage.jsx
+++++ b/frontend/src/pages/ComparePage.jsx
++@@ -1,7 +1,8 @@
++ import { useCallback, useMemo } from 'react'
++ import { Link, useSearchParams } from 'react-router-dom'
++ import { OrganisationCard } from '../components/OrganisationCard.jsx'
++-import { parseCompareIds } from '../lib/compare-url-params.js'
+++import { deriveCompareOrganisationsSystemUnion } from '../lib/compare-organisations-system-union.js'
+++import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-params.js'
++ import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
++ 
++ const ROW_LABELS = [
++@@ -21,6 +22,11 @@ export default function ComparePage() {
++   const ids = useMemo(() => parseCompareIds(idsParam), [idsParam])
++   const queries = useCompareOrganisations(ids)
++ 
+++  const organisationsSystemUnion = useMemo(
+++    () => deriveCompareOrganisationsSystemUnion(ids, queries),
+++    [ids, queries],
+++  )
+++
++   const removeId = useCallback(
++     (idToRemove) => {
++       setSearchParams(
++@@ -99,6 +105,33 @@ export default function ComparePage() {
++           ))}
++         </div>
++       </div>
+++
+++      {organisationsSystemUnion.kind === 'ready' &&
+++        (() => {
+++          const n = organisationsSystemUnion.orderedSystemIds.length
+++          if (n <= 1) return null
+++          if (n >= 2 && n <= MAX_SYSTEM_COMPARE_IDS) {
+++            return (
+++              <div className="mt-6 border-t border-slate-200 pt-4">
+++                <Link
+++                  to={`/compare/systems?ids=${organisationsSystemUnion.orderedSystemIds.join(',')}`}
+++                  className="text-sm text-blue-600 hover:text-blue-800"
+++                >
+++                  Compare systems used by these organisations →
+++                </Link>
+++              </div>
+++            )
+++          }
+++          return (
+++            <p className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
+++              These organisations use {n} different systems. Open the{' '}
+++              <Link to="/systems" className="text-blue-600 hover:text-blue-800">
+++                System list →
+++              </Link>{' '}
+++              to select which to compare.
+++            </p>
+++          )
+++        })()}
++     </div>
++   )
++ }
++diff --git a/frontend/src/pages/OrganisationDetailPage.jsx b/frontend/src/pages/OrganisationDetailPage.jsx
++index 052a398..3eeb241 100644
++--- a/frontend/src/pages/OrganisationDetailPage.jsx
+++++ b/frontend/src/pages/OrganisationDetailPage.jsx
++@@ -1,4 +1,4 @@
++-import { useCallback, useEffect, useState } from 'react'
+++import { useCallback, useEffect, useMemo, useState } from 'react'
++ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
++ import { useQueryClient } from '@tanstack/react-query'
++ import { useOrganisation } from '../hooks/useOrganisation.js'
++@@ -20,6 +20,7 @@ import {
++ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
++ import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
++ import { SystemCombobox } from '../components/SystemCombobox.jsx'
+++import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
++ 
++ const BANNER_MS = 5000
++ 
++@@ -31,6 +32,7 @@ const ROLE_LABELS = {
++   SECONDARY: 'Secondary',
++ }
++ const KNOWN_ROLES = Object.keys(ROLE_LABELS)
+++const NO_LINKED_SYSTEMS = []
++ 
++ function formatDateTime(iso) {
++   if (!iso) return '—'
++@@ -192,12 +194,18 @@ export default function OrganisationDetailPage() {
++   const missingId = !id
++ 
++   // Group systems by role in display order
++-  const systems = (isSuccess && data?.systems) ? data.systems : []
+++  const systems =
+++    isSuccess && Array.isArray(data?.systems) ? data.systems : NO_LINKED_SYSTEMS
++   const grouped = ROLE_ORDER.reduce((acc, role) => {
++     acc[role] = systems.filter((l) => l.role === role)
++     return acc
++   }, {})
++ 
+++  const contextualSystemCompare = useMemo(
+++    () => buildOrganisationContextualSystemCompare(systems, ROLE_ORDER),
+++    [systems],
+++  )
+++
++   const handleSaveEdit = () => {
++     if (!editLink?.system?.id || !id) return
++     const body = {}
++@@ -597,7 +605,7 @@ export default function OrganisationDetailPage() {
++                   ))}
++                 </div>
++ 
++-                <div className="mt-4 flex flex-wrap items-center gap-3">
+++                <div className="mt-4 space-y-3">
++                   <Button
++                     type="button"
++                     variant="secondary"
++@@ -605,13 +613,15 @@ export default function OrganisationDetailPage() {
++                   >
++                     Add system
++                   </Button>
++-                  {systems.length >= 2 && (
++-                    <Link
++-                      to="/compare/organisations"
++-                      className="text-sm text-slate-500 hover:text-slate-700"
++-                    >
++-                      Compare these systems →
++-                    </Link>
+++                  {contextualSystemCompare != null && (
+++                    <div>
+++                      <Link
+++                        to={contextualSystemCompare.to}
+++                        className="text-sm text-blue-600 hover:text-blue-800"
+++                      >
+++                        {contextualSystemCompare.label}
+++                      </Link>
+++                    </div>
++                   )}
++                 </div>
++               </>
++diff --git a/frontend/src/pages/SystemRouteStubs.jsx b/frontend/src/pages/SystemRouteStubs.jsx
++index 866f0d2..f31e216 100644
++--- a/frontend/src/pages/SystemRouteStubs.jsx
+++++ b/frontend/src/pages/SystemRouteStubs.jsx
++@@ -1,24 +1,5 @@
++ import { Link, useParams } from 'react-router-dom'
++ 
++-/** Placeholder until Epic 9 ships system-vs-system compare. */
++-export function SystemCompareStubPage() {
++-  return (
++-    <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 shadow-sm">
++-      <h1 className="text-xl font-semibold text-slate-800">Compare systems</h1>
++-      <p className="mt-3 text-slate-600">
++-        Side-by-side system comparison will be added in Epic 9. Your selection is preserved —
++-        come back here when that work lands.
++-      </p>
++-      <Link
++-        to="/systems"
++-        className="mt-6 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++-      >
++-        ← Back to systems
++-      </Link>
++-    </div>
++-  )
++-}
++-
++ /** Story 7.6 — create-system form replaces this stub. */
++ export function SystemNewStubPage() {
++   return (
++diff --git a/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md b/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md
++new file mode 100644
++index 0000000..0d3afd2
++--- /dev/null
+++++ b/_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md
++@@ -0,0 +1,160 @@
+++# Story 9.2: SystemCard component (compare column)
+++
+++Status: in-progress
+++
+++<!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
+++
+++## Story
+++
+++As a staff member,
+++I want each System in the compare to render as a card with sticky header, full attribute set aligned to the label column, and explicit "—" markers for missing values,
+++so that I can scan rows across systems without ever seeing a blank cell that I might confuse with missing data versus "not yet loaded".
+++
+++## Acceptance Criteria
+++
+++1. **Sticky header anatomy**
+++   - System name: `text-lg font-semibold`.
+++   - Category: use the same visual tokens as `SystemCategoryBadge` on `SystemDetailPage` (`CATEGORY_CONFIG` — integrated / ticketing / audience management pill styles).
+++   - Vendor: `text-sm text-slate-500`.
+++   - Header actions (right-aligned): **Edit** as a `Link` to `/systems/:id/edit` with classes `text-sm text-blue-600` (and sensible hover); **remove** as an icon-only **ghost** button with **×** (use `lucide-react` `X` or equivalent), `aria-label` like "Remove from compare", calling `onRemove` (parent updates `ids` in the URL with `replace: true` per Story 9.1 / Epic 9).
+++
+++2. **Never-blank cells (UX-DR33 / Epic 9.2)**
+++   - Scalar identity fields: plain text when present; when null or empty string, render an em dash `—` in `text-slate-300` (not muted prose like "Not recorded" for these rows — epic is explicit for compare).
+++   - **Capabilities:** `CapabilityBadge` with `variant="labelled"` for membership, donation, reserved seating (same as `OrganisationCard` compare rows).
+++   - **Description:** when null/empty, same `—` rule; when present, **clamp to 4 lines** with a **Show more** control that expands to full text and **Show less** to collapse; state is **per card instance** (local `useState`), not global.
+++
+++3. **Custom attributes (union-ready for Story 9.3)**
+++   - The compare page will eventually compute the **ordered union of labels** across all selected Systems (case-insensitive merge at page level in 9.3).
+++   - **This story:** `SystemCard` accepts props defining that ordered list (e.g. `unionCustomAttributeLabels: string[]`) **and** the current system DTO (or its `customAttributes` array). For each union label, render one row: if this system has a matching attribute (match **label case-insensitively**), show `value` and source treatment consistent with `CustomAttributesPanel` on `SystemDetailPage` (HTTP(s) → link, else plain text); if no match, show `—` in `text-slate-300`.
+++   - If the **page** passes an **empty** union array because no selected system has custom attributes, render **no** extra rows (Epic 9.3: hide entire "Additional attributes" section when all empty — the page owns section visibility; the card simply renders zero union rows when the list is empty).
+++
+++4. **Footer block (per card, after union rows)**
+++   - **Source reference:** reuse `SourceReferenceDisplay` behaviour (link when `http`/`https`, else text; when null — epic: "None recorded" if null for this field; align with how compare treats provenance — never leave the cell empty).
+++   - **Last updated:** `text-xs text-slate-500`, same **absolute + relative** pattern as `formatLastUpdated` in `SystemDetailPage.jsx`.
+++   - **Adopted by:** `N = Array.isArray(system.organisations) ? system.organisations.length : 0`. If `N > 0`, line reads as an adoption summary with **link to** `/systems/:id` (detail page shows adoption evidence). If `N === 0`, **"Not yet adopted"** in muted text (`text-slate-500` or similar) — not a dead blank.
+++
+++5. **Loading / error / not-found columns**
+++   - Mirror `OrganisationCard` patterns: skeleton column inside the same grid shell when `query.isPending`; `SystemNotFoundError` column with message + remove affordance; generic error column with red treatment + remove. Use **`query`** shaped like `useCompareOrganisations` / future `useCompareSystems` results (full `UseQueryResult` for that id).
+++
+++6. **Grid integration**
+++   - Card must participate in the **same CSS grid** approach as `ComparePage.jsx` / Story 9.1 `SystemComparePage`: use a **column shell** with `gridColumn`, `row-span-full`, `grid-rows-subgrid`, `min-w-0`, border/shadow parity with `OrganisationCard`'s `CompareColumnShell`.
+++   - **Refactor note:** `CompareColumnShell` is currently **private** inside `OrganisationCard.jsx`. Extract it to e.g. `frontend/src/components/CompareColumnShell.jsx` (or export from `OrganisationCard`) so **both** `OrganisationCard` and `SystemCard` share one implementation.
+++
+++## Tasks / Subtasks
+++
+++- [x] **Task 1 — Shared column shell**
+++  - [x] Extract `CompareColumnShell` to a shared module; update `OrganisationCard.jsx` imports.
+++
+++- [x] **Task 2 — `SystemCard.jsx`**
+++  - [x] Implement component API: `systemId`, `query`, `onRemove`, `compareGridColumn`, `unionCustomAttributeLabels` (ordered), optional `variant` if needed later.
+++  - [x] Implement header, static rows (order below), description expand/collapse, union rows, footer.
+++  - [x] Reuse `CapabilityBadge`, `SourceReferenceDisplay`, category badge styling consistent with `SystemDetailPage`.
+++
+++- [x] **Task 3 — Wire into `SystemComparePage` (Story 9.1)**
+++  - [x] Replace placeholder column bodies with `SystemCard` per id.
+++  - [x] Implement `removeId` / `setSearchParams` identical to `ComparePage.jsx` (drop id from `ids`, `replace: true`).
+++  - [x] **Union labels (minimal until 9.3):** compute an ordered union across **currently loaded** successful system DTOs in the page: gather all `customAttributes[].label`, dedupe case-insensitively, preserve **first-seen** order left-to-right by column order — this matches Epic 9.3 intent and avoids a second pass later. Hide the union block entirely when the deduped list is empty.
+++
+++- [x] **Task 4 — Left label column**
+++  - [x] Define `ROW_LABELS` (static prefix) consistent with Epic 9.3 section order for `/compare/systems`: Identity (Name, Vendor, Category, Deployment model, Pricing model, Geographic focus), Capabilities (Membership, Donation, Reserved seating), Description, then after the dynamic union row count, Provenance (Source reference, Last updated), then Adopted by.  
+++  - [x] Grid `gridTemplateRows` must account for **dynamic** union row count (`staticRows + unionLabels.length`).
+++
+++- [ ] **Task 5 — Quality gates**
+++  - [x] `cd frontend && npm run lint && npm run test`
+++  - [ ] Manual: 2–4 systems with mixed null/custom attrs; verify remove updates URL and cache reuse; verify no blank cells.
+++
+++### Review Findings
+++
+++- [x] [Review][Patch] **Resolved (2026-05-02):** Option 1 — defer custom-attribute union until every column query for the current `ids` has settled (`!isPending`). Until then, treat union as empty so row count does not grow column-by-column. [`frontend/src/lib/system-compare-union-labels.js`, callers/tests] — addressed 2026-05-02
+++
+++- [x] [Review][Patch] Section dividers on system compare label column — Epic 9.3 AC §1 expects visible horizontal dividers between Identity / Capabilities / Description / Provenance / Additional attributes / Adopted by; `SystemComparePage.jsx` currently uses uniform row borders only. [`frontend/src/pages/SystemComparePage.jsx`] — addressed 2026-05-02 (`systemCompareSectionDividerRowIndexes` + `border-t` on section starts)
+++
+++- [x] [Review][Patch] Row label wording vs Epic 9.3 — prefix uses `Deployment`; AC §1 specifies **Deployment model**. [`frontend/src/lib/system-compare-union-labels.js`:7] — addressed 2026-05-02
+++
+++- [x] [Review][Patch] `SystemCard` can return `null` when `!isSuccess` after pending/error branches — rare TanStack states could yield a blank column without remove affordance. [`frontend/src/components/SystemCard.jsx`:282-284] — addressed 2026-05-02
+++
+++- [x] [Review][Defer] Organisation detail “Compare these systems →” still targets `/compare/organisations` — Epic 9.3 AC §5 requires `/compare/systems?ids=…`; file not touched in this diff. [`frontend/src/pages/OrganisationDetailPage.jsx`:609-614] — deferred, pre-existing
+++
+++- [x] [Review][Defer] Org compare page lacks cross-org system compare strip — Epic 9.3 AC §6; `ComparePage.jsx` unchanged in this diff. — deferred, pre-existing
+++
+++## Dev Notes
+++
+++### Epic cross-story context
+++
+++- **Epic 9** goal: System-to-system compare at `/compare/systems?ids=…` (PRD FR-S7).
+++- **9.1** (ready-for-dev): route shell, `useCompareSystems`, layout skeleton — see `9-1-compare-route-shell-compare-systems-and-compare-organisations.md`. **Current repo state:** `App.jsx` still mounts `SystemCompareStubPage` for `/compare/systems`; compare implementation for systems is **not** landed yet. Story 9.2 should be implemented **on top of** the 9.1 branch/PR or in the same delivery wave so `SystemComparePage` exists.
+++- **9.3** will add contextual entry points and may tweak page chrome; card contract (`unionCustomAttributeLabels` + case-insensitive row lookup) should stay stable.
+++
+++### Row order vs header
+++
+++- Epic 9.2 places **name, category badge, vendor** in the **sticky header**; Epic 9.3’s label column still lists **Name, Vendor, Category** under Identity so rows **align across columns** for scanning. Expect **intentional duplication** between header and the first rows (same pattern as organisation compare: header shows title; grid rows still align to labels).
+++
+++### Code anchors (UPDATE files)
+++
+++| File | Current role | Story impact |
+++|------|----------------|-------------|
+++| `frontend/src/components/OrganisationCard.jsx` | Compare column shell + org rows | Extract `CompareColumnShell`; no behaviour change intended |
+++| `frontend/src/pages/ComparePage.jsx` | Reference for `removeId`, grid CSS | Mirror patterns for system compare page |
+++| `frontend/src/pages/SystemDetailPage.jsx` | `SystemCategoryBadge`, `formatLastUpdated`, `CustomAttributesPanel` patterns | Reuse / factor small helpers if needed (avoid huge copy-paste) |
+++| `frontend/src/App.jsx` | Routes | No change required for 9.2 alone if 9.1 adds `SystemComparePage` |
+++| Story 9.1 artifacts | `useCompareSystems.js`, `SystemComparePage.jsx` | **Consumers** of `SystemCard` |
+++
+++### API / data shape guardrails
+++
+++- `GET /api/systems/:id` returns envelope `{ data, error: null, meta: null }`; TanStack Query `data` is the **envelope** when using the same pattern as `useSystem` — column UI should read **`query.data?.data`** for the system DTO (see Story 9.1 dev notes).
+++- DTO fields (camelCase): `name`, `vendor`, `category`, `deploymentModel`, `pricingModel`, `geographicFocus`, `description`, `membershipCapability`, `donationCapability`, `reservedSeatingCapability`, `sourceReference`, `lastUpdated`, `customAttributes`, `organisations`.
+++- Adoption count: `organisations.length` on the detail DTO.
+++
+++### Architecture compliance
+++
+++- React function components, hooks-only fetching; **no `fetch` inside `SystemCard`** — receive `query` from parent.
+++- Tailwind v3; shadcn `Button`, `Link` from react-router.
+++- British English in any new user-facing copy (`organisation` where referring to adopters).
+++
+++### Testing
+++
+++- Prefer unit tests for **pure helpers** if extracted (e.g. union-label merge, case-insensitive attribute lookup). Follow existing Vitest layout under `frontend/`.
+++- Full grid tests optional if no harness; manual compare with 2–4 columns is required.
+++
+++### References
+++
+++- [Source: `_bmad-output/planning-artifacts/epics.md` — Epic 9, Stories 9.2–9.3]
+++- [Source: `_bmad-output/planning-artifacts/architecture-v2-delta.md` — §4.4–4.6 compare routes & fetch pattern]
+++- [Source: `_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md` — shell & hook expectations]
+++- [Source: `_bmad-output/project-context.md` — stack & conventions]
+++- [Source: `frontend/src/components/OrganisationCard.jsx` — `CompareColumnShell`, compare grid]
+++- [Source: `frontend/src/pages/SystemDetailPage.jsx` — badge, dates, custom attributes]
+++
+++## Dev Agent Record
+++
+++### Agent Model Used
+++
+++Composer (Cursor agent)
+++
+++### Debug Log References
+++
+++- ESLint `react-hooks/set-state-in-effect` on description overflow detection — resolved by always rendering Show more/less for non-empty descriptions (line-clamp-4 when collapsed).
+++
+++### Completion Notes List
+++
+++- Extracted `CompareColumnShell` to `frontend/src/components/CompareColumnShell.jsx`; `OrganisationCard.jsx` imports it (no behaviour change intended).
+++- Added `SystemCard.jsx` with sticky header (name, category badge, vendor, Edit link + ghost × remove), identity/capability/description rows, union custom-attribute rows (`findCustomAttributeByLabel`), footer (`SourceReferenceDisplay` with `emptyLabel="None recorded"`, `formatLastUpdated` parity with detail page, adoption summary), and loading/error/not-found columns aligned to dynamic row count.
+++- Added `mergeCustomAttributeUnionLabels`, `buildSystemCompareRowLabels`, `findCustomAttributeByLabel` in `frontend/src/lib/system-compare-union-labels.js` with Vitest coverage.
+++- Refactored `SystemComparePage.jsx` to mirror `ComparePage.jsx`: always-on grid per id, `removeId` with `replace: true`, dynamic `gridTemplateRows`, shared union labels across columns.
+++- `getSystemComparePhase` remains in the codebase for its unit tests; system compare no longer gates the grid on “≥2 successful columns” so per-column errors and single-column compare match organisation compare behaviour and story AC5.
+++- Automated: `frontend` lint + Vitest (all pass); `backend` Jest (all pass). **Pending:** Task 5 manual pass in the running app (`/compare/systems?ids=…`, 2–4 systems, remove from compare, no blank cells).
+++
+++### File List
+++
+++- `frontend/src/components/CompareColumnShell.jsx` (new)
+++- `frontend/src/components/OrganisationCard.jsx`
+++- `frontend/src/components/SystemCard.jsx` (new)
+++- `frontend/src/lib/system-compare-union-labels.js` (new)
+++- `frontend/src/lib/system-compare-union-labels.test.js` (new)
+++- `frontend/src/pages/SystemComparePage.jsx`
+++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+++- `_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md`
+++
+++## Change Log
+++
+++- 2026-05-02: Story 9.2 — shared compare column shell, `SystemCard`, union label merge, `SystemComparePage` wiring, tests and quality gates.
++diff --git a/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md b/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md
++new file mode 100644
++index 0000000..b4177d7
++--- /dev/null
+++++ b/_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md
++@@ -0,0 +1,157 @@
+++# Story 9.3: Compare union panel and contextual compare entry points
+++
+++Status: review
+++
+++<!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
+++
+++## Story
+++
+++As a staff member,
+++I want the Compare page's Custom Attributes panel to merge labels across all selected Systems and contextual links to take me from Organisation surfaces straight into a relevant System compare,
+++so that custom attributes are comparable side-by-side and I never have to re-pick Systems I have just been reading about.
+++
+++## Acceptance Criteria
+++
+++1. **`/compare/systems` — left label column structure**
+++   - After 2–4 systems have resolved successfully, the sticky label column shows **sections in this order**, with **visible horizontal dividers** between sections (e.g. `border-t border-slate-200` on the first row of each new section, or equivalent):
+++     - **Identity:** Name, Vendor, Category, Deployment model, Pricing model, Geographic focus
+++     - **Capabilities:** Membership capability, Donation capability, Reserved seating capability
+++     - **Description:** single row (see below)
+++     - **Provenance:** Source reference, Last updated
+++     - **Additional attributes:** one row per union label (see §2) — **omit the entire section** when the union list is empty (no empty state; matches UX-DR29 / detail behaviour)
+++     - **Adopted by:** single row
+++   - Card columns must use the **same row count and order** so every label row aligns across the grid.
+++
+++2. **Union panel algorithm (page-level)**
+++   - From the **successful** system DTOs for the current URL `ids`, in **left-to-right column order**, collect every `customAttributes[].label`.
+++   - **Normalise duplicates** with **case-insensitive** equality; keep **presentation casing** from the **first** occurrence when scanning columns left-to-right, then top-to-bottom within each card's array order as returned by the API.
+++   - **No semantic deduplication** (e.g. do not merge "B Corp" with "B Corporation") — only case-insensitive label merge (Epics / UX D10 §2).
+++   - For each union label, each column shows: matching attribute's **value** and **source** treatment **consistent with** `CustomAttributesPanel` in `SystemDetailPage.jsx` (`isHttpOrHttpsUrl` → external link; else plain text; no source → do not fake content). If that system has no matching label (case-insensitive), show **em dash** `—` in `text-slate-300`.
+++
+++3. **Description row**
+++   - One row for **Description** after capability rows and before Provenance.
+++   - Truncation / expand behaviour: match **Story 9.2 / Epic 9.2** (4-line clamp, Show more / Show less, state **per column/card**). If 9.2 is implemented via `SystemCard`, reuse that component's behaviour; if the page still uses an inline column component, implement the same UX there.
+++
+++4. **Adopted by row**
+++   - After union rows (or immediately after Provenance if union section is hidden), a row whose label is **Adopted by**.
+++   - Cell content: `system.organisations.length`; if `> 0`, link to `/systems/:id`; if `0`, **Not yet adopted** in muted text — never a blank cell.
+++
+++5. **`OrganisationDetailPage` — contextual system compare link**
+++   - **Current bug:** when `systems.length >= 2`, a link labelled "Compare these systems →" points to `/compare/organisations` — **wrong**.
+++   - **Fix:** place the link **beneath the role groups** (after the grouped list, with the Add system control), styled `text-sm text-blue-600 hover:text-blue-800` (ghost link).
+++   - **2–4 linked systems:** copy **Compare these systems →**; `to` = `/compare/systems?ids=` + comma-separated **distinct** `link.system.id` values (stable order: follow existing role group iteration order — `ROLE_ORDER` then row order within groups).
+++   - **5+ linked systems:** copy **Compare the 4 most recently updated systems →**; `ids` = the four distinct systems whose **junction** row has the highest `lastUpdated` (API field on each link object — **not** the System entity's own `lastUpdated`). Tie-break: deterministic (e.g. preserve sort stability by `link.id` or system id).
+++   - **0 or 1 linked system:** **no** contextual link.
+++
+++6. **`ComparePage` (`/compare/organisations`) — cross-org system compare strip**
+++   - When **2–4 organisation columns** have loaded successfully, compute client-side: **union of distinct** `link.system.id` across all compared organisations' `systems` arrays (from already-fetched detail DTOs in `useCompareOrganisations` results).
+++   - If union size is **2, 3, or 4:** render below the compare grid a strip: `border-t border-slate-200 pt-4 mt-6` containing a ghost link **Compare systems used by these organisations →** to `/compare/systems?ids=<union preserving a stable order>` (e.g. first-seen while iterating orgs left-to-right, then links in each org).
+++   - If union size is **0 or 1:** render **nothing** (no link).
+++   - If union size is **5+:** render **no** link; instead a **muted** note: `These organisations use [N] different systems. Open the` **System list →** `to select which to compare.` (link to `/systems`; use **British English** copy consistent with the app).
+++
+++7. **Regression / parity**
+++   - Contextual navigation into `/compare/systems` must behave like list-driven entry: **`ids` in URL is source of truth**, column removal (when implemented) updates URL with `replace: true`, page remains shareable.
+++   - Do **not** add `fetch` inside presentational cards — keep queries in hooks / page (`useCompareSystems`, `useCompareOrganisations`).
+++
+++## Tasks / Subtasks
+++
+++- [x] **Task 1 — Union helper**
+++  - [x] Add a small pure helper (e.g. `frontend/src/lib/system-compare-custom-attributes.js`) exporting `buildUnionCustomAttributeLabels(systemDtosInColumnOrder)` → `string[]`, with unit tests in Vitest (case fold, first-seen casing, column order).
+++
+++- [x] **Task 2 — `SystemComparePage.jsx`**
+++  - [x] Refactor static `ROW_LABELS` into section-aware structure: static prefix rows + dynamic union length + stable `gridTemplateRows: auto repeat(totalRows, auto)`.
+++  - [x] Inject section divider styling in the label column (and matching spacer/divider treatment in columns if needed for alignment).
+++  - [x] Compute union from successful loaded DTOs; pass union labels into each column component (or into `SystemCard` if Story 9.2 extracted it).
+++  - [x] Ensure skeleton loading state uses the **same row count** as the resolved grid (including dynamic union length when known, or a conservative placeholder if union unknown until load completes — prefer matching final layout to avoid layout jump).
+++
+++- [x] **Task 3 — Column body**
+++  - [x] Implement Description row + custom-attribute rows + Adopted by row; reuse `SourceReferenceDisplay` / HTTP link pattern from `SystemDetailPage` for per-attribute source where applicable.
+++  - [x] Align **Name** row with epic: header may duplicate name (9.2 pattern); label column still includes **Name** for row alignment.
+++
+++- [x] **Task 4 — `OrganisationDetailPage.jsx`**
+++  - [x] Replace incorrect compare href; implement 2–4 vs 5+ rules and distinct ID collection.
+++  - [x] Keep link absent when fewer than two systems.
+++
+++- [x] **Task 5 — `ComparePage.jsx`**
+++  - [x] Derive union of system ids from successful org queries; render contextual strip or muted note per AC §6.
+++
+++- [x] **Task 6 — Quality gates**
+++  - [x] `cd frontend && npm run lint && npm run test`
+++  - [x] Manual: org with 2, 4, 5+ links; org compare with 2 orgs sharing 2–4 distinct systems vs 5+; system compare with asymmetric custom attributes.
+++
+++## Dev Notes
+++
+++### Epic cross-story context
+++
+++- **Epic 9** delivers FR-S7 (system-to-system compare).
+++- **9.1** is **done** in sprint tracking: routes, `useCompareSystems`, `SystemComparePage` shell exist.
+++- **9.2** is **ready-for-dev** in sprint: spec introduces `SystemCard`, `CompareColumnShell` extraction, remove-from-compare, full compare column anatomy. **Current repo (pre-9.2 merge):** there is **no** `SystemCard.jsx`; compare UI lives in **`SystemComparePage.jsx`** as `SystemCompareColumn`. Coordinate with 9.2: either land 9.2 first and extend `SystemCard` with this story's rows/union, or implement 9.3 row structure in the inline column and refactor when `SystemCard` exists.
+++
+++### Current file state (must read before editing)
+++
+++| File | Relevant today |
+++|------|----------------|
+++| `frontend/src/pages/SystemComparePage.jsx` | Inline `ROW_LABELS`, `SystemCompareColumn`; **no** `customAttributes`, **no** Description, **no** Adopted by, **no** section dividers; **no** URL remove handler on columns (Edit only). |
+++| `frontend/src/pages/OrganisationDetailPage.jsx` | Linked systems panel; **bug** at ~608–615: "Compare these systems →" → `/compare/organisations`. |
+++| `frontend/src/pages/ComparePage.jsx` | Org compare grid only; **no** post-grid system-compare strip. |
+++| `frontend/src/pages/SystemDetailPage.jsx` | `CustomAttributesPanel`, `formatLastUpdated`, category badge patterns — reuse for parity. |
+++| `frontend/src/lib/compare-url-params.js` | `parseCompareIds`, `MAX_SYSTEM_COMPARE_IDS` (4). |
+++
+++### Architecture compliance
+++
+++- React function components; data via TanStack Query hooks already on the page.
+++- **British English** in UI copy (`organisation`, `behaviour` in comments if needed).
+++- Tailwind v3; no new dependencies for dedupe (simple loop + `Map` keyed by lowercased label).
+++
+++### API / DTO guardrails
+++
+++- System detail DTO (`GET /api/systems/:id`): `customAttributes` is an array of `{ label, value, sourceReference }` (camelCase). Compare hooks expose envelope — column UI reads **`query.data?.data`** when following existing `useCompareSystems` pattern.
+++- Organisation detail DTO: `systems[]` junction objects include `lastUpdated` (junction), `system.id`, `system.name`, etc.
+++
+++### Testing
+++
+++- Unit-test `buildUnionCustomAttributeLabels` only (pure logic). Optional: thin test for "top 4 by junction lastUpdated" if extracted to a pure helper.
+++
+++### References
+++
+++- [Source: `_bmad-output/planning-artifacts/epics.md` — Epic 9, Story 9.3]
+++- [Source: `_bmad-output/planning-artifacts/architecture-v2-delta.md` — §4.4–4.6 compare routes & parallel fetch]
+++- [Source: `_bmad-output/implementation-artifacts/9-2-systemcard-component-compare-column.md` — card/union contract if 9.2 lands first]
+++- [Source: `_bmad-output/project-context.md` — stack & conventions]
+++
+++## Change Log
+++
+++- 2026-05-02: Implemented union helper module, org compare system-id strip, organisation detail contextual `/compare/systems` links, capability row label copy alignment, section divider colour parity, and Vitest coverage; frontend lint + tests and backend regression suite green.
+++
+++## Dev Agent Record
+++
+++### Agent Model Used
+++
+++GPT-5.2 (Cursor agent)
+++
+++### Debug Log References
+++
+++### Completion Notes List
+++
+++- Added `buildUnionCustomAttributeLabels` and wired `mergeCustomAttributeUnionLabels` to use per-column DTO order (successful columns only; null placeholders preserve left-to-right semantics).
+++- Aligned static compare labels with AC wording (`Membership capability`, etc.) and `border-t border-slate-200` on section dividers in `SystemComparePage.jsx`.
+++- `OrganisationDetailPage.jsx`: contextual compare uses `buildOrganisationContextualSystemCompare` (role-order distinct ids; 5+ links → top four by junction `lastUpdated` with tie-break on link id); link styling and placement under **Add system**.
+++- `ComparePage.jsx`: `deriveCompareOrganisationsSystemUnion` drives post-grid strip (2–4 distinct systems → link; 5+ → muted copy with **System list →**); pending or failed columns suppress strip.
+++- New tests: `system-compare-custom-attributes.test.js`, `compare-organisations-system-union.test.js`, `organisation-linked-systems-compare.test.js`; extended `system-compare-union-labels.test.js`.
+++- Task 6 manual checks: not run in this session; recommend quick UI smoke on org detail (2 / 4 / 5+ links) and org compare strip edge cases.
+++
+++### File List
+++
+++- `frontend/src/lib/system-compare-custom-attributes.js`
+++- `frontend/src/lib/system-compare-custom-attributes.test.js`
+++- `frontend/src/lib/system-compare-union-labels.js`
+++- `frontend/src/lib/system-compare-union-labels.test.js`
+++- `frontend/src/lib/compare-organisations-system-union.js`
+++- `frontend/src/lib/compare-organisations-system-union.test.js`
+++- `frontend/src/lib/organisation-linked-systems-compare.js`
+++- `frontend/src/lib/organisation-linked-systems-compare.test.js`
+++- `frontend/src/pages/SystemComparePage.jsx`
+++- `frontend/src/pages/ComparePage.jsx`
+++- `frontend/src/pages/OrganisationDetailPage.jsx`
+++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+++- `_bmad-output/implementation-artifacts/9-3-compare-union-panel-and-contextual-compare-entry-points.md`
+diff --git a/frontend/src/components/CompareColumnShell.jsx b/frontend/src/components/CompareColumnShell.jsx
+new file mode 100644
+index 0000000..5d62245
+--- /dev/null
++++ b/frontend/src/components/CompareColumnShell.jsx
+@@ -0,0 +1,17 @@
++import { cn } from '../lib/utils.js'
++
++/** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
++export function CompareColumnShell({ gridColumn, className, children, ...rest }) {
++  return (
++    <div
++      className={cn(
++        'row-span-full grid min-w-0 grid-rows-subgrid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm',
++        className,
++      )}
++      style={{ gridColumn }}
++      {...rest}
++    >
++      {children}
++    </div>
++  )
++}
+diff --git a/frontend/src/components/SystemCard.jsx b/frontend/src/components/SystemCard.jsx
+new file mode 100644
+index 0000000..6f1f4f8
+--- /dev/null
++++ b/frontend/src/components/SystemCard.jsx
+@@ -0,0 +1,439 @@
++import { useState } from 'react'
++import { X } from 'lucide-react'
++import { Link } from 'react-router-dom'
++import { SystemNotFoundError } from '../api/systems.js'
++import { CapabilityBadge } from './CapabilityBadge.jsx'
++import { CompareColumnShell } from './CompareColumnShell.jsx'
++import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
++import { Button } from './ui/button.jsx'
++import { buildSystemCompareRowLabels, findCustomAttributeByLabel } from '../lib/system-compare-union-labels.js'
++import { cn } from '../lib/utils.js'
++
++const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
++
++const CATEGORY_CONFIG = {
++  INTEGRATED: { label: 'Integrated', cls: 'bg-blue-50 text-blue-700 border border-blue-200' },
++  TICKETING: { label: 'Ticketing', cls: 'bg-amber-50 text-amber-700 border border-amber-200' },
++  AUDIENCE_MANAGEMENT: {
++    label: 'Audience management',
++    cls: 'bg-purple-50 text-purple-700 border border-purple-200',
++  },
++}
++
++function SystemCategoryBadge({ category }) {
++  const { label, cls } = CATEGORY_CONFIG[category] ?? {
++    label: category != null && category !== '' ? String(category) : '—',
++    cls: 'bg-slate-50 text-slate-700 border border-slate-200',
++  }
++  return (
++    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${cls}`}>
++      {label}
++    </span>
++  )
++}
++
++function formatLastUpdated(iso) {
++  if (!iso) return '—'
++  try {
++    const date = new Date(iso)
++    const diffMs = date.getTime() - Date.now()
++    const diffSec = Math.round(diffMs / 1000)
++    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
++    const abs = Math.abs(diffSec)
++    let relative
++    if (abs < 60) relative = rtf.format(diffSec, 'second')
++    else if (abs < 3600) relative = rtf.format(Math.round(diffSec / 60), 'minute')
++    else if (abs < 86400) relative = rtf.format(Math.round(diffSec / 3600), 'hour')
++    else if (abs < 2592000) relative = rtf.format(Math.round(diffSec / 86400), 'day')
++    else if (abs < 31536000) relative = rtf.format(Math.round(diffSec / 2592000), 'month')
++    else relative = rtf.format(Math.round(diffSec / 31536000), 'year')
++    const absolute = date.toLocaleDateString(undefined, { dateStyle: 'medium' })
++    return `${absolute} (${relative})`
++  } catch {
++    return '—'
++  }
++}
++
++function isHttpOrHttpsUrl(value) {
++  if (typeof value !== 'string') return false
++  return value.startsWith('http://') || value.startsWith('https://')
++}
++
++function scalarCompareCell(value) {
++  if (value == null || value === '') {
++    return <span className="text-slate-300">—</span>
++  }
++  return <span className="text-slate-800">{String(value)}</span>
++}
++
++function CustomAttributeCompareCell({ attr }) {
++  if (!attr) {
++    return <span className="text-slate-300">—</span>
++  }
++  const rawVal = attr.value
++  const valueStr =
++    rawVal != null && String(rawVal).trim() !== '' ? String(rawVal).trim() : null
++  const source = attr.sourceReference
++
++  return (
++    <div className="flex min-w-0 flex-col gap-1 text-sm">
++      <div className="min-w-0">
++        {valueStr == null ? (
++          <span className="text-slate-300">—</span>
++        ) : isHttpOrHttpsUrl(valueStr) ? (
++          <a
++            href={valueStr}
++            target="_blank"
++            rel="noopener noreferrer"
++            className="text-blue-600 hover:underline break-all"
++          >
++            {valueStr}
++          </a>
++        ) : (
++          <span className="text-slate-800 break-words">{valueStr}</span>
++        )}
++      </div>
++      {source != null && String(source).trim() !== '' ? (
++        <div className="min-w-0 text-xs text-slate-600">
++          {isHttpOrHttpsUrl(String(source)) ? (
++            <a
++              href={String(source)}
++              target="_blank"
++              rel="noopener noreferrer"
++              className="text-blue-600 hover:underline break-all"
++            >
++              {String(source)}
++            </a>
++          ) : (
++            <span className="break-all">{String(source)}</span>
++          )}
++        </div>
++      ) : null}
++    </div>
++  )
++}
++
++function DescriptionCompareCell({ text }) {
++  const [expanded, setExpanded] = useState(false)
++
++  if (text == null || String(text).trim() === '') {
++    return <span className="text-slate-300">—</span>
++  }
++
++  const s = String(text)
++  return (
++    <div className="flex min-w-0 flex-col items-start gap-1">
++      <div
++        className={cn(
++          'min-w-0 text-sm text-slate-800 whitespace-pre-wrap',
++          !expanded && 'line-clamp-4',
++        )}
++      >
++        {s}
++      </div>
++      <button
++        type="button"
++        className="text-sm font-medium text-blue-600 hover:text-blue-800"
++        onClick={() => setExpanded(!expanded)}
++      >
++        {expanded ? 'Show less' : 'Show more'}
++      </button>
++    </div>
++  )
++}
++
++/**
++ * @param {{
++ *   compareGridColumn?: number
++ *   unionCustomAttributeLabels: string[]
++ * }} props
++ */
++function SystemCardSkeleton({ compareGridColumn, unionCustomAttributeLabels }) {
++  const bodyRows = buildSystemCompareRowLabels(unionCustomAttributeLabels).length
++  const inner = (
++    <>
++      <div className="sticky top-0 z-10 space-y-3 border-b bg-white p-4 shadow-sm">
++        <div className="h-6 w-3/4 rounded bg-slate-200" />
++        <div className="h-5 w-24 rounded-md bg-slate-200" />
++        <div className="h-4 w-1/2 rounded bg-slate-100" />
++        <div className="flex justify-end gap-2 pt-1">
++          <div className="h-4 w-10 rounded bg-slate-200" />
++          <div className="h-9 w-9 rounded-md bg-slate-100" />
++        </div>
++      </div>
++      {Array.from({ length: bodyRows }).map((_, i) => (
++        <div key={i} className={`${ATTR_ROW_CLASS} border-b border-slate-100 last:border-b-0`}>
++          <div className="h-4 w-full max-w-[10rem] rounded bg-slate-100" />
++        </div>
++      ))}
++    </>
++  )
++
++  if (compareGridColumn != null) {
++    return (
++      <CompareColumnShell gridColumn={compareGridColumn} className="animate-pulse" aria-hidden>
++        {inner}
++      </CompareColumnShell>
++    )
++  }
++
++  return (
++    <div
++      className="flex w-72 shrink-0 animate-pulse flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm"
++      aria-hidden
++    >
++      {inner}
++    </div>
++  )
++}
++
++/**
++ * @param {{
++ *   systemId: string
++ *   query: import('@tanstack/react-query').UseQueryResult<unknown, Error>
++ *   onRemove: () => void
++ *   compareGridColumn?: number
++ *   unionCustomAttributeLabels: string[]
++ * }} props
++ */
++export function SystemCard({ systemId, query, onRemove, compareGridColumn, unionCustomAttributeLabels }) {
++  const { isPending, isError, error, data: envelope, isSuccess } = query
++  const bodyRows = buildSystemCompareRowLabels(unionCustomAttributeLabels).length
++
++  if (isPending) {
++    return (
++      <SystemCardSkeleton compareGridColumn={compareGridColumn} unionCustomAttributeLabels={unionCustomAttributeLabels} />
++    )
++  }
++
++  const notFound = isError && error instanceof SystemNotFoundError
++
++  const placeholderRows = Array.from({ length: bodyRows }).map((_, i) => (
++    <div
++      key={i}
++      className={`${ATTR_ROW_CLASS} border-b border-slate-100 bg-slate-50/40 last:border-b-0`}
++    />
++  ))
++
++  if (notFound) {
++    const inner = (
++      <>
++        <div className="sticky top-0 z-10 space-y-3 border-b bg-white p-4 shadow-sm">
++          <p className="text-sm text-slate-600">This system could not be found</p>
++          <div className="flex justify-end">
++            <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
++              Remove
++            </Button>
++          </div>
++        </div>
++        {placeholderRows}
++      </>
++    )
++
++    if (compareGridColumn != null) {
++      return <CompareColumnShell gridColumn={compareGridColumn}>{inner}</CompareColumnShell>
++    }
++    return (
++      <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
++        {inner}
++      </div>
++    )
++  }
++
++  if (isError) {
++    const inner = (
++      <>
++        <div className="sticky top-0 z-10 space-y-3 border-b border-red-100 bg-red-50 p-4 shadow-sm">
++          <p className="text-sm text-red-800" role="alert">
++            {error instanceof Error ? error.message : 'Something went wrong'}
++          </p>
++          <div className="flex justify-end">
++            <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
++              Remove
++            </Button>
++          </div>
++        </div>
++        {Array.from({ length: bodyRows }).map((_, i) => (
++          <div
++            key={i}
++            className={`${ATTR_ROW_CLASS} border-b border-red-100 bg-red-50 last:border-b-0`}
++          />
++        ))}
++      </>
++    )
++
++    if (compareGridColumn != null) {
++      return (
++        <CompareColumnShell
++          gridColumn={compareGridColumn}
++          className="border-red-200 bg-red-50 shadow-sm"
++        >
++          {inner}
++        </CompareColumnShell>
++      )
++    }
++    return (
++      <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border border-red-200 bg-red-50 shadow-sm">
++        {inner}
++      </div>
++    )
++  }
++
++  const sys =
++    isSuccess &&
++    envelope != null &&
++    typeof envelope === 'object' &&
++    /** @type {{ data?: unknown }} */ (envelope).data != null &&
++    typeof /** @type {{ data?: unknown }} */ (envelope).data === 'object'
++      ? /** @type {Record<string, unknown>} */ (
++          /** @type {{ data: unknown }} */ (envelope).data
++        )
++      : null
++
++  if (!sys) {
++    const inner = (
++      <>
++        <div className="sticky top-0 z-10 space-y-3 border-b border-red-100 bg-red-50 p-4 shadow-sm">
++          <p className="text-sm text-red-800" role="alert">
++            System data could not be displayed
++          </p>
++          <div className="flex justify-end">
++            <Button type="button" variant="ghost" size="sm" onClick={onRemove}>
++              Remove
++            </Button>
++          </div>
++        </div>
++        {Array.from({ length: bodyRows }).map((_, i) => (
++          <div
++            key={i}
++            className={`${ATTR_ROW_CLASS} border-b border-red-100 bg-red-50 last:border-b-0`}
++          />
++        ))}
++      </>
++    )
++    if (compareGridColumn != null) {
++      return (
++        <CompareColumnShell
++          gridColumn={compareGridColumn}
++          className="border-red-200 bg-red-50 shadow-sm"
++        >
++          {inner}
++        </CompareColumnShell>
++      )
++    }
++    return (
++      <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border border-red-200 bg-red-50 shadow-sm">
++        {inner}
++      </div>
++    )
++  }
++
++  const orgs = Array.isArray(sys.organisations) ? sys.organisations : []
++  const adoptionCount = orgs.length
++
++  const attrs = Array.isArray(sys.customAttributes) ? sys.customAttributes : []
++
++  const inner = (
++    <>
++      <div className="sticky top-0 z-10 space-y-2 border-b bg-white p-4 shadow-sm">
++        <h2 className="text-lg font-semibold text-slate-900">
++          {sys.name != null && String(sys.name).trim() !== '' ? (
++            String(sys.name)
++          ) : (
++            <span className="text-slate-300">—</span>
++          )}
++        </h2>
++        <SystemCategoryBadge category={sys.category} />
++        <p className="text-sm text-slate-500">
++          {sys.vendor != null && String(sys.vendor).trim() !== '' ? (
++            String(sys.vendor)
++          ) : (
++            <span className="text-slate-300">—</span>
++          )}
++        </p>
++        <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
++          <Link
++            to={`/systems/${encodeURIComponent(systemId)}/edit`}
++            className="text-sm text-blue-600 hover:text-blue-800"
++          >
++            Edit
++          </Link>
++          <Button
++            type="button"
++            variant="ghost"
++            size="icon"
++            className="h-9 w-9 shrink-0 text-slate-600"
++            aria-label="Remove from compare"
++            onClick={onRemove}
++          >
++            <X className="h-4 w-4" aria-hidden />
++          </Button>
++        </div>
++      </div>
++
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>{scalarCompareCell(sys.name)}</div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>{scalarCompareCell(sys.vendor)}</div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <SystemCategoryBadge category={sys.category} />
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        {scalarCompareCell(sys.deploymentModel)}
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        {scalarCompareCell(sys.pricingModel)}
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        {scalarCompareCell(sys.geographicFocus)}
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <CapabilityBadge variant="labelled" value={sys.membershipCapability} />
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <CapabilityBadge variant="labelled" value={sys.donationCapability} />
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <CapabilityBadge variant="labelled" value={sys.reservedSeatingCapability} />
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <DescriptionCompareCell text={sys.description} />
++      </div>
++
++      {unionCustomAttributeLabels.map((label) => (
++        <div key={label} className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++          <CustomAttributeCompareCell attr={findCustomAttributeByLabel(attrs, label)} />
++        </div>
++      ))}
++
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <SourceReferenceDisplay value={sys.sourceReference} emptyLabel="None recorded" />
++      </div>
++      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
++        <span className="text-xs text-slate-500">{formatLastUpdated(sys.lastUpdated)}</span>
++      </div>
++      <div className={ATTR_ROW_CLASS}>
++        {adoptionCount > 0 ? (
++          <Link
++            to={`/systems/${encodeURIComponent(systemId)}`}
++            className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
++          >
++            {adoptionCount === 1
++              ? 'Adopted by 1 organisation'
++              : `Adopted by ${adoptionCount} organisations`}
++          </Link>
++        ) : (
++          <span className="text-sm text-slate-500">Not yet adopted</span>
++        )}
++      </div>
++    </>
++  )
++
++  if (compareGridColumn != null) {
++    return <CompareColumnShell gridColumn={compareGridColumn}>{inner}</CompareColumnShell>
++  }
++
++  return (
++    <div className="flex w-72 shrink-0 flex-col overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
++      {inner}
++    </div>
++  )
++}
+diff --git a/frontend/src/hooks/useCompareSystems.js b/frontend/src/hooks/useCompareSystems.js
+new file mode 100644
+index 0000000..a256568
+--- /dev/null
++++ b/frontend/src/hooks/useCompareSystems.js
+@@ -0,0 +1,19 @@
++import { useQueries } from '@tanstack/react-query'
++import { fetchSystem, SystemNotFoundError } from '../api/systems.js'
++import { MAX_SYSTEM_COMPARE_IDS } from '../lib/compare-url-params.js'
++
++/**
++ * Parallel fetches for system compare columns; same cache keys as `useSystem`.
++ * @param {string[]} ids
++ */
++export function useCompareSystems(ids) {
++  const capped = ids.slice(0, MAX_SYSTEM_COMPARE_IDS)
++  return useQueries({
++    queries: capped.map((id) => ({
++      queryKey: ['systems', id],
++      queryFn: () => fetchSystem(id),
++      enabled: Boolean(id),
++      retry: (_failureCount, err) => !(err instanceof SystemNotFoundError),
++    })),
++  })
++}
+diff --git a/frontend/src/lib/compare-organisations-system-union.js b/frontend/src/lib/compare-organisations-system-union.js
+new file mode 100644
+index 0000000..64b90ff
+--- /dev/null
++++ b/frontend/src/lib/compare-organisations-system-union.js
+@@ -0,0 +1,54 @@
++import { MAX_SYSTEM_COMPARE_IDS } from './compare-url-params.js'
++
++/**
++ * Stable union of system ids from organisation compare column data (left-to-right orgs,
++ * then each org's `systems` array order).
++ *
++ * @param {string[]} organisationIds
++ * @param {import('@tanstack/react-query').UseQueryResult<unknown, Error>[]} queries
++ * @returns {{ kind: 'pending' } | { kind: 'ready'; orderedSystemIds: string[] } | { kind: 'incomplete' }}
++ */
++export function deriveCompareOrganisationsSystemUnion(organisationIds, queries) {
++  if (!Array.isArray(organisationIds) || organisationIds.length === 0) {
++    return { kind: 'incomplete' }
++  }
++  if (organisationIds.length < 2 || organisationIds.length > MAX_SYSTEM_COMPARE_IDS) {
++    return { kind: 'incomplete' }
++  }
++  if (queries.length !== organisationIds.length) {
++    return { kind: 'incomplete' }
++  }
++  for (let i = 0; i < organisationIds.length; i++) {
++    const q = queries[i]
++    if (!q || q.isPending) return { kind: 'pending' }
++  }
++  for (let i = 0; i < organisationIds.length; i++) {
++    const q = queries[i]
++    if (!q.isSuccess || q.data == null || typeof q.data !== 'object') {
++      return { kind: 'incomplete' }
++    }
++    const envelope = /** @type {{ data?: unknown }} */ (q.data)
++    if (envelope.data == null || typeof envelope.data !== 'object') {
++      return { kind: 'incomplete' }
++    }
++  }
++
++  const seen = new Set()
++  const ordered = []
++  for (let i = 0; i < organisationIds.length; i++) {
++    const q = queries[i]
++    const envelope = /** @type {{ data: { systems?: unknown } }} */ (q.data)
++    const org = envelope.data
++    const systems = org.systems
++    if (!Array.isArray(systems)) continue
++    for (const link of systems) {
++      if (link == null || typeof link !== 'object') continue
++      const sys = /** @type {{ system?: { id?: unknown } } } */ (link).system
++      const sid = sys?.id != null ? String(sys.id) : ''
++      if (!sid || seen.has(sid)) continue
++      seen.add(sid)
++      ordered.push(sid)
++    }
++  }
++  return { kind: 'ready', orderedSystemIds: ordered }
++}
+diff --git a/frontend/src/lib/compare-organisations-system-union.test.js b/frontend/src/lib/compare-organisations-system-union.test.js
+new file mode 100644
+index 0000000..6c9be45
+--- /dev/null
++++ b/frontend/src/lib/compare-organisations-system-union.test.js
+@@ -0,0 +1,47 @@
++import { describe, expect, it } from 'vitest'
++import { deriveCompareOrganisationsSystemUnion } from './compare-organisations-system-union.js'
++
++function successOrg(systems) {
++  return {
++    isPending: false,
++    isSuccess: true,
++    data: { data: { systems } },
++  }
++}
++
++describe('deriveCompareOrganisationsSystemUnion', () => {
++  it('is pending if any query is pending', () => {
++    expect(
++      deriveCompareOrganisationsSystemUnion(['a', 'b'], [
++        successOrg([{ system: { id: 's1' } }]),
++        { isPending: true, isSuccess: false },
++      ]),
++    ).toEqual({ kind: 'pending' })
++  })
++
++  it('is incomplete if org count is not 2–4', () => {
++    expect(deriveCompareOrganisationsSystemUnion(['a'], [successOrg([])])).toEqual({
++      kind: 'incomplete',
++    })
++  })
++
++  it('builds first-seen order across org columns', () => {
++    const r = deriveCompareOrganisationsSystemUnion(
++      ['o1', 'o2'],
++      [
++        successOrg([{ system: { id: 's1' } }, { system: { id: 's2' } }]),
++        successOrg([{ system: { id: 's2' } }, { system: { id: 's3' } }]),
++      ],
++    )
++    expect(r).toEqual({ kind: 'ready', orderedSystemIds: ['s1', 's2', 's3'] })
++  })
++
++  it('is incomplete if a column failed', () => {
++    expect(
++      deriveCompareOrganisationsSystemUnion(
++        ['a', 'b'],
++        [successOrg([]), { isPending: false, isSuccess: false }],
++      ),
++    ).toEqual({ kind: 'incomplete' })
++  })
++})
+diff --git a/frontend/src/lib/organisation-linked-systems-compare.js b/frontend/src/lib/organisation-linked-systems-compare.js
+new file mode 100644
+index 0000000..296bffd
+--- /dev/null
++++ b/frontend/src/lib/organisation-linked-systems-compare.js
+@@ -0,0 +1,72 @@
++/**
++ * @param {Array<{ role?: string; system?: { id?: string }; id?: string; lastUpdated?: string | null }>} systems
++ * @param {string[]} roleOrder
++ * @returns {string[]}
++ */
++export function distinctSystemIdsInRoleDisplayOrder(systems, roleOrder) {
++  if (!Array.isArray(systems) || !Array.isArray(roleOrder)) return []
++  const grouped = roleOrder.reduce((acc, role) => {
++    acc[role] = systems.filter((l) => l && l.role === role)
++    return acc
++  }, {})
++  const seen = new Set()
++  const ordered = []
++  for (const role of roleOrder) {
++    for (const link of grouped[role] ?? []) {
++      const sid = link.system?.id
++      if (sid && !seen.has(sid)) {
++        seen.add(sid)
++        ordered.push(String(sid))
++      }
++    }
++  }
++  return ordered
++}
++
++/**
++ * @param {Array<{ system?: { id?: string }; id?: string; lastUpdated?: string | null }>} systems
++ * @returns {string[]}
++ */
++export function topFourSystemIdsByJunctionLastUpdated(systems) {
++  if (!Array.isArray(systems)) return []
++  const sorted = [...systems].sort((a, b) => {
++    const ta = a.lastUpdated ? Date.parse(String(a.lastUpdated)) : NaN
++    const tb = b.lastUpdated ? Date.parse(String(b.lastUpdated)) : NaN
++    const na = Number.isNaN(ta) ? 0 : ta
++    const nb = Number.isNaN(tb) ? 0 : tb
++    if (nb !== na) return nb - na
++    return String(a.id ?? '').localeCompare(String(b.id ?? ''))
++  })
++  const out = []
++  const seen = new Set()
++  for (const link of sorted) {
++    const sid = link.system?.id
++    if (!sid || seen.has(sid)) continue
++    seen.add(sid)
++    out.push(String(sid))
++    if (out.length === 4) break
++  }
++  return out
++}
++
++/**
++ * @param {Array<{ role?: string; system?: { id?: string }; id?: string; lastUpdated?: string | null }>} systems
++ * @param {string[]} roleOrder
++ * @returns {{ to: string; label: string } | null}
++ */
++export function buildOrganisationContextualSystemCompare(systems, roleOrder) {
++  if (!Array.isArray(systems) || systems.length < 2) return null
++  const ordered = distinctSystemIdsInRoleDisplayOrder(systems, roleOrder)
++  if (ordered.length < 2) return null
++  if (ordered.length <= 4) {
++    return {
++      to: `/compare/systems?ids=${ordered.join(',')}`,
++      label: 'Compare these systems →',
++    }
++  }
++  const top = topFourSystemIdsByJunctionLastUpdated(systems)
++  return {
++    to: `/compare/systems?ids=${top.join(',')}`,
++    label: 'Compare the 4 most recently updated systems →',
++  }
++}
+diff --git a/frontend/src/lib/organisation-linked-systems-compare.test.js b/frontend/src/lib/organisation-linked-systems-compare.test.js
+new file mode 100644
+index 0000000..d0cbce9
+--- /dev/null
++++ b/frontend/src/lib/organisation-linked-systems-compare.test.js
+@@ -0,0 +1,62 @@
++import { describe, expect, it } from 'vitest'
++import {
++  buildOrganisationContextualSystemCompare,
++  distinctSystemIdsInRoleDisplayOrder,
++  topFourSystemIdsByJunctionLastUpdated,
++} from './organisation-linked-systems-compare.js'
++
++const ROLE_ORDER = ['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']
++
++describe('distinctSystemIdsInRoleDisplayOrder', () => {
++  it('follows role order then row order', () => {
++    const systems = [
++      { role: 'PRIMARY_CRM', system: { id: 'b' }, id: 'l1' },
++      { role: 'PRIMARY_TICKETING', system: { id: 'a' }, id: 'l2' },
++    ]
++    expect(distinctSystemIdsInRoleDisplayOrder(systems, ROLE_ORDER)).toEqual(['a', 'b'])
++  })
++})
++
++describe('topFourSystemIdsByJunctionLastUpdated', () => {
++  it('picks four newest by junction lastUpdated with tie-break on link id', () => {
++    const t0 = '2020-01-01T00:00:00.000Z'
++    const t1 = '2021-01-01T00:00:00.000Z'
++    const systems = [
++      { id: 'z', system: { id: 's1' }, lastUpdated: t0 },
++      { id: 'a', system: { id: 's2' }, lastUpdated: t1 },
++      { id: 'm', system: { id: 's3' }, lastUpdated: t1 },
++      { id: 'b', system: { id: 's4' }, lastUpdated: t1 },
++      { id: 'c', system: { id: 's5' }, lastUpdated: t1 },
++    ]
++    const top = topFourSystemIdsByJunctionLastUpdated(systems)
++    expect(top).toHaveLength(4)
++    expect(top[0]).toBe('s2')
++    expect(top).toContain('s3')
++    expect(top).toContain('s4')
++    expect(top).toContain('s5')
++    expect(top).not.toContain('s1')
++  })
++})
++
++describe('buildOrganisationContextualSystemCompare', () => {
++  it('returns null when fewer than two links', () => {
++    expect(buildOrganisationContextualSystemCompare([], ROLE_ORDER)).toBeNull()
++    expect(
++      buildOrganisationContextualSystemCompare(
++        [{ role: 'PRIMARY_TICKETING', system: { id: 'a' }, id: '1' }],
++        ROLE_ORDER,
++      ),
++    ).toBeNull()
++  })
++
++  it('uses all distinct ids for 2–4 systems', () => {
++    const systems = [
++      { role: 'PRIMARY_TICKETING', system: { id: 'x' }, id: '1' },
++      { role: 'PRIMARY_CRM', system: { id: 'y' }, id: '2' },
++    ]
++    expect(buildOrganisationContextualSystemCompare(systems, ROLE_ORDER)).toEqual({
++      to: '/compare/systems?ids=x,y',
++      label: 'Compare these systems →',
++    })
++  })
++})
+diff --git a/frontend/src/lib/system-compare-custom-attributes.js b/frontend/src/lib/system-compare-custom-attributes.js
+new file mode 100644
+index 0000000..6c845ee
+--- /dev/null
++++ b/frontend/src/lib/system-compare-custom-attributes.js
+@@ -0,0 +1,29 @@
++/**
++ * Union of custom-attribute labels across system compare columns (Epic 9.3).
++ * Column order is preserved; within each column, API array order applies.
++ * Dedupe is case-insensitive; first-seen casing wins.
++ *
++ * @param {Array<{ customAttributes?: unknown } | null | undefined>} systemDtosInColumnOrder
++ * @returns {string[]}
++ */
++export function buildUnionCustomAttributeLabels(systemDtosInColumnOrder) {
++  if (!Array.isArray(systemDtosInColumnOrder)) return []
++  const seen = new Set()
++  const union = []
++  for (const dto of systemDtosInColumnOrder) {
++    if (dto == null || typeof dto !== 'object') continue
++    const attrs = /** @type {{ customAttributes?: unknown }} */ (dto).customAttributes
++    if (!Array.isArray(attrs)) continue
++    for (const attr of attrs) {
++      if (attr == null || typeof attr !== 'object') continue
++      const raw = /** @type {{ label?: unknown }} */ (attr).label
++      if (raw == null || String(raw).trim() === '') continue
++      const label = String(raw).trim()
++      const key = label.toLowerCase()
++      if (seen.has(key)) continue
++      seen.add(key)
++      union.push(label)
++    }
++  }
++  return union
++}
+diff --git a/frontend/src/lib/system-compare-custom-attributes.test.js b/frontend/src/lib/system-compare-custom-attributes.test.js
+new file mode 100644
+index 0000000..59d0337
+--- /dev/null
++++ b/frontend/src/lib/system-compare-custom-attributes.test.js
+@@ -0,0 +1,45 @@
++import { describe, expect, it } from 'vitest'
++import { buildUnionCustomAttributeLabels } from './system-compare-custom-attributes.js'
++
++describe('buildUnionCustomAttributeLabels', () => {
++  it('returns empty for non-array input', () => {
++    expect(buildUnionCustomAttributeLabels(null)).toEqual([])
++    expect(buildUnionCustomAttributeLabels(undefined)).toEqual([])
++  })
++
++  it('merges left-to-right with case-insensitive dedupe and first-seen casing', () => {
++    const dtos = [
++      {
++        customAttributes: [
++          { label: 'Foo', value: '1' },
++          { label: 'foo', value: 'skip' },
++        ],
++      },
++      {
++        customAttributes: [
++          { label: 'Bar', value: '2' },
++          { label: 'FOO', value: 'skip' },
++        ],
++      },
++    ]
++    expect(buildUnionCustomAttributeLabels(dtos)).toEqual(['Foo', 'Bar'])
++  })
++
++  it('skips null columns and still respects order of remaining columns', () => {
++    const dtos = [
++      null,
++      { customAttributes: [{ label: 'Zed', value: 'z' }] },
++      { customAttributes: [{ label: 'A', value: '1' }] },
++    ]
++    expect(buildUnionCustomAttributeLabels(dtos)).toEqual(['Zed', 'A'])
++  })
++
++  it('uses top-to-bottom order within each column', () => {
++    const dtos = [
++      {
++        customAttributes: [{ label: 'Second', value: '2' }, { label: 'First', value: '1' }],
++      },
++    ]
++    expect(buildUnionCustomAttributeLabels(dtos)).toEqual(['Second', 'First'])
++  })
++})
+diff --git a/frontend/src/lib/system-compare-union-labels.js b/frontend/src/lib/system-compare-union-labels.js
+new file mode 100644
+index 0000000..eec8a85
+--- /dev/null
++++ b/frontend/src/lib/system-compare-union-labels.js
+@@ -0,0 +1,103 @@
++import { buildUnionCustomAttributeLabels } from './system-compare-custom-attributes.js'
++
++/** Static compare row labels before custom-attribute union rows (Epic 9.3 order). */
++export const SYSTEM_COMPARE_ROW_LABEL_PREFIX = [
++  'Name',
++  'Vendor',
++  'Category',
++  'Deployment model',
++  'Pricing model',
++  'Geographic focus',
++  'Membership capability',
++  'Donation capability',
++  'Reserved seating capability',
++  'Description',
++]
++
++const PROVENANCE_AND_ADOPTION_LABELS = ['Source reference', 'Last updated', 'Adopted by']
++
++/** Count of static label rows before the custom-attribute union (Identity + Capabilities + Description). */
++export const SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT = SYSTEM_COMPARE_ROW_LABEL_PREFIX.length
++
++/**
++ * 0-based row indexes in the compare label column that start a new section (Epic 9.3 dividers).
++ * @param {number} unionLabelCount
++ * @returns {Set<number>}
++ */
++export function systemCompareSectionDividerRowIndexes(unionLabelCount) {
++  const L = Math.max(0, unionLabelCount)
++  const provenanceStart = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT + L
++  const adoptedStart = provenanceStart + 2
++  const set = new Set([6, 9])
++  if (L > 0) set.add(SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT)
++  set.add(provenanceStart)
++  set.add(adoptedStart)
++  return set
++}
++
++/**
++ * @param {string[]} unionCustomAttributeLabels
++ * @returns {string[]}
++ */
++export function buildSystemCompareRowLabels(unionCustomAttributeLabels) {
++  return [
++    ...SYSTEM_COMPARE_ROW_LABEL_PREFIX,
++    ...unionCustomAttributeLabels,
++    ...PROVENANCE_AND_ADOPTION_LABELS,
++  ]
++}
++
++/**
++ * Ordered union of custom attribute labels: left-to-right column order, first-seen wins, case-insensitive dedupe.
++ * @param {string[]} ids
++ * @param {import('@tanstack/react-query').UseQueryResult<unknown, Error>[]} queries
++ * @returns {string[]}
++ */
++export function mergeCustomAttributeUnionLabels(ids, queries) {
++  for (let i = 0; i < ids.length; i++) {
++    const q = queries[i]
++    if (!q || q.isPending) return []
++  }
++
++  /** @type {Array<Record<string, unknown> | null>} */
++  const dtosInColumnOrder = []
++  for (let i = 0; i < ids.length; i++) {
++    const q = queries[i]
++    if (!q?.isSuccess || q.data == null || typeof q.data !== 'object') {
++      dtosInColumnOrder.push(null)
++      continue
++    }
++    const envelope = /** @type {{ data?: unknown }} */ (q.data)
++    if (envelope.data == null || typeof envelope.data !== 'object') {
++      dtosInColumnOrder.push(null)
++      continue
++    }
++    dtosInColumnOrder.push(
++      /** @type {Record<string, unknown>} */ (envelope.data),
++    )
++  }
++  return buildUnionCustomAttributeLabels(dtosInColumnOrder)
++}
++
++export { buildUnionCustomAttributeLabels }
++
++/**
++ * @param {unknown[] | null | undefined} customAttributes
++ * @param {string} unionLabel
++ * @returns {{ label?: string; value?: unknown; sourceReference?: string | null } | undefined}
++ */
++export function findCustomAttributeByLabel(customAttributes, unionLabel) {
++  if (!Array.isArray(customAttributes) || unionLabel == null || String(unionLabel).trim() === '') {
++    return undefined
++  }
++  const key = String(unionLabel).trim().toLowerCase()
++  const found = customAttributes.find((a) => {
++    if (a == null || typeof a !== 'object') return false
++    const lab = /** @type {{ label?: unknown }} */ (a).label
++    if (lab == null || String(lab).trim() === '') return false
++    return String(lab).trim().toLowerCase() === key
++  })
++  return found && typeof found === 'object'
++    ? /** @type {{ label?: string; value?: unknown; sourceReference?: string | null }} */ (found)
++    : undefined
++}
+diff --git a/frontend/src/lib/system-compare-union-labels.test.js b/frontend/src/lib/system-compare-union-labels.test.js
+new file mode 100644
+index 0000000..34ccc12
+--- /dev/null
++++ b/frontend/src/lib/system-compare-union-labels.test.js
+@@ -0,0 +1,105 @@
++import { describe, expect, it } from 'vitest'
++import {
++  buildSystemCompareRowLabels,
++  findCustomAttributeByLabel,
++  mergeCustomAttributeUnionLabels,
++  systemCompareSectionDividerRowIndexes,
++} from './system-compare-union-labels.js'
++
++function mockSuccessQuery(envelopeData) {
++  return {
++    isPending: false,
++    isSuccess: true,
++    data: { data: envelopeData },
++  }
++}
++
++describe('mergeCustomAttributeUnionLabels', () => {
++  it('returns empty when no successful queries', () => {
++    expect(
++      mergeCustomAttributeUnionLabels(
++        ['a', 'b'],
++        [
++          { isPending: false, isSuccess: false },
++          { isPending: false, isSuccess: false },
++        ],
++      ),
++    ).toEqual([])
++  })
++
++  it('returns empty while any column query is still pending', () => {
++    const ids = ['1', '2']
++    const queries = [
++      mockSuccessQuery({ customAttributes: [{ label: 'Foo', value: '1' }] }),
++      { isPending: true, isSuccess: false },
++    ]
++    expect(mergeCustomAttributeUnionLabels(ids, queries)).toEqual([])
++  })
++
++  it('merges left-to-right with case-insensitive dedupe', () => {
++    const ids = ['1', '2']
++    const queries = [
++      mockSuccessQuery({
++        customAttributes: [{ label: 'Foo', value: '1' }, { label: 'foo', value: 'skip' }],
++      }),
++      mockSuccessQuery({
++        customAttributes: [{ label: 'Bar', value: '2' }, { label: 'FOO', value: 'skip' }],
++      }),
++    ]
++    expect(mergeCustomAttributeUnionLabels(ids, queries)).toEqual(['Foo', 'Bar'])
++  })
++
++  it('skips non-object or missing customAttributes', () => {
++    const ids = ['1']
++    const queries = [mockSuccessQuery({ customAttributes: null })]
++    expect(mergeCustomAttributeUnionLabels(ids, queries)).toEqual([])
++  })
++
++  it('merges from successful columns only in left-to-right order', () => {
++    const ids = ['1', '2', '3']
++    const queries = [
++      mockSuccessQuery({ customAttributes: [{ label: 'A', value: '1' }] }),
++      { isPending: false, isSuccess: false, data: undefined },
++      mockSuccessQuery({ customAttributes: [{ label: 'B', value: '2' }] }),
++    ]
++    expect(mergeCustomAttributeUnionLabels(ids, queries)).toEqual(['A', 'B'])
++  })
++})
++
++describe('findCustomAttributeByLabel', () => {
++  it('matches case-insensitively', () => {
++    const attrs = [{ label: 'My Label', value: 'x' }]
++    expect(findCustomAttributeByLabel(attrs, 'my label')?.value).toBe('x')
++    expect(findCustomAttributeByLabel(attrs, 'nomatch')).toBeUndefined()
++  })
++})
++
++describe('buildSystemCompareRowLabels', () => {
++  it('appends union then provenance labels', () => {
++    const rows = buildSystemCompareRowLabels(['A', 'B'])
++    expect(rows).toContain('Description')
++    expect(rows).toContain('Deployment model')
++    expect(rows).toContain('Membership capability')
++    expect(rows).toContain('A')
++    expect(rows).toContain('B')
++    expect(rows[rows.length - 3]).toBe('Source reference')
++    expect(rows[rows.length - 1]).toBe('Adopted by')
++  })
++})
++
++describe('systemCompareSectionDividerRowIndexes', () => {
++  it('includes provenance and adopted starts when union is empty', () => {
++    const s = systemCompareSectionDividerRowIndexes(0)
++    expect(s.has(6)).toBe(true)
++    expect(s.has(9)).toBe(true)
++    expect(s.has(10)).toBe(true)
++    expect(s.has(12)).toBe(true)
++  })
++
++  it('includes union start when union is non-empty', () => {
++    const s = systemCompareSectionDividerRowIndexes(2)
++    expect(s.has(10)).toBe(true)
++    expect(s.has(12)).toBe(true)
++    expect(s.has(14)).toBe(true)
++  })
++})
+diff --git a/frontend/src/lib/system-compare-view-state.js b/frontend/src/lib/system-compare-view-state.js
+new file mode 100644
+index 0000000..d47e676
+--- /dev/null
++++ b/frontend/src/lib/system-compare-view-state.js
+@@ -0,0 +1,13 @@
++/**
++ * Derive compare grid UI phase from parallel system queries (after IDs are non-empty).
++ * @param {import('@tanstack/react-query').UseQueryResult[]} queries
++ * @returns {'loading' | 'insufficient' | 'ready'}
++ */
++export function getSystemComparePhase(queries) {
++  if (queries.length === 0) return 'insufficient'
++  const loading = queries.some((q) => q.isPending)
++  if (loading) return 'loading'
++  const successCount = queries.filter((q) => q.isSuccess).length
++  if (successCount < 2) return 'insufficient'
++  return 'ready'
++}
+diff --git a/frontend/src/lib/system-compare-view-state.test.js b/frontend/src/lib/system-compare-view-state.test.js
+new file mode 100644
+index 0000000..8804584
+--- /dev/null
++++ b/frontend/src/lib/system-compare-view-state.test.js
+@@ -0,0 +1,34 @@
++import { describe, it, expect } from 'vitest'
++import { getSystemComparePhase } from './system-compare-view-state.js'
++
++function mockPending() {
++  return { isPending: true, isSuccess: false, isError: false }
++}
++
++function mockSuccess() {
++  return { isPending: false, isSuccess: true, isError: false }
++}
++
++function mockError() {
++  return { isPending: false, isSuccess: false, isError: true }
++}
++
++describe('getSystemComparePhase', () => {
++  it('returns insufficient when no queries', () => {
++    expect(getSystemComparePhase([])).toBe('insufficient')
++  })
++
++  it('returns loading when any query is pending', () => {
++    expect(getSystemComparePhase([mockSuccess(), mockPending()])).toBe('loading')
++  })
++
++  it('returns insufficient when fewer than 2 succeed after settle', () => {
++    expect(getSystemComparePhase([mockSuccess(), mockError()])).toBe('insufficient')
++    expect(getSystemComparePhase([mockError(), mockError()])).toBe('insufficient')
++  })
++
++  it('returns ready when at least 2 succeed', () => {
++    expect(getSystemComparePhase([mockSuccess(), mockSuccess()])).toBe('ready')
++    expect(getSystemComparePhase([mockSuccess(), mockSuccess(), mockError()])).toBe('ready')
++  })
++})
+diff --git a/frontend/src/pages/CompareLegacyPathPage.jsx b/frontend/src/pages/CompareLegacyPathPage.jsx
+new file mode 100644
+index 0000000..60e6a79
+--- /dev/null
++++ b/frontend/src/pages/CompareLegacyPathPage.jsx
+@@ -0,0 +1,27 @@
++import { Link } from 'react-router-dom'
++
++/** Legacy `/compare` (without `/organisations` or `/systems`) — bookmarks should use explicit paths. */
++export default function CompareLegacyPathPage() {
++  return (
++    <div className="py-12 text-center">
++      <h1 className="text-xl font-semibold text-slate-800">Page not found</h1>
++      <p className="mt-3 max-w-md mx-auto text-sm text-slate-600">
++        Organisation and system compare live at dedicated URLs. Use the links below.
++      </p>
++      <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
++        <Link
++          to="/organisations"
++          className="inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++        >
++          ← Go to organisations
++        </Link>
++        <Link
++          to="/systems"
++          className="inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++        >
++          Go to systems
++        </Link>
++      </div>
++    </div>
++  )
++}
+diff --git a/frontend/src/pages/SystemComparePage.jsx b/frontend/src/pages/SystemComparePage.jsx
+new file mode 100644
+index 0000000..48f6e6d
+--- /dev/null
++++ b/frontend/src/pages/SystemComparePage.jsx
+@@ -0,0 +1,117 @@
++import { useCallback, useMemo } from 'react'
++import { Link, useSearchParams } from 'react-router-dom'
++import { SystemCard } from '../components/SystemCard.jsx'
++import {
++  buildSystemCompareRowLabels,
++  mergeCustomAttributeUnionLabels,
++  systemCompareSectionDividerRowIndexes,
++} from '../lib/system-compare-union-labels.js'
++import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-params.js'
++import { useCompareSystems } from '../hooks/useCompareSystems.js'
++import { cn } from '../lib/utils.js'
++
++export default function SystemComparePage() {
++  const [searchParams, setSearchParams] = useSearchParams()
++  const idsParam = searchParams.get('ids')
++  const ids = useMemo(
++    () => parseCompareIds(idsParam).slice(0, MAX_SYSTEM_COMPARE_IDS),
++    [idsParam],
++  )
++  const queries = useCompareSystems(ids)
++
++  const unionLabels = useMemo(
++    () => mergeCustomAttributeUnionLabels(ids, queries),
++    [ids, queries],
++  )
++
++  const rowLabels = useMemo(() => buildSystemCompareRowLabels(unionLabels), [unionLabels])
++
++  const sectionDividerRows = useMemo(
++    () => systemCompareSectionDividerRowIndexes(unionLabels.length),
++    [unionLabels.length],
++  )
++
++  const removeId = useCallback(
++    (idToRemove) => {
++      setSearchParams(
++        (prev) => {
++          const next = new URLSearchParams(prev)
++          const remaining = parseCompareIds(next.get('ids'))
++            .slice(0, MAX_SYSTEM_COMPARE_IDS)
++            .filter((id) => id !== idToRemove)
++          if (remaining.length === 0) {
++            next.delete('ids')
++          } else {
++            next.set('ids', remaining.join(','))
++          }
++          return next
++        },
++        { replace: true },
++      )
++    },
++    [setSearchParams],
++  )
++
++  if (ids.length === 0) {
++    return (
++      <div className="py-8">
++        <Link to="/systems" className="mb-4 inline-block text-sm text-blue-600">
++          ← Back to systems
++        </Link>
++        <h1 className="text-2xl font-semibold text-slate-800">Compare systems</h1>
++        <p className="mt-2 text-slate-600">Select systems from the list to compare them here.</p>
++        <Link
++          to="/systems"
++          className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
++        >
++          Go to systems →
++        </Link>
++      </div>
++    )
++  }
++
++  return (
++    <div className="py-8">
++      <Link to="/systems" className="mb-4 inline-block text-sm text-blue-600">
++        ← Back to systems
++      </Link>
++      <h1 className="text-2xl font-semibold text-slate-800">Compare systems</h1>
++
++      <div className="mt-6 min-w-0 overflow-x-auto pb-1 xl:overflow-visible">
++        <div
++          className="inline-grid min-w-full gap-x-4"
++          style={{
++            gridTemplateColumns: `12rem repeat(${ids.length}, 18rem)`,
++            gridTemplateRows: `auto repeat(${rowLabels.length}, auto)`,
++          }}
++        >
++          <div className="sticky left-0 z-20 col-start-1 row-span-full grid min-w-0 grid-rows-subgrid border-r border-slate-200 bg-slate-50">
++            <div className="sticky top-0 z-30 border-b border-slate-200 bg-slate-50" aria-hidden />
++            {rowLabels.map((label, rowIndex) => (
++              <div
++                key={`${rowIndex}-${label}`}
++                className={cn(
++                  'flex items-center border-b border-slate-200 px-3 py-3 text-sm font-medium text-slate-600 last:border-b-0',
++                  sectionDividerRows.has(rowIndex) && 'border-t border-slate-200',
++                )}
++              >
++                {label}
++              </div>
++            ))}
++          </div>
++
++          {ids.map((id, index) => (
++            <SystemCard
++              key={id}
++              systemId={id}
++              compareGridColumn={index + 2}
++              unionCustomAttributeLabels={unionLabels}
++              query={queries[index]}
++              onRemove={() => removeId(id)}
++            />
++          ))}
++        </div>
++      </div>
++    </div>
++  )
++}

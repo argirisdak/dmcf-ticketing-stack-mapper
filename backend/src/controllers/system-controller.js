@@ -1,6 +1,10 @@
 const systemService = require('../services/system-service');
+const { SYSTEM_SORT_KEYS } = require('../lib/sort-allowlists');
 const { SYSTEM_GEOGRAPHIC_FOCUS } = require('../lib/system-geographic-focus');
 const { stripClientControlledSystemWriteKeys } = require('../lib/strip-client-controlled-write-keys');
+const { SYSTEM_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
+const { validateFieldSources } = require('../lib/validate-field-sources');
+const { validateCustomAttributes } = require('../lib/validate-custom-attributes');
 
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
@@ -12,11 +16,21 @@ function isUuidParam(id) {
   return typeof id === 'string' && UUID_REGEX.test(id.trim());
 }
 
+const SYSTEM_SORT_SET = new Set(SYSTEM_SORT_KEYS);
 const SYSTEM_CATEGORY_SET = new Set(['INTEGRATED', 'TICKETING', 'AUDIENCE_MANAGEMENT']);
 const DEPLOYMENT_MODEL_SET = new Set(['SAAS', 'SELF_HOSTED', 'HYBRID']);
 const PRICING_MODEL_SET = new Set(['SUBSCRIPTION', 'TRANSACTION_FEE', 'LICENCE', 'HYBRID', 'UNKNOWN']);
 const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
 const GEOGRAPHIC_FOCUS_SET = new Set(SYSTEM_GEOGRAPHIC_FOCUS);
+
+/** Five v3 system capabilities: API camelCase, optional snake_case body alias, Prisma column (for service filters). */
+const SYSTEM_EXTENDED_CAPABILITY_FIELDS = [
+  { apiField: 'seasonSubscriptionsCapability', camelKey: 'seasonSubscriptionsCapability', snakeKey: 'season_subscriptions_capability' },
+  { apiField: 'dynamicPricingCapability', camelKey: 'dynamicPricingCapability', snakeKey: 'dynamic_pricing_capability' },
+  { apiField: 'multiVenueSupportCapability', camelKey: 'multiVenueSupportCapability', snakeKey: 'multi_venue_support_capability' },
+  { apiField: 'marketingAutomationCapability', camelKey: 'marketingAutomationCapability', snakeKey: 'marketing_automation_capability' },
+  { apiField: 'accessibilityFeaturesCapability', camelKey: 'accessibilityFeaturesCapability', snakeKey: 'accessibility_features_capability' },
+];
 
 /** Normalise Express query param to a single string or undefined. */
 function asQueryString(param) {
@@ -162,6 +176,42 @@ const listSystems = async (req, res) => {
     }
   }
 
+  const extendedCapabilityFilters = {};
+  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
+    const rawCap = asQueryString(req.query[def.apiField]);
+    if (rawCap === undefined) continue;
+    const v = rawCap.trim().toUpperCase();
+    if (!CAPABILITY_SET.has(v)) {
+      fields.push({ field: def.apiField, message: 'Select a valid option' });
+    } else {
+      extendedCapabilityFilters[def.camelKey] = v;
+    }
+  }
+
+  const sortRaw = asQueryString(req.query.sort);
+  const orderRaw = asQueryString(req.query.order);
+  let listSort = 'name';
+  let listOrder = 'asc';
+  if (sortRaw !== undefined && sortRaw.trim() !== '') {
+    const s = sortRaw.trim();
+    if (!SYSTEM_SORT_SET.has(s)) {
+      fields.push({
+        field: 'sort',
+        message: `Sort field must be one of: ${SYSTEM_SORT_KEYS.join(', ')}`,
+      });
+    } else {
+      listSort = s;
+    }
+  }
+  if (orderRaw !== undefined && orderRaw.trim() !== '') {
+    const o = orderRaw.trim().toLowerCase();
+    if (o !== 'asc' && o !== 'desc') {
+      fields.push({ field: 'order', message: 'Order must be asc or desc' });
+    } else {
+      listOrder = o;
+    }
+  }
+
   if (fields.length > 0) {
     return res.status(400).json({
       data: null,
@@ -174,6 +224,8 @@ const listSystems = async (req, res) => {
     const { data, total, totalPages } = await systemService.listSystems({
       page,
       limit,
+      sort: listSort,
+      order: listOrder,
       q: qTrimmedEarly ?? undefined,
       categories,
       deploymentModel,
@@ -182,6 +234,7 @@ const listSystems = async (req, res) => {
       membership,
       donation,
       seating,
+      ...extendedCapabilityFilters,
     });
 
     return res.json({
@@ -318,9 +371,33 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
     else reservedSeatingCapability = v === null ? 'UNKNOWN' : v;
   }
 
+  const extCapabilityPayload = {};
+  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
+    if (!(def.snakeKey in raw || def.camelKey in raw)) continue;
+    const rawCap = def.snakeKey in raw ? raw[def.snakeKey] : raw[def.camelKey];
+    const v = normaliseOptionalEnum(rawCap, CAPABILITY_SET);
+    if (v === '__invalid__') {
+      fields.push({ field: def.apiField, message: 'Must be YES, NO, or UNKNOWN' });
+    } else {
+      extCapabilityPayload[def.camelKey] = v === null ? 'UNKNOWN' : v;
+    }
+  }
+
   const description = 'description' in raw ? normaliseOptionalString(raw.description) : undefined;
   const sourceReferenceRaw = 'source_reference' in raw ? raw.source_reference : ('sourceReference' in raw ? raw.sourceReference : undefined);
   const sourceReference = sourceReferenceRaw !== undefined ? normaliseOptionalString(sourceReferenceRaw) : undefined;
+
+  const fieldSourcesRaw =
+    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
+  let fieldSources;
+  if (fieldSourcesRaw !== undefined) {
+    const vr = validateFieldSources(fieldSourcesRaw, SYSTEM_FIELD_SOURCE_KEYS);
+    if (!vr.ok) {
+      fields.push(...vr.errors);
+    } else {
+      fieldSources = vr.value;
+    }
+  }
 
   if (fields.length > 0) return { fields, payload: null };
 
@@ -337,7 +414,9 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
       membershipCapability,
       donationCapability,
       reservedSeatingCapability,
+      ...extCapabilityPayload,
       sourceReference,
+      ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
     },
   };
 }
@@ -347,6 +426,44 @@ function stripAndSanitise(body) {
   delete stripped.customAttributes;
   delete stripped.custom_attributes;
   return stripped;
+}
+
+function customAttributesKeyPresent(body) {
+  if (body == null || typeof body !== 'object' || Array.isArray(body)) return false;
+  return (
+    Object.prototype.hasOwnProperty.call(body, 'customAttributes')
+    || Object.prototype.hasOwnProperty.call(body, 'custom_attributes')
+  );
+}
+
+function rawCustomAttributesFromBody(body) {
+  if (Object.prototype.hasOwnProperty.call(body, 'customAttributes')) return body.customAttributes;
+  return body.custom_attributes;
+}
+
+/**
+ * When `customAttributes` / `custom_attributes` is present on the original body, validates and sets
+ * `payload.customAttributes` to `null` (clear) or a cleaned array. Omits the key when the field is absent (PUT preserve).
+ */
+function mergeCustomAttributesWrite(originalBody, fields, payload) {
+  if (!customAttributesKeyPresent(originalBody)) return;
+  if (
+    Object.prototype.hasOwnProperty.call(originalBody, 'customAttributes')
+    && Object.prototype.hasOwnProperty.call(originalBody, 'custom_attributes')
+  ) {
+    fields.push({
+      field: 'customAttributes',
+      message: 'Cannot provide both customAttributes and custom_attributes.',
+    });
+    return;
+  }
+  const vr = validateCustomAttributes(rawCustomAttributesFromBody(originalBody));
+  if (!vr.ok) {
+    fields.push(...vr.errors);
+    return;
+  }
+  if (payload == null) return;
+  payload.customAttributes = vr.value.length === 0 ? null : vr.value;
 }
 
 const createSystem = async (req, res) => {
@@ -360,6 +477,7 @@ const createSystem = async (req, res) => {
 
   const raw = stripAndSanitise(req.body);
   const { fields, payload } = parseSystemWritePayload(raw, { requireAll: true });
+  mergeCustomAttributesWrite(req.body, fields, payload);
 
   if (fields.length > 0) {
     return res.status(400).json({ data: null, error: { message: 'Validation failed', fields }, meta: null });
@@ -398,6 +516,7 @@ const updateSystem = async (req, res) => {
 
   const raw = stripAndSanitise(req.body);
   const { fields, payload } = parseSystemWritePayload(raw, { requireAll: false });
+  mergeCustomAttributesWrite(req.body, fields, payload);
 
   if (fields.length > 0) {
     return res.status(400).json({ data: null, error: { message: 'Validation failed', fields }, meta: null });

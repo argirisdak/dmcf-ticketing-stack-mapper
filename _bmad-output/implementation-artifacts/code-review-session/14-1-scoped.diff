@@ -1,0 +1,1997 @@
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 735e64f..29821c4 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -1,9 +1,9 @@
+-# generated: 2026-04-30T23:00:00Z
+-# last_updated: 2026-04-30T23:45:00Z
+-# project: dmcf-app
++# generated: 2026-05-03T10:01:12Z
++# last_updated: 2026-05-04T22:45:00Z
++# project: dmcf-ticketing-stack-mapper
+ # project_key: NOKEY
+ # tracking_system: file-system
+-# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++# story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ # STATUS DEFINITIONS:
+ # ==================
+@@ -34,22 +34,22 @@
+ # - SM typically creates next story after previous one is 'done' to incorporate learnings
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+-generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T22:25:00Z
+-project: dmcf-app
++generated: 2026-05-03T10:01:12Z
++last_updated: 2026-05-04T22:45:00Z
++project: dmcf-ticketing-stack-mapper
+ project_key: NOKEY
+ tracking_system: file-system
+-story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ development_status:
+-  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
++  # ─── Epic 1: Project Foundation — Runnable Local Stack ───
+   epic-1: done
+   1-1-backend-scaffold-data-model-and-reference-data-seed: done
+   1-2-frontend-scaffold-and-application-shell: done
+   1-3-readme-and-project-documentation: done
+   epic-1-retrospective: done
+ 
+-  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
++  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ───
+   epic-2: done
+   2-1-organisation-list-page: done
+   2-2-create-organisation: done
+@@ -58,33 +58,33 @@ development_status:
+   2-5-delete-organisation: done
+   epic-2-retrospective: done
+ 
+-  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
++  # ─── Epic 3: Discovery & Filtering ───
+   epic-3: done
+   3-1-text-search: done
+   3-2-filter-bar-and-active-filter-chips: done
+   3-3-multi-filter-api-integration-and-url-state: done
+   epic-3-retrospective: done
+ 
+-  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
++  # ─── Epic 4: Side-by-Side Comparison ───
+   epic-4: done
+   4-1-compare-selection-bar: done
+   4-2-compare-page: done
+   epic-4-retrospective: done
+ 
+-  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
++  # ─── Epic 5: Seed Data & Demo Readiness ───
+   epic-5: done
+   5-1-sample-organisation-seed-data: done
+   5-2-readme-completion-and-demo-smoke-test: done
+   epic-5-retrospective: done
+ 
+-  # ─── Epic 6: Foundational Schema Migration to Systems Model ────────────────────
++  # ─── Epic 6: Foundational Schema Migration to Systems Model ───
+   epic-6: done
+   6-1-migration-a-add-system-and-organisationsystem-schema-additive: done
+   6-2-migration-b-backfill-systems-and-organisation-links-custom-sql: done
+   6-3-updatedat-on-system-organisationsystem-and-seed-reshape: done
+   epic-6-retrospective: done
+ 
+-  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ─────────────────────
++  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ───
+   epic-7: done
+   7-1-system-rest-api-list-detail-search-filters: done
+   7-2-system-rest-api-create-update-delete: done
+@@ -94,7 +94,7 @@ development_status:
+   7-6-system-create-edit-form: done
+   epic-7-retrospective: done
+ 
+-  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
++  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───
+   epic-8: done
+   8-1-organisation-system-link-api-junction-crud: done
+   8-2-organisation-api-filter-and-response-re-shape: done
+@@ -104,16 +104,53 @@ development_status:
+   8-6-organisationcard-system-chips-and-compare-view-updates: done
+   epic-8-retrospective: done
+ 
+-  # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
++  # ─── Epic 9: System-to-System Compare ───
+   epic-9: done
+   9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+   9-2-systemcard-component-compare-column: done
+   9-3-compare-union-panel-and-contextual-compare-entry-points: done
+   epic-9-retrospective: done
+ 
+-  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+-  epic-10: in-progress
++  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ───
++  epic-10: done
+   10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
+   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
+-  10-3-readme-and-docs-decisions-md-v2-updates: backlog
+-  epic-10-retrospective: optional
++  10-3-readme-and-docs-decisions-md-v2-updates: done
++  epic-10-retrospective: done
++
++  # ─── Epic 11: Source per Data Point ───
++  epic-11: done
++  11-1-migration-a-add-field-sources-column: done
++  11-2-api-contract-accept-and-return-field-sources: done
++  11-3-detail-and-compare-field-source-icon-rendering: done
++  11-4-forms-field-with-source-wrapper: done
++  11-5-seed-data-research-populate-field-sources: done
++  epic-11-retrospective: done
++
++  # ─── Epic 12: System Capability Expansion ───
++  epic-12: done
++  12-1-migration-b-add-system-capability-columns: done
++  12-2-api-accept-and-filter-five-new-capabilities: done
++  12-3-form-detail-compare-render-five-new-capabilities: done
++  12-4-system-list-filter-sidebar-collapsible-more-capabilities: done
++  12-5-seed-populate-five-new-capabilities-and-field-sources: done
++  epic-12-retrospective: done
++
++  # ─── Epic 13: Custom Attribute Editor ───
++  epic-13: done
++  13-1-api-accept-custom-attributes-on-system-create-and-update: done
++  13-2-system-form-custom-attribute-editor-component: done
++  epic-13-retrospective: done
++
++  # ─── Epic 14: List Sorting ───
++  epic-14: backlog
++  14-1-api-sort-and-order-on-list-endpoints: review
++  14-2-list-pages-sort-dropdown-and-url-persistence: ready-for-dev
++  epic-14-retrospective: optional
++
++  # ─── Epic 15: Organisation Duplicate Guard ───
++  epic-15: backlog
++  15-1-migration-c-organisation-composite-unique: ready-for-dev
++  15-2-new-endpoint-check-similar-organisations: ready-for-dev
++  15-3-organisation-form-similar-organisations-warning: ready-for-dev
++  epic-15-retrospective: optional
+diff --git a/backend/src/__tests__/organisation-controller.test.js b/backend/src/__tests__/organisation-controller.test.js
+index 318cd34..ec70a3f 100644
+--- a/backend/src/__tests__/organisation-controller.test.js
++++ b/backend/src/__tests__/organisation-controller.test.js
+@@ -53,6 +53,7 @@ describe('GET /api/organisations', () => {
+           sourceReference: 'REF-1',
+           notes: null,
+           capacity: 2000,
++          fieldSources: null,
+           lastUpdated: '2026-03-01T12:00:00.000Z',
+           createdAt: '2025-06-01T08:00:00.000Z',
+           updatedAt: '2026-03-01T12:00:00.000Z',
+@@ -85,6 +86,7 @@ describe('GET /api/organisations', () => {
+           sourceReference: null,
+           notes: null,
+           capacity: null,
++          fieldSources: null,
+           lastUpdated: '2026-01-01T00:00:00.000Z',
+           createdAt: '2026-01-01T00:00:00.000Z',
+           updatedAt: '2026-01-01T00:00:00.000Z',
+@@ -124,35 +126,35 @@ describe('GET /api/organisations', () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   it('uses first value when page or limit query keys are repeated', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?page=2&page=99&limit=10&limit=50');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10, sort: 'name', order: 'asc' });
+   });
+ 
+   it('forwards trimmed q to the service when provided', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=  Opera  ');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera' });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera', sort: 'name', order: 'asc' });
+   });
+ 
+   it('omits q when query is absent or whitespace-only', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=%20%09');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   it('uses first value when q query key is repeated', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=foo&q=bar');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo' });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo', sort: 'name', order: 'asc' });
+   });
+ 
+   it('returns 400 for invalid page', async () => {
+@@ -209,6 +211,8 @@ describe('GET /api/organisations', () => {
+       membership: 'YES',
+       donation: 'NO',
+       seating: 'UNKNOWN',
++      sort: 'name',
++      order: 'asc',
+     });
+   });
+ 
+@@ -230,7 +234,7 @@ describe('GET /api/organisations', () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+     const res = await request(app).get('/api/organisations?membership=%20%20&donation=%09');
+     expect(res.status).toBe(200);
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   // v2: reject deprecated provider and crm params
+@@ -324,6 +328,41 @@ describe('GET /api/organisations', () => {
+     );
+     expect(mockListOrganisations).not.toHaveBeenCalled();
+   });
++
++  it('returns 400 for invalid sort with fields message listing allow-list', async () => {
++    const res = await request(app).get('/api/organisations?sort=notAField');
++    expect(res.status).toBe(400);
++    expect(res.body.data).toBeNull();
++    expect(res.body.meta).toBeNull();
++    const sortErr = res.body.error.fields.find((f) => f.field === 'sort');
++    expect(sortErr).toBeDefined();
++    expect(sortErr.message).toMatch(/^Sort field must be one of: /);
++    expect(mockListOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 for invalid order', async () => {
++    const res = await request(app).get('/api/organisations?order=upward');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields).toEqual(
++      expect.arrayContaining([expect.objectContaining({ field: 'order', message: 'Order must be asc or desc' })]),
++    );
++    expect(mockListOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('forwards validated sort and order to the service', async () => {
++    mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++    const res = await request(app).get('/api/organisations?sort=lastUpdated&order=DESC&country=United+Kingdom');
++    expect(res.status).toBe(200);
++    expect(mockListOrganisations).toHaveBeenCalledWith(
++      expect.objectContaining({
++        sort: 'lastUpdated',
++        order: 'desc',
++        country: 'United Kingdom',
++        page: 1,
++        limit: 20,
++      }),
++    );
++  });
+ });
+ 
+ const sampleDto = {
+@@ -338,6 +377,7 @@ const sampleDto = {
+   sourceReference: 'SRC-REF-1',
+   notes: 'Stage door on Bow Street',
+   capacity: 2256,
++  fieldSources: null,
+   lastUpdated: '2026-03-01T12:00:00.000Z',
+   createdAt: '2025-06-01T08:00:00.000Z',
+   updatedAt: '2026-03-01T12:00:00.000Z',
+@@ -409,6 +449,7 @@ describe('POST /api/organisations', () => {
+       sourceReference: null,
+       notes: null,
+       capacity: null,
++      fieldSources: null,
+       lastUpdated: '2026-04-03T10:00:00.000Z',
+       createdAt: '2026-04-03T10:00:00.000Z',
+       updatedAt: '2026-04-03T10:00:00.000Z',
+@@ -563,6 +604,83 @@ describe('POST /api/organisations', () => {
+   });
+ });
+ 
++describe('POST /api/organisations — fieldSources', () => {
++  beforeEach(() => {
++    mockCreateOrganisation.mockReset();
++    prisma.organisationType.findUnique.mockReset();
++    prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
++    const returned = {
++      id: 'new-org-id',
++      name: 'Acme Hall',
++      city: null,
++      country: 'United Kingdom',
++      organisationType: { id: 'type-uuid-1', name: 'Venue' },
++      membershipCapability: 'YES',
++      donationCapability: 'NO',
++      reservedSeatingCapability: 'UNKNOWN',
++      sourceReference: null,
++      notes: null,
++      capacity: null,
++      fieldSources: { country: 'https://example.com/source' },
++      lastUpdated: '2026-04-03T10:00:00.000Z',
++      createdAt: '2026-04-03T10:00:00.000Z',
++      updatedAt: '2026-04-03T10:00:00.000Z',
++      systems: [],
++    };
++    mockCreateOrganisation.mockResolvedValue(returned);
++
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({
++        ...validCreateBody,
++        fieldSources: { country: 'https://example.com/source' },
++      });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.fieldSources).toEqual({ country: 'https://example.com/source' });
++    expect(mockCreateOrganisation).toHaveBeenCalledWith(
++      expect.objectContaining({ fieldSources: { country: 'https://example.com/source' } }),
++    );
++  });
++
++  it('returns 400 for unknown fieldSources key', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: { unknownKey: 'https://x.com' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.unknownKey')).toBe(true);
++  });
++
++  it('returns 400 when fieldSources URL is invalid', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: { country: '//bad' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('fieldSources.country');
++  });
++
++  it('returns 400 when fieldSources is not a plain object', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: [] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0]).toEqual(
++      expect.objectContaining({ field: 'fieldSources', message: 'Must be an object.' }),
++    );
++  });
++});
++
+ describe('PUT /api/organisations/:id', () => {
+   const orgId = VALID_UUID;
+ 
+@@ -716,6 +834,29 @@ describe('PUT /api/organisations/:id', () => {
+     );
+     expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+   });
++
++  it('passes fieldSources: {} to clear stored sources', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId, fieldSources: {} });
++
++    const res = await request(app)
++      .put(`/api/organisations/${orgId}`)
++      .send({ ...validCreateBody, fieldSources: {} });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateOrganisation).toHaveBeenCalledWith(
++      orgId,
++      expect.objectContaining({ fieldSources: {} }),
++    );
++  });
++
++  it('omits fieldSources from update payload when key not in body', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId });
++
++    await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
++
++    const payload = mockUpdateOrganisation.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('fieldSources');
++  });
+ });
+ 
+ describe('DELETE /api/organisations/:id', () => {
+diff --git a/backend/src/__tests__/organisation-service.test.js b/backend/src/__tests__/organisation-service.test.js
+index 3be6be1..11a900d 100644
+--- a/backend/src/__tests__/organisation-service.test.js
++++ b/backend/src/__tests__/organisation-service.test.js
+@@ -13,6 +13,7 @@ const {
+   getOrganisationById,
+   updateOrganisation,
+   listOrganisations,
++  buildOrganisationListOrderBy,
+ } = require('../services/organisation-service');
+ 
+ /** Mirrors `organisationInclude` in organisation-service (AC5/AC6 link ordering). */
+@@ -40,6 +41,7 @@ describe('toOrganisationListDto', () => {
+       source_reference: 'REF-1',
+       notes: null,
+       capacity: 2000,
++      field_sources: null,
+       last_updated: new Date('2026-03-01T12:00:00.000Z'),
+       created_at: new Date('2025-06-01T08:00:00.000Z'),
+       organisation_type: { id: 't1', name: 'Venue' },
+@@ -53,6 +55,7 @@ describe('toOrganisationListDto', () => {
+     expect(dto.createdAt).toBe('2025-06-01T08:00:00.000Z');
+     expect(dto.updatedAt).toBe('2026-03-01T12:00:00.000Z');
+     expect(dto.membershipCapability).toBe('YES');
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.systems).toEqual([]);
+     expect(dto).not.toHaveProperty('ticketingProvider');
+     expect(dto).not.toHaveProperty('crmPlatform');
+@@ -123,6 +126,22 @@ describe('toOrganisationListDto', () => {
+   });
+ });
+ 
++describe('buildOrganisationListOrderBy', () => {
++  it.each([
++    ['name', 'asc', { name: 'asc' }],
++    ['country', 'desc', { country: 'desc' }],
++    ['lastUpdated', 'asc', { last_updated: 'asc' }],
++    ['capacity', 'desc', { capacity: 'desc' }],
++    ['organisationType', 'asc', { organisation_type: { name: 'asc' } }],
++  ])('maps %s + %s', (sortKey, order, expected) => {
++    expect(buildOrganisationListOrderBy(sortKey, order)).toEqual(expected);
++  });
++
++  it('falls back to name asc for unknown key', () => {
++    expect(buildOrganisationListOrderBy('unknown', 'desc')).toEqual({ name: 'asc' });
++  });
++});
++
+ describe('listOrganisations', () => {
+   beforeEach(() => {
+     prisma.organisation.findMany.mockReset();
+@@ -150,6 +169,54 @@ describe('listOrganisations', () => {
+     expect(prisma.organisation.count).toHaveBeenCalledWith({ where: {} });
+   });
+ 
++  it('applies orderBy from sort and order params', async () => {
++    prisma.organisation.findMany.mockResolvedValue([]);
++    prisma.organisation.count.mockResolvedValue(0);
++
++    await listOrganisations({ page: 1, limit: 20, sort: 'organisationType', order: 'desc' });
++
++    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({
++        orderBy: { organisation_type: { name: 'desc' } },
++      }),
++    );
++  });
++
++  it('composes q, country filter, and sort (AC6-style)', async () => {
++    prisma.organisation.findMany.mockResolvedValue([]);
++    prisma.organisation.count.mockResolvedValue(0);
++
++    await listOrganisations({
++      page: 1,
++      limit: 20,
++      q: 'opera',
++      country: 'United Kingdom',
++      sort: 'lastUpdated',
++      order: 'desc',
++    });
++
++    const expectedWhere = {
++      AND: [
++        {
++          OR: [
++            { name: { contains: 'opera', mode: 'insensitive' } },
++            { city: { contains: 'opera', mode: 'insensitive' } },
++            { notes: { contains: 'opera', mode: 'insensitive' } },
++          ],
++        },
++        { country: 'United Kingdom' },
++      ],
++    };
++
++    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({
++        where: expectedWhere,
++        orderBy: { last_updated: 'desc' },
++      }),
++    );
++    expect(prisma.organisation.count).toHaveBeenCalledWith({ where: expectedWhere });
++  });
++
+   it('applies OR filter across name, city, and notes only (ticketing provider removed)', async () => {
+     prisma.organisation.findMany.mockResolvedValue([]);
+     prisma.organisation.count.mockResolvedValue(0);
+diff --git a/backend/src/__tests__/system-controller.test.js b/backend/src/__tests__/system-controller.test.js
+index 1bee2ae..1a1d325 100644
+--- a/backend/src/__tests__/system-controller.test.js
++++ b/backend/src/__tests__/system-controller.test.js
+@@ -36,7 +36,13 @@ const SYSTEM_STUB = {
+   membershipCapability: 'YES',
+   donationCapability: 'YES',
+   reservedSeatingCapability: 'YES',
++  seasonSubscriptionsCapability: 'UNKNOWN',
++  dynamicPricingCapability: 'UNKNOWN',
++  multiVenueSupportCapability: 'UNKNOWN',
++  marketingAutomationCapability: 'UNKNOWN',
++  accessibilityFeaturesCapability: 'UNKNOWN',
+   sourceReference: 'https://www.spektrix.com',
++  fieldSources: null,
+   customAttributes: null,
+   lastUpdated: '2026-04-01T00:00:00.000Z',
+   createdAt: '2026-01-01T00:00:00.000Z',
+@@ -61,6 +67,14 @@ const SYSTEM_DETAIL_STUB = {
+   ],
+ };
+ 
++const EXTENDED_CAPABILITY_KEYS = [
++  'seasonSubscriptionsCapability',
++  'dynamicPricingCapability',
++  'multiVenueSupportCapability',
++  'marketingAutomationCapability',
++  'accessibilityFeaturesCapability',
++];
++
+ describe('GET /api/systems', () => {
+   beforeEach(() => {
+     mockListSystems.mockReset();
+@@ -172,6 +186,37 @@ describe('GET /api/systems', () => {
+     );
+   });
+ 
++  it.each(EXTENDED_CAPABILITY_KEYS)('accepts %s filter and passes to service', async (param) => {
++    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++
++    await request(app).get(`/api/systems?${param}=YES`);
++    expect(mockListSystems).toHaveBeenCalledWith(
++      expect.objectContaining({ [param]: 'YES' })
++    );
++  });
++
++  it('composes extended capability filters with AND via service args', async () => {
++    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++
++    await request(app).get(
++      '/api/systems?seasonSubscriptionsCapability=YES&dynamicPricingCapability=NO'
++    );
++    expect(mockListSystems).toHaveBeenCalledWith(
++      expect.objectContaining({
++        seasonSubscriptionsCapability: 'YES',
++        dynamicPricingCapability: 'NO',
++      })
++    );
++  });
++
++  it.each(EXTENDED_CAPABILITY_KEYS)('returns 400 for invalid %s query value', async (param) => {
++    const res = await request(app).get(`/api/systems?${param}=MAYBE`);
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === param && f.message === 'Select a valid option'
++    )).toBe(true);
++  });
++
+   it('returns 400 for invalid page param', async () => {
+     const res = await request(app).get('/api/systems?page=abc');
+     expect(res.status).toBe(400);
+@@ -196,6 +241,31 @@ describe('GET /api/systems', () => {
+     expect(res.body.error.fields.some(f => f.field === 'page')).toBe(true);
+   });
+ 
++  it('returns 400 for invalid sort', async () => {
++    const res = await request(app).get('/api/systems?sort=notAllowed');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.find((f) => f.field === 'sort')?.message).toMatch(/^Sort field must be one of: /);
++    expect(mockListSystems).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 for invalid order', async () => {
++    const res = await request(app).get('/api/systems?order=upward');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields).toEqual(
++      expect.arrayContaining([expect.objectContaining({ field: 'order', message: 'Order must be asc or desc' })]),
++    );
++    expect(mockListSystems).not.toHaveBeenCalled();
++  });
++
++  it('forwards validated sort and order with filters to the service', async () => {
++    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++    const res = await request(app).get('/api/systems?geographic_focus=UK&sort=geographicFocus&order=desc');
++    expect(res.status).toBe(200);
++    expect(mockListSystems).toHaveBeenCalledWith(
++      expect.objectContaining({ geographicFocus: 'UK', sort: 'geographicFocus', order: 'desc' }),
++    );
++  });
++
+   it('returns 500 on unexpected service error', async () => {
+     mockListSystems.mockRejectedValue(new Error('DB down'));
+ 
+@@ -346,8 +416,6 @@ describe('POST /api/systems', () => {
+         category: 'INTEGRATED',
+         id: 'should-be-stripped',
+         last_updated: '2020-01-01',
+-        custom_attributes: [{ label: 'X', value: 'Y' }],
+-        customAttributes: [{ label: 'X', value: 'Y' }],
+       });
+ 
+     expect(mockCreateSystem).toHaveBeenCalled();
+@@ -385,6 +453,371 @@ describe('POST /api/systems', () => {
+   });
+ });
+ 
++const MINIMAL_CREATE_BODY = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++describe('POST /api/systems — extended capabilities', () => {
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it.each(EXTENDED_CAPABILITY_KEYS)('POST normalises lowercase yes for %s (201 + service payload)', async (key) => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, [key]: 'YES' });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, [key]: 'yes' });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data[key]).toBe('YES');
++    expect(mockCreateSystem).toHaveBeenCalledWith(expect.objectContaining({ [key]: 'YES' }));
++  });
++
++  it('accepts season_subscriptions_capability snake_case alias on create', async () => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, seasonSubscriptionsCapability: 'YES' });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, season_subscriptions_capability: 'YES' });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ seasonSubscriptionsCapability: 'YES' })
++    );
++  });
++
++  it.each(EXTENDED_CAPABILITY_KEYS)('returns 400 when %s is MAYBE', async (key) => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, [key]: 'MAYBE' });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === key && f.message === 'Must be YES, NO, or UNKNOWN'
++    )).toBe(true);
++  });
++});
++
++describe('POST /api/systems — fieldSources', () => {
++  const minimalBody = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
++    const stub = { ...SYSTEM_STUB, fieldSources: { vendor: 'https://example.com/doc' } };
++    mockCreateSystem.mockResolvedValue(stub);
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'https://example.com/doc' } });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.fieldSources).toEqual({ vendor: 'https://example.com/doc' });
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ fieldSources: { vendor: 'https://example.com/doc' } }),
++    );
++  });
++
++  it('returns 400 for unknown fieldSources key', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { notARealKey: 'https://x.com' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.notARealKey')).toBe(true);
++  });
++
++  it('returns 400 when fieldSources URL does not start with http:// or https://', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'ftp://example.com/x' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'fieldSources.vendor'
++        && f.message === 'Source URL must start with http:// or https://'
++    )).toBe(true);
++  });
++
++  it('returns 400 when fieldSources is not a plain object', async () => {
++    const res = await request(app).post('/api/systems').send({ ...minimalBody, fieldSources: [] });
++
++    expect(res.status).toBe(400);
++    expect(
++      res.body.error.fields.some(
++        (f) => f.field === 'fieldSources' && f.message === 'Must be an object.',
++      ),
++    ).toBe(true);
++  });
++});
++
++describe('POST /api/systems — customAttributes', () => {
++  const minimalBody = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes cleaned customAttributes to service (round-trip)', async () => {
++    const attrs = [
++      { label: '  Footprint ', value: ' Mid ', sourceReference: 'https://example.com/a' },
++    ];
++    const stub = {
++      ...SYSTEM_STUB,
++      customAttributes: [{ label: 'Footprint', value: 'Mid', sourceReference: 'https://example.com/a' }],
++    };
++    mockCreateSystem.mockResolvedValue(stub);
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: attrs,
++      });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.customAttributes).toEqual(stub.customAttributes);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({
++        customAttributes: [{ label: 'Footprint', value: 'Mid', sourceReference: 'https://example.com/a' }],
++      }),
++    );
++  });
++
++  it('strips unknown keys on each element before persist', async () => {
++    mockCreateSystem.mockResolvedValue({
++      ...SYSTEM_STUB,
++      customAttributes: [{ label: 'L', value: 'V' }],
++    });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: 'L', value: 'V', extra: 'drop-me' }],
++      });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ customAttributes: [{ label: 'L', value: 'V' }] }),
++    );
++  });
++
++  it('drops rows where label and value are both empty after trim', async () => {
++    mockCreateSystem.mockResolvedValue({
++      ...SYSTEM_STUB,
++      customAttributes: [{ label: 'Keep', value: 'Yes' }],
++    });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: '   ', value: '   ' }, { label: 'Keep', value: 'Yes' }],
++      });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ customAttributes: [{ label: 'Keep', value: 'Yes' }] }),
++    );
++  });
++
++  it('sets customAttributes null in service payload when array is empty', async () => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, customAttributes: null });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [] });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(expect.objectContaining({ customAttributes: null }));
++  });
++
++  it('all-whitespace-only rows strip to empty array then null', async () => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, customAttributes: null });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: ' ', value: ' ' }] });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(expect.objectContaining({ customAttributes: null }));
++  });
++
++  it('returns 400 when customAttributes is not an array', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: {} });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'customAttributes' && f.message === 'Must be an array.',
++    )).toBe(true);
++  });
++
++  it('returns 400 when an element is not a plain object', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [[]] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('customAttributes[0]');
++    expect(res.body.error.fields[0].message).toBe('Must be a plain object.');
++  });
++
++  it('returns 400 when label empty but value set', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: '  ', value: 'x' }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].label')).toBe(true);
++  });
++
++  it('returns 400 when value empty but label set', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: 'L', value: '  ' }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].value')).toBe(true);
++  });
++
++  it('returns 400 when label exceeds 200 chars', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: 'x'.repeat(201), value: 'y' }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].label')).toBe(true);
++  });
++
++  it('returns 400 when value exceeds 200 chars', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: 'L', value: 'x'.repeat(201) }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].value')).toBe(true);
++  });
++
++  it('returns 400 when sourceReference is non-empty and not http(s)', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: 'L', value: 'V', sourceReference: 'ftp://x.com' }],
++      });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'customAttributes[0].sourceReference'
++        && f.message === 'Source URL must start with http:// or https://',
++    )).toBe(true);
++  });
++
++  it('accepts uppercase HTTP scheme on sourceReference and normalises to lowercase prefix', async () => {
++    mockCreateSystem.mockResolvedValue({
++      ...SYSTEM_STUB,
++      customAttributes: [{ label: 'L', value: 'V', sourceReference: 'http://example.com/x' }],
++    });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: 'L', value: 'V', sourceReference: 'HTTP://example.com/x' }],
++      });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({
++        customAttributes: [{ label: 'L', value: 'V', sourceReference: 'http://example.com/x' }],
++      }),
++    );
++  });
++
++  it('returns 400 when sourceReference exceeds 500 chars', async () => {
++    const longUrl = `https://example.com/${'x'.repeat(490)}`;
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: 'L', value: 'V', sourceReference: longUrl }],
++      });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].sourceReference')).toBe(true);
++  });
++
++  it('accepts custom_attributes snake_case key as alias', async () => {
++    mockCreateSystem.mockResolvedValue({
++      ...SYSTEM_STUB,
++      customAttributes: [{ label: 'A', value: 'B' }],
++    });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        custom_attributes: [{ label: 'A', value: 'B' }],
++      });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ customAttributes: [{ label: 'A', value: 'B' }] }),
++    );
++  });
++
++  it('returns 400 when both customAttributes and custom_attributes are sent', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({
++        ...minimalBody,
++        customAttributes: [{ label: 'A', value: 'B' }],
++        custom_attributes: [{ label: 'C', value: 'D' }],
++      });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'customAttributes'
++        && f.message === 'Cannot provide both customAttributes and custom_attributes.',
++    )).toBe(true);
++    expect(mockCreateSystem).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 when label is not a string', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: 1, value: 'v' }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].label')).toBe(true);
++  });
++
++  it('returns 400 when sourceReference is not a string', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, customAttributes: [{ label: 'L', value: 'V', sourceReference: 1 }] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'customAttributes[0].sourceReference')).toBe(true);
++  });
++});
++
+ describe('PUT /api/systems/:id', () => {
+   beforeEach(() => {
+     mockUpdateSystem.mockReset();
+@@ -472,12 +905,38 @@ describe('PUT /api/systems/:id', () => {
+     expect(res.body.error.fields[0].field).toBe('category');
+   });
+ 
++  it.each(EXTENDED_CAPABILITY_KEYS)('PUT normalises lowercase yes for %s', async (key) => {
++    mockUpdateSystem.mockResolvedValue({ ...SYSTEM_STUB, [key]: 'YES' });
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ [key]: 'yes' });
++
++    expect(res.status).toBe(200);
++    expect(res.body.data[key]).toBe('YES');
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ [key]: 'YES' })
++    );
++  });
++
++  it.each(EXTENDED_CAPABILITY_KEYS)('returns 400 when PUT %s is MAYBE', async (key) => {
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ [key]: 'MAYBE' });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === key && f.message === 'Must be YES, NO, or UNKNOWN'
++    )).toBe(true);
++  });
++
+   it('strips server-managed keys before passing to service', async () => {
+     mockUpdateSystem.mockResolvedValue(SYSTEM_STUB);
+ 
+     await request(app)
+       .put(`/api/systems/${VALID_UUID}`)
+-      .send({ name: 'New Name', id: 'injected', custom_attributes: [], customAttributes: [] });
++      .send({ name: 'New Name', id: 'injected' });
+ 
+     const receivedPayload = mockUpdateSystem.mock.calls[0][1];
+     expect(receivedPayload).not.toHaveProperty('id');
+@@ -495,6 +954,83 @@ describe('PUT /api/systems/:id', () => {
+     expect(res.status).toBe(500);
+     expect(res.body.error.message).toBe('An unexpected error occurred');
+   });
++
++  it('passes fieldSources: {} to clear stored sources', async () => {
++    mockUpdateSystem.mockResolvedValue({ ...SYSTEM_STUB, fieldSources: {} });
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ fieldSources: {} });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ fieldSources: {} }),
++    );
++  });
++
++  it('omits fieldSources from update payload when key not in body', async () => {
++    mockUpdateSystem.mockResolvedValue(SYSTEM_STUB);
++
++    await request(app).put(`/api/systems/${VALID_UUID}`).send({ name: 'Only Name' });
++
++    const payload = mockUpdateSystem.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('fieldSources');
++  });
++
++  it('passes customAttributes: null when body sends empty array (clear)', async () => {
++    mockUpdateSystem.mockResolvedValue({ ...SYSTEM_STUB, customAttributes: null });
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ customAttributes: [] });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ customAttributes: null }),
++    );
++  });
++
++  it('omits customAttributes from update payload when key not in body (preserve)', async () => {
++    mockUpdateSystem.mockResolvedValue(SYSTEM_STUB);
++
++    await request(app).put(`/api/systems/${VALID_UUID}`).send({ name: 'Only Name' });
++
++    const payload = mockUpdateSystem.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('customAttributes');
++  });
++
++  it('PUT round-trip passes cleaned customAttributes to service', async () => {
++    const next = { ...SYSTEM_STUB, customAttributes: [{ label: 'A', value: 'B' }] };
++    mockUpdateSystem.mockResolvedValue(next);
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ customAttributes: [{ label: ' A ', value: ' B ' }] });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ customAttributes: [{ label: 'A', value: 'B' }] }),
++    );
++  });
++
++  it('returns 400 when PUT sends both customAttributes and custom_attributes', async () => {
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({
++        customAttributes: [{ label: 'A', value: 'B' }],
++        custom_attributes: [{ label: 'C', value: 'D' }],
++      });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'customAttributes'
++        && f.message === 'Cannot provide both customAttributes and custom_attributes.',
++    )).toBe(true);
++    expect(mockUpdateSystem).not.toHaveBeenCalled();
++  });
+ });
+ 
+ describe('DELETE /api/systems/:id', () => {
+diff --git a/backend/src/__tests__/system-service.test.js b/backend/src/__tests__/system-service.test.js
+index 9f58142..fe794f0 100644
+--- a/backend/src/__tests__/system-service.test.js
++++ b/backend/src/__tests__/system-service.test.js
+@@ -15,7 +15,15 @@ jest.mock('../lib/prisma', () => ({
+ 
+ const prisma = require('../lib/prisma');
+ const { toSystemDto, toSystemDetailDto } = require('../services/system-list-dto');
+-const { buildSystemListWhere, listSystems, getSystemById, createSystem, updateSystem, deleteSystem } = require('../services/system-service');
++const {
++  buildSystemListWhere,
++  buildSystemListOrderBy,
++  listSystems,
++  getSystemById,
++  createSystem,
++  updateSystem,
++  deleteSystem,
++} = require('../services/system-service');
+ 
+ // ─── DTO Tests ────────────────────────────────────────────────────────────────
+ 
+@@ -32,7 +40,13 @@ describe('toSystemDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://spektrix.com',
++    field_sources: null,
+     custom_attributes: [{ label: 'Size', value: 'Mid', source_reference: null }],
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -51,7 +65,13 @@ describe('toSystemDto', () => {
+     expect(dto.membershipCapability).toBe('YES');
+     expect(dto.donationCapability).toBe('NO');
+     expect(dto.reservedSeatingCapability).toBe('UNKNOWN');
++    expect(dto.seasonSubscriptionsCapability).toBe('NO');
++    expect(dto.dynamicPricingCapability).toBe('YES');
++    expect(dto.multiVenueSupportCapability).toBe('UNKNOWN');
++    expect(dto.marketingAutomationCapability).toBe('NO');
++    expect(dto.accessibilityFeaturesCapability).toBe('YES');
+     expect(dto.sourceReference).toBe('https://spektrix.com');
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toEqual([{ label: 'Size', value: 'Mid', source_reference: null }]);
+     expect(dto.lastUpdated).toBe('2026-04-01T00:00:00.000Z');
+     expect(dto.createdAt).toBe('2026-01-01T00:00:00.000Z');
+@@ -63,20 +83,36 @@ describe('toSystemDto', () => {
+     expect(dto).not.toHaveProperty('pricing_model');
+     expect(dto).not.toHaveProperty('geographic_focus');
+     expect(dto).not.toHaveProperty('membership_capability');
++    expect(dto).not.toHaveProperty('season_subscriptions_capability');
++    expect(dto).not.toHaveProperty('dynamic_pricing_capability');
++    expect(dto).not.toHaveProperty('multi_venue_support_capability');
++    expect(dto).not.toHaveProperty('marketing_automation_capability');
++    expect(dto).not.toHaveProperty('accessibility_features_capability');
+     expect(dto).not.toHaveProperty('source_reference');
++    expect(dto).not.toHaveProperty('field_sources');
+     expect(dto).not.toHaveProperty('custom_attributes');
+     expect(dto).not.toHaveProperty('last_updated');
+     expect(dto).not.toHaveProperty('created_at');
+   });
+ 
+   it('nulls nullable fields when absent', () => {
+-    const row = { ...baseRow, deployment_model: null, pricing_model: null, geographic_focus: null, description: null, source_reference: null, custom_attributes: null };
++    const row = {
++      ...baseRow,
++      deployment_model: null,
++      pricing_model: null,
++      geographic_focus: null,
++      description: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
++    };
+     const dto = toSystemDto(row);
+     expect(dto.deploymentModel).toBeNull();
+     expect(dto.pricingModel).toBeNull();
+     expect(dto.geographicFocus).toBeNull();
+     expect(dto.description).toBeNull();
+     expect(dto.sourceReference).toBeNull();
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toBeNull();
+   });
+ 
+@@ -99,7 +135,13 @@ describe('toSystemDetailDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'UNKNOWN',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'UNKNOWN',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: null,
++    field_sources: null,
+     custom_attributes: null,
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -231,6 +273,36 @@ describe('buildSystemListWhere', () => {
+     ]));
+   });
+ 
++  it('builds extended v3 capability clauses', () => {
++    const where = buildSystemListWhere({
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++      multiVenueSupportCapability: 'UNKNOWN',
++      marketingAutomationCapability: 'YES',
++      accessibilityFeaturesCapability: 'NO',
++    });
++    expect(where.AND).toEqual(expect.arrayContaining([
++      { season_subscriptions_capability: 'YES' },
++      { dynamic_pricing_capability: 'NO' },
++      { multi_venue_support_capability: 'UNKNOWN' },
++      { marketing_automation_capability: 'YES' },
++      { accessibility_features_capability: 'NO' },
++    ]));
++  });
++
++  it('combines legacy and extended capability filters with AND', () => {
++    const where = buildSystemListWhere({
++      membership: 'YES',
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++    });
++    expect(where.AND).toEqual(expect.arrayContaining([
++      { membership_capability: 'YES' },
++      { season_subscriptions_capability: 'YES' },
++      { dynamic_pricing_capability: 'NO' },
++    ]));
++  });
++
+   it('combines multiple filters with AND', () => {
+     const where = buildSystemListWhere({
+       categories: ['INTEGRATED'],
+@@ -247,6 +319,22 @@ describe('buildSystemListWhere', () => {
+   });
+ });
+ 
++describe('buildSystemListOrderBy', () => {
++  it.each([
++    ['name', 'asc', { name: 'asc' }],
++    ['vendor', 'desc', { vendor: 'desc' }],
++    ['category', 'asc', { category: 'asc' }],
++    ['lastUpdated', 'desc', { last_updated: 'desc' }],
++    ['geographicFocus', 'asc', { geographic_focus: 'asc' }],
++  ])('maps %s + %s', (sortKey, order, expected) => {
++    expect(buildSystemListOrderBy(sortKey, order)).toEqual(expected);
++  });
++
++  it('falls back to name asc for unknown key', () => {
++    expect(buildSystemListOrderBy('nope', 'desc')).toEqual({ name: 'asc' });
++  });
++});
++
+ // ─── listSystems Service Tests ────────────────────────────────────────────────
+ 
+ describe('listSystems', () => {
+@@ -262,7 +350,7 @@ describe('listSystems', () => {
+     await listSystems({ page: 2, limit: 10 });
+ 
+     expect(prisma.system.findMany).toHaveBeenCalledWith(
+-      expect.objectContaining({ skip: 10, take: 10 })
++      expect.objectContaining({ skip: 10, take: 10, orderBy: { name: 'asc' } }),
+     );
+     expect(prisma.system.count).toHaveBeenCalled();
+   });
+@@ -302,6 +390,52 @@ describe('listSystems', () => {
+     const callArg = prisma.system.findMany.mock.calls[0][0];
+     expect(callArg.include).toBeUndefined();
+   });
++
++  it('applies orderBy from sort and order params', async () => {
++    prisma.system.findMany.mockResolvedValue([]);
++    prisma.system.count.mockResolvedValue(0);
++
++    await listSystems({ page: 1, limit: 20, sort: 'vendor', order: 'desc' });
++
++    expect(prisma.system.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({ orderBy: { vendor: 'desc' } }),
++    );
++  });
++
++  it('composes search q, category filter, and sort', async () => {
++    prisma.system.findMany.mockResolvedValue([]);
++    prisma.system.count.mockResolvedValue(0);
++
++    await listSystems({
++      page: 1,
++      limit: 20,
++      q: 'spek',
++      categories: ['INTEGRATED'],
++      sort: 'lastUpdated',
++      order: 'asc',
++    });
++
++    const expectedWhere = {
++      AND: [
++        {
++          OR: [
++            { name: { contains: 'spek', mode: 'insensitive' } },
++            { vendor: { contains: 'spek', mode: 'insensitive' } },
++            { description: { contains: 'spek', mode: 'insensitive' } },
++          ],
++        },
++        { category: { in: ['INTEGRATED'] } },
++      ],
++    };
++
++    expect(prisma.system.findMany).toHaveBeenCalledWith(
++      expect.objectContaining({
++        where: expectedWhere,
++        orderBy: { last_updated: 'asc' },
++      }),
++    );
++    expect(prisma.system.count).toHaveBeenCalledWith({ where: expectedWhere });
++  });
+ });
+ 
+ // ─── getSystemById Service Tests ──────────────────────────────────────────────
+@@ -331,7 +465,9 @@ describe('getSystemById', () => {
+       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
+       deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
+       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
+-      source_reference: null, custom_attributes: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
+       last_updated: new Date('2026-04-01T00:00:00.000Z'),
+       created_at: new Date('2026-01-01T00:00:00.000Z'),
+       organisation_systems: [],
+@@ -359,7 +495,13 @@ const BASE_ROW = {
+   membership_capability: 'UNKNOWN',
+   donation_capability: 'UNKNOWN',
+   reserved_seating_capability: 'UNKNOWN',
++  season_subscriptions_capability: 'UNKNOWN',
++  dynamic_pricing_capability: 'UNKNOWN',
++  multi_venue_support_capability: 'UNKNOWN',
++  marketing_automation_capability: 'UNKNOWN',
++  accessibility_features_capability: 'UNKNOWN',
+   source_reference: null,
++  field_sources: null,
+   custom_attributes: null,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+   created_at: new Date('2026-04-01T00:00:00.000Z'),
+@@ -389,6 +531,24 @@ describe('createSystem', () => {
+     expect(callData.membership_capability).toBe('YES');
+   });
+ 
++  it('maps extended capability fields to snake_case on create', async () => {
++    prisma.system.create.mockResolvedValue(BASE_ROW);
++
++    await createSystem({
++      name: 'Spektrix',
++      vendor: 'Spektrix Ltd',
++      category: 'INTEGRATED',
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++      marketingAutomationCapability: 'UNKNOWN',
++    });
++
++    const callData = prisma.system.create.mock.calls[0][0].data;
++    expect(callData.season_subscriptions_capability).toBe('YES');
++    expect(callData.dynamic_pricing_capability).toBe('NO');
++    expect(callData.marketing_automation_capability).toBe('UNKNOWN');
++  });
++
+   it('returns toSystemDto-shaped result (camelCase, no organisation_systems)', async () => {
+     prisma.system.create.mockResolvedValue(BASE_ROW);
+ 
+@@ -410,6 +570,20 @@ describe('createSystem', () => {
+     expect(callData).not.toHaveProperty('custom_attributes');
+   });
+ 
++  it('maps fieldSources to field_sources on create', async () => {
++    prisma.system.create.mockResolvedValue(BASE_ROW);
++
++    await createSystem({
++      name: 'Spektrix',
++      vendor: 'Spektrix Ltd',
++      category: 'INTEGRATED',
++      fieldSources: { vendor: 'https://docs.example.com' },
++    });
++
++    const callData = prisma.system.create.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({ vendor: 'https://docs.example.com' });
++  });
++
+   it('propagates unexpected Prisma errors (e.g. P2002)', async () => {
+     const p2002 = Object.assign(new Error('Unique constraint'), { code: 'P2002' });
+     prisma.system.create.mockRejectedValue(p2002);
+@@ -497,6 +671,28 @@ describe('updateSystem', () => {
+     expect(callData.pricing_model).toBe('SUBSCRIPTION');
+     expect(callData.membership_capability).toBe('YES');
+   });
++
++  it('maps extended capability fields on partial update', async () => {
++    prisma.system.update.mockResolvedValue(BASE_ROW);
++
++    await updateSystem('sys-id', {
++      accessibilityFeaturesCapability: 'YES',
++      multiVenueSupportCapability: 'NO',
++    });
++
++    const callData = prisma.system.update.mock.calls[0][0].data;
++    expect(callData.accessibility_features_capability).toBe('YES');
++    expect(callData.multi_venue_support_capability).toBe('NO');
++  });
++
++  it('maps fieldSources to field_sources on update', async () => {
++    prisma.system.update.mockResolvedValue(BASE_ROW);
++
++    await updateSystem('sys-id', { fieldSources: {} });
++
++    const callData = prisma.system.update.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({});
++  });
+ });
+ 
+ // ─── deleteSystem Service Tests ───────────────────────────────────────────────
+diff --git a/backend/src/controllers/organisation-controller.js b/backend/src/controllers/organisation-controller.js
+index 1d2af09..2c65cf2 100644
+--- a/backend/src/controllers/organisation-controller.js
++++ b/backend/src/controllers/organisation-controller.js
+@@ -1,6 +1,9 @@
+ const organisationService = require('../services/organisation-service');
+ const prisma = require('../lib/prisma');
++const { ORGANISATION_SORT_KEYS } = require('../lib/sort-allowlists');
+ const { COUNTRIES } = require('../lib/countries');
++const { ORGANISATION_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
++const { validateFieldSources } = require('../lib/validate-field-sources');
+ 
+ const MAX_LIMIT = 100;
+ const DEFAULT_LIMIT = 20;
+@@ -13,6 +16,7 @@ function isUuidParam(id) {
+   return typeof id === 'string' && UUID_REGEX.test(id.trim());
+ }
+ 
++const ORGANISATION_SORT_SET = new Set(ORGANISATION_SORT_KEYS);
+ const COUNTRY_SET = new Set(COUNTRIES);
+ const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
+ const VALID_ROLES = new Set(['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']);
+@@ -185,6 +189,30 @@ const listOrganisations = async (req, res) => {
+   const seatQ = normaliseCapability(seatingRaw, 'seating');
+   if (!seatQ.ok) fields.push({ field: seatQ.field, message: seatQ.message });
+ 
++  const sortRaw = asQueryString(req.query.sort);
++  const orderRaw = asQueryString(req.query.order);
++  let listSort = 'name';
++  let listOrder = 'asc';
++  if (sortRaw !== undefined && sortRaw.trim() !== '') {
++    const s = sortRaw.trim();
++    if (!ORGANISATION_SORT_SET.has(s)) {
++      fields.push({
++        field: 'sort',
++        message: `Sort field must be one of: ${ORGANISATION_SORT_KEYS.join(', ')}`,
++      });
++    } else {
++      listSort = s;
++    }
++  }
++  if (orderRaw !== undefined && orderRaw.trim() !== '') {
++    const o = orderRaw.trim().toLowerCase();
++    if (o !== 'asc' && o !== 'desc') {
++      fields.push({ field: 'order', message: 'Order must be asc or desc' });
++    } else {
++      listOrder = o;
++    }
++  }
++
+   if (fields.length > 0) {
+     return res.status(400).json({
+       data: null,
+@@ -193,7 +221,7 @@ const listOrganisations = async (req, res) => {
+     });
+   }
+ 
+-  const listParams = { page, limit };
++  const listParams = { page, limit, sort: listSort, order: listOrder };
+ 
+   if (qRaw !== undefined && qRaw.trim() !== '') {
+     listParams.q = qRaw.trim();
+@@ -332,6 +360,18 @@ function parseOrganisationWritePayload(raw) {
+     fields.push({ field: 'capacity', message: cap.message });
+   }
+ 
++  const fieldSourcesRaw =
++    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
++  let fieldSources;
++  if (fieldSourcesRaw !== undefined) {
++    const vr = validateFieldSources(fieldSourcesRaw, ORGANISATION_FIELD_SOURCE_KEYS);
++    if (!vr.ok) {
++      fields.push(...vr.errors);
++    } else {
++      fieldSources = vr.value;
++    }
++  }
++
+   const sourceReference = normaliseOptionalString(raw.sourceReference);
+   const notes = normaliseOptionalString(raw.notes);
+   const city = normaliseOptionalString(raw.city);
+@@ -351,6 +391,7 @@ function parseOrganisationWritePayload(raw) {
+     sourceReference,
+     notes,
+     capacity: cap.value,
++    ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
+   };
+ 
+   return { fields: [], payload };
+diff --git a/backend/src/controllers/system-controller.js b/backend/src/controllers/system-controller.js
+index 720ae81..1a1a615 100644
+--- a/backend/src/controllers/system-controller.js
++++ b/backend/src/controllers/system-controller.js
+@@ -1,6 +1,10 @@
+ const systemService = require('../services/system-service');
++const { SYSTEM_SORT_KEYS } = require('../lib/sort-allowlists');
+ const { SYSTEM_GEOGRAPHIC_FOCUS } = require('../lib/system-geographic-focus');
+ const { stripClientControlledSystemWriteKeys } = require('../lib/strip-client-controlled-write-keys');
++const { SYSTEM_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
++const { validateFieldSources } = require('../lib/validate-field-sources');
++const { validateCustomAttributes } = require('../lib/validate-custom-attributes');
+ 
+ const MAX_LIMIT = 100;
+ const DEFAULT_LIMIT = 20;
+@@ -12,12 +16,22 @@ function isUuidParam(id) {
+   return typeof id === 'string' && UUID_REGEX.test(id.trim());
+ }
+ 
++const SYSTEM_SORT_SET = new Set(SYSTEM_SORT_KEYS);
+ const SYSTEM_CATEGORY_SET = new Set(['INTEGRATED', 'TICKETING', 'AUDIENCE_MANAGEMENT']);
+ const DEPLOYMENT_MODEL_SET = new Set(['SAAS', 'SELF_HOSTED', 'HYBRID']);
+ const PRICING_MODEL_SET = new Set(['SUBSCRIPTION', 'TRANSACTION_FEE', 'LICENCE', 'HYBRID', 'UNKNOWN']);
+ const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
+ const GEOGRAPHIC_FOCUS_SET = new Set(SYSTEM_GEOGRAPHIC_FOCUS);
+ 
++/** Five v3 system capabilities: API camelCase, optional snake_case body alias, Prisma column (for service filters). */
++const SYSTEM_EXTENDED_CAPABILITY_FIELDS = [
++  { apiField: 'seasonSubscriptionsCapability', camelKey: 'seasonSubscriptionsCapability', snakeKey: 'season_subscriptions_capability' },
++  { apiField: 'dynamicPricingCapability', camelKey: 'dynamicPricingCapability', snakeKey: 'dynamic_pricing_capability' },
++  { apiField: 'multiVenueSupportCapability', camelKey: 'multiVenueSupportCapability', snakeKey: 'multi_venue_support_capability' },
++  { apiField: 'marketingAutomationCapability', camelKey: 'marketingAutomationCapability', snakeKey: 'marketing_automation_capability' },
++  { apiField: 'accessibilityFeaturesCapability', camelKey: 'accessibilityFeaturesCapability', snakeKey: 'accessibility_features_capability' },
++];
++
+ /** Normalise Express query param to a single string or undefined. */
+ function asQueryString(param) {
+   if (param === undefined || param === null || param === '') return undefined;
+@@ -162,6 +176,42 @@ const listSystems = async (req, res) => {
+     }
+   }
+ 
++  const extendedCapabilityFilters = {};
++  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
++    const rawCap = asQueryString(req.query[def.apiField]);
++    if (rawCap === undefined) continue;
++    const v = rawCap.trim().toUpperCase();
++    if (!CAPABILITY_SET.has(v)) {
++      fields.push({ field: def.apiField, message: 'Select a valid option' });
++    } else {
++      extendedCapabilityFilters[def.camelKey] = v;
++    }
++  }
++
++  const sortRaw = asQueryString(req.query.sort);
++  const orderRaw = asQueryString(req.query.order);
++  let listSort = 'name';
++  let listOrder = 'asc';
++  if (sortRaw !== undefined && sortRaw.trim() !== '') {
++    const s = sortRaw.trim();
++    if (!SYSTEM_SORT_SET.has(s)) {
++      fields.push({
++        field: 'sort',
++        message: `Sort field must be one of: ${SYSTEM_SORT_KEYS.join(', ')}`,
++      });
++    } else {
++      listSort = s;
++    }
++  }
++  if (orderRaw !== undefined && orderRaw.trim() !== '') {
++    const o = orderRaw.trim().toLowerCase();
++    if (o !== 'asc' && o !== 'desc') {
++      fields.push({ field: 'order', message: 'Order must be asc or desc' });
++    } else {
++      listOrder = o;
++    }
++  }
++
+   if (fields.length > 0) {
+     return res.status(400).json({
+       data: null,
+@@ -174,6 +224,8 @@ const listSystems = async (req, res) => {
+     const { data, total, totalPages } = await systemService.listSystems({
+       page,
+       limit,
++      sort: listSort,
++      order: listOrder,
+       q: qTrimmedEarly ?? undefined,
+       categories,
+       deploymentModel,
+@@ -182,6 +234,7 @@ const listSystems = async (req, res) => {
+       membership,
+       donation,
+       seating,
++      ...extendedCapabilityFilters,
+     });
+ 
+     return res.json({
+@@ -318,10 +371,34 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
+     else reservedSeatingCapability = v === null ? 'UNKNOWN' : v;
+   }
+ 
++  const extCapabilityPayload = {};
++  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
++    if (!(def.snakeKey in raw || def.camelKey in raw)) continue;
++    const rawCap = def.snakeKey in raw ? raw[def.snakeKey] : raw[def.camelKey];
++    const v = normaliseOptionalEnum(rawCap, CAPABILITY_SET);
++    if (v === '__invalid__') {
++      fields.push({ field: def.apiField, message: 'Must be YES, NO, or UNKNOWN' });
++    } else {
++      extCapabilityPayload[def.camelKey] = v === null ? 'UNKNOWN' : v;
++    }
++  }
++
+   const description = 'description' in raw ? normaliseOptionalString(raw.description) : undefined;
+   const sourceReferenceRaw = 'source_reference' in raw ? raw.source_reference : ('sourceReference' in raw ? raw.sourceReference : undefined);
+   const sourceReference = sourceReferenceRaw !== undefined ? normaliseOptionalString(sourceReferenceRaw) : undefined;
+ 
++  const fieldSourcesRaw =
++    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
++  let fieldSources;
++  if (fieldSourcesRaw !== undefined) {
++    const vr = validateFieldSources(fieldSourcesRaw, SYSTEM_FIELD_SOURCE_KEYS);
++    if (!vr.ok) {
++      fields.push(...vr.errors);
++    } else {
++      fieldSources = vr.value;
++    }
++  }
++
+   if (fields.length > 0) return { fields, payload: null };
+ 
+   return {
+@@ -337,7 +414,9 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
+       membershipCapability,
+       donationCapability,
+       reservedSeatingCapability,
++      ...extCapabilityPayload,
+       sourceReference,
++      ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
+     },
+   };
+ }
+@@ -349,6 +428,44 @@ function stripAndSanitise(body) {
+   return stripped;
+ }
+ 
++function customAttributesKeyPresent(body) {
++  if (body == null || typeof body !== 'object' || Array.isArray(body)) return false;
++  return (
++    Object.prototype.hasOwnProperty.call(body, 'customAttributes')
++    || Object.prototype.hasOwnProperty.call(body, 'custom_attributes')
++  );
++}
++
++function rawCustomAttributesFromBody(body) {
++  if (Object.prototype.hasOwnProperty.call(body, 'customAttributes')) return body.customAttributes;
++  return body.custom_attributes;
++}
++
++/**
++ * When `customAttributes` / `custom_attributes` is present on the original body, validates and sets
++ * `payload.customAttributes` to `null` (clear) or a cleaned array. Omits the key when the field is absent (PUT preserve).
++ */
++function mergeCustomAttributesWrite(originalBody, fields, payload) {
++  if (!customAttributesKeyPresent(originalBody)) return;
++  if (
++    Object.prototype.hasOwnProperty.call(originalBody, 'customAttributes')
++    && Object.prototype.hasOwnProperty.call(originalBody, 'custom_attributes')
++  ) {
++    fields.push({
++      field: 'customAttributes',
++      message: 'Cannot provide both customAttributes and custom_attributes.',
++    });
++    return;
++  }
++  const vr = validateCustomAttributes(rawCustomAttributesFromBody(originalBody));
++  if (!vr.ok) {
++    fields.push(...vr.errors);
++    return;
++  }
++  if (payload == null) return;
++  payload.customAttributes = vr.value.length === 0 ? null : vr.value;
++}
++
+ const createSystem = async (req, res) => {
+   if (req.body === null || req.body === undefined || typeof req.body !== 'object' || Array.isArray(req.body)) {
+     return res.status(400).json({
+@@ -360,6 +477,7 @@ const createSystem = async (req, res) => {
+ 
+   const raw = stripAndSanitise(req.body);
+   const { fields, payload } = parseSystemWritePayload(raw, { requireAll: true });
++  mergeCustomAttributesWrite(req.body, fields, payload);
+ 
+   if (fields.length > 0) {
+     return res.status(400).json({ data: null, error: { message: 'Validation failed', fields }, meta: null });
+@@ -398,6 +516,7 @@ const updateSystem = async (req, res) => {
+ 
+   const raw = stripAndSanitise(req.body);
+   const { fields, payload } = parseSystemWritePayload(raw, { requireAll: false });
++  mergeCustomAttributesWrite(req.body, fields, payload);
+ 
+   if (fields.length > 0) {
+     return res.status(400).json({ data: null, error: { message: 'Validation failed', fields }, meta: null });
+diff --git a/backend/src/services/organisation-service.js b/backend/src/services/organisation-service.js
+index ce03f50..fe5173c 100644
+--- a/backend/src/services/organisation-service.js
++++ b/backend/src/services/organisation-service.js
+@@ -69,6 +69,28 @@ function buildOrganisationListCompositeWhere(filters) {
+   return { AND: parts };
+ }
+ 
++/**
++ * Maps validated API sort key + direction to Prisma `orderBy` for organisation list queries.
++ * @param {string} sortKey
++ * @param {'asc' | 'desc'} orderDir
++ */
++function buildOrganisationListOrderBy(sortKey, orderDir) {
++  switch (sortKey) {
++    case 'name':
++      return { name: orderDir };
++    case 'country':
++      return { country: orderDir };
++    case 'lastUpdated':
++      return { last_updated: orderDir };
++    case 'capacity':
++      return { capacity: orderDir };
++    case 'organisationType':
++      return { organisation_type: { name: orderDir } };
++    default:
++      return { name: 'asc' };
++  }
++}
++
+ /**
+  * @param {{
+  *   page: number
+@@ -81,10 +103,25 @@ function buildOrganisationListCompositeWhere(filters) {
+  *   membership?: string
+  *   donation?: string
+  *   seating?: string
++ *   sort?: string
++ *   order?: string
+  * }} params
+  */
+ async function listOrganisations(params) {
+-  const { page, limit, q, country, type, system, system_role, membership, donation, seating } = params;
++  const {
++    page,
++    limit,
++    q,
++    country,
++    type,
++    system,
++    system_role,
++    membership,
++    donation,
++    seating,
++    sort = 'name',
++    order = 'asc',
++  } = params;
+   const skip = (page - 1) * limit;
+   const where = buildOrganisationListCompositeWhere({
+     q,
+@@ -97,12 +134,14 @@ async function listOrganisations(params) {
+     seating,
+   });
+ 
++  const orderBy = buildOrganisationListOrderBy(sort, order);
++
+   const [rows, total] = await Promise.all([
+     prisma.organisation.findMany({
+       where,
+       skip,
+       take: limit,
+-      orderBy: { name: 'asc' },
++      orderBy,
+       include: organisationInclude,
+     }),
+     prisma.organisation.count({ where }),
+@@ -130,6 +169,7 @@ async function createOrganisation(payload) {
+       source_reference: payload.sourceReference,
+       notes: payload.notes,
+       capacity: payload.capacity,
++      ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
+     },
+     include: organisationInclude,
+   });
+@@ -170,6 +210,7 @@ async function updateOrganisation(id, payload) {
+         source_reference: payload.sourceReference,
+         notes: payload.notes,
+         capacity: payload.capacity,
++        ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
+       },
+       include: organisationInclude,
+     });
+@@ -196,6 +237,7 @@ async function deleteOrganisation(id) {
+ 
+ module.exports = {
+   listOrganisations,
++  buildOrganisationListOrderBy,
+   createOrganisation,
+   getOrganisationById,
+   updateOrganisation,
+diff --git a/backend/src/services/system-service.js b/backend/src/services/system-service.js
+index 7e4e6e9..70e3c76 100644
+--- a/backend/src/services/system-service.js
++++ b/backend/src/services/system-service.js
+@@ -24,6 +24,11 @@ function buildSystemListWhere({
+   membership,
+   donation,
+   seating,
++  seasonSubscriptionsCapability,
++  dynamicPricingCapability,
++  multiVenueSupportCapability,
++  marketingAutomationCapability,
++  accessibilityFeaturesCapability,
+ } = {}) {
+   const parts = [];
+ 
+@@ -45,12 +50,39 @@ function buildSystemListWhere({
+   if (membership)         parts.push({ membership_capability: membership });
+   if (donation)           parts.push({ donation_capability: donation });
+   if (seating)            parts.push({ reserved_seating_capability: seating });
++  if (seasonSubscriptionsCapability) parts.push({ season_subscriptions_capability: seasonSubscriptionsCapability });
++  if (dynamicPricingCapability)       parts.push({ dynamic_pricing_capability: dynamicPricingCapability });
++  if (multiVenueSupportCapability)    parts.push({ multi_venue_support_capability: multiVenueSupportCapability });
++  if (marketingAutomationCapability)  parts.push({ marketing_automation_capability: marketingAutomationCapability });
++  if (accessibilityFeaturesCapability) parts.push({ accessibility_features_capability: accessibilityFeaturesCapability });
+ 
+   if (parts.length === 0) return {};
+   if (parts.length === 1) return parts[0];
+   return { AND: parts };
+ }
+ 
++/**
++ * Maps validated API sort key + direction to Prisma `orderBy` for system list queries.
++ * @param {string} sortKey
++ * @param {'asc' | 'desc'} orderDir
++ */
++function buildSystemListOrderBy(sortKey, orderDir) {
++  switch (sortKey) {
++    case 'name':
++      return { name: orderDir };
++    case 'vendor':
++      return { vendor: orderDir };
++    case 'category':
++      return { category: orderDir };
++    case 'lastUpdated':
++      return { last_updated: orderDir };
++    case 'geographicFocus':
++      return { geographic_focus: orderDir };
++    default:
++      return { name: 'asc' };
++  }
++}
++
+ async function listSystems({
+   q,
+   categories,
+@@ -60,8 +92,15 @@ async function listSystems({
+   membership,
+   donation,
+   seating,
++  seasonSubscriptionsCapability,
++  dynamicPricingCapability,
++  multiVenueSupportCapability,
++  marketingAutomationCapability,
++  accessibilityFeaturesCapability,
+   page,
+   limit,
++  sort = 'name',
++  order = 'asc',
+ }) {
+   const where = buildSystemListWhere({
+     q,
+@@ -72,12 +111,19 @@ async function listSystems({
+     membership,
+     donation,
+     seating,
++    seasonSubscriptionsCapability,
++    dynamicPricingCapability,
++    multiVenueSupportCapability,
++    marketingAutomationCapability,
++    accessibilityFeaturesCapability,
+   });
+ 
++  const orderBy = buildSystemListOrderBy(sort, order);
++
+   const [rows, total] = await Promise.all([
+     prisma.system.findMany({
+       where,
+-      orderBy: { name: 'asc' },
++      orderBy,
+       skip: (page - 1) * limit,
+       take: limit,
+     }),
+@@ -113,7 +159,14 @@ async function createSystem(payload) {
+       membership_capability: payload.membershipCapability ?? undefined,
+       donation_capability: payload.donationCapability ?? undefined,
+       reserved_seating_capability: payload.reservedSeatingCapability ?? undefined,
++      season_subscriptions_capability: payload.seasonSubscriptionsCapability ?? undefined,
++      dynamic_pricing_capability: payload.dynamicPricingCapability ?? undefined,
++      multi_venue_support_capability: payload.multiVenueSupportCapability ?? undefined,
++      marketing_automation_capability: payload.marketingAutomationCapability ?? undefined,
++      accessibility_features_capability: payload.accessibilityFeaturesCapability ?? undefined,
+       source_reference: payload.sourceReference ?? undefined,
++      ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
++      ...(payload.customAttributes !== undefined ? { custom_attributes: payload.customAttributes } : {}),
+     },
+   });
+   return toSystemDto(row);
+@@ -131,7 +184,14 @@ async function updateSystem(id, payload) {
+   if (payload.membershipCapability !== undefined) data.membership_capability = payload.membershipCapability;
+   if (payload.donationCapability !== undefined) data.donation_capability = payload.donationCapability;
+   if (payload.reservedSeatingCapability !== undefined) data.reserved_seating_capability = payload.reservedSeatingCapability;
++  if (payload.seasonSubscriptionsCapability !== undefined) data.season_subscriptions_capability = payload.seasonSubscriptionsCapability;
++  if (payload.dynamicPricingCapability !== undefined) data.dynamic_pricing_capability = payload.dynamicPricingCapability;
++  if (payload.multiVenueSupportCapability !== undefined) data.multi_venue_support_capability = payload.multiVenueSupportCapability;
++  if (payload.marketingAutomationCapability !== undefined) data.marketing_automation_capability = payload.marketingAutomationCapability;
++  if (payload.accessibilityFeaturesCapability !== undefined) data.accessibility_features_capability = payload.accessibilityFeaturesCapability;
+   if (payload.sourceReference !== undefined) data.source_reference = payload.sourceReference;
++  if (payload.fieldSources !== undefined) data.field_sources = payload.fieldSources;
++  if (payload.customAttributes !== undefined) data.custom_attributes = payload.customAttributes;
+ 
+   if (Object.keys(data).length === 0) {
+     const row = await prisma.system.findUnique({ where: { id } });
+@@ -162,4 +222,12 @@ async function deleteSystem(id) {
+   }
+ }
+ 
+-module.exports = { listSystems, getSystemById, buildSystemListWhere, createSystem, updateSystem, deleteSystem };
++module.exports = {
++  listSystems,
++  getSystemById,
++  buildSystemListWhere,
++  buildSystemListOrderBy,
++  createSystem,
++  updateSystem,
++  deleteSystem,
++};
+diff --git a/backend/src/lib/sort-allowlists.js b/backend/src/lib/sort-allowlists.js
+new file mode 100644
+index 0000000..3401d8c
+--- /dev/null
++++ b/backend/src/lib/sort-allowlists.js
+@@ -0,0 +1,19 @@
++/** API `sort` query allow-lists (camelCase, aligned with list DTO field names). */
++
++const ORGANISATION_SORT_KEYS = Object.freeze([
++  'name',
++  'country',
++  'lastUpdated',
++  'capacity',
++  'organisationType',
++]);
++
++const SYSTEM_SORT_KEYS = Object.freeze([
++  'name',
++  'vendor',
++  'category',
++  'lastUpdated',
++  'geographicFocus',
++]);
++
++module.exports = { ORGANISATION_SORT_KEYS, SYSTEM_SORT_KEYS };

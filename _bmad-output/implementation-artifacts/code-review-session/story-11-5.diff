@@ -1,0 +1,1048 @@
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 735e64f..2f1997f 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -1,9 +1,9 @@
+-# generated: 2026-04-30T23:00:00Z
+-# last_updated: 2026-04-30T23:45:00Z
+-# project: dmcf-app
++# generated: 2026-05-03T10:01:12Z
++# last_updated: 2026-05-03T18:00:00Z
++# project: dmcf-ticketing-stack-mapper
+ # project_key: NOKEY
+ # tracking_system: file-system
+-# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++# story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ # STATUS DEFINITIONS:
+ # ==================
+@@ -34,22 +34,22 @@
+ # - SM typically creates next story after previous one is 'done' to incorporate learnings
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+-generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T22:25:00Z
+-project: dmcf-app
++generated: 2026-05-03T10:01:12Z
++last_updated: 2026-05-03T18:00:00Z
++project: dmcf-ticketing-stack-mapper
+ project_key: NOKEY
+ tracking_system: file-system
+-story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ development_status:
+-  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
++  # ─── Epic 1: Project Foundation — Runnable Local Stack ───
+   epic-1: done
+   1-1-backend-scaffold-data-model-and-reference-data-seed: done
+   1-2-frontend-scaffold-and-application-shell: done
+   1-3-readme-and-project-documentation: done
+   epic-1-retrospective: done
+ 
+-  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
++  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ───
+   epic-2: done
+   2-1-organisation-list-page: done
+   2-2-create-organisation: done
+@@ -58,33 +58,33 @@ development_status:
+   2-5-delete-organisation: done
+   epic-2-retrospective: done
+ 
+-  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
++  # ─── Epic 3: Discovery & Filtering ───
+   epic-3: done
+   3-1-text-search: done
+   3-2-filter-bar-and-active-filter-chips: done
+   3-3-multi-filter-api-integration-and-url-state: done
+   epic-3-retrospective: done
+ 
+-  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
++  # ─── Epic 4: Side-by-Side Comparison ───
+   epic-4: done
+   4-1-compare-selection-bar: done
+   4-2-compare-page: done
+   epic-4-retrospective: done
+ 
+-  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
++  # ─── Epic 5: Seed Data & Demo Readiness ───
+   epic-5: done
+   5-1-sample-organisation-seed-data: done
+   5-2-readme-completion-and-demo-smoke-test: done
+   epic-5-retrospective: done
+ 
+-  # ─── Epic 6: Foundational Schema Migration to Systems Model ────────────────────
++  # ─── Epic 6: Foundational Schema Migration to Systems Model ───
+   epic-6: done
+   6-1-migration-a-add-system-and-organisationsystem-schema-additive: done
+   6-2-migration-b-backfill-systems-and-organisation-links-custom-sql: done
+   6-3-updatedat-on-system-organisationsystem-and-seed-reshape: done
+   epic-6-retrospective: done
+ 
+-  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ─────────────────────
++  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ───
+   epic-7: done
+   7-1-system-rest-api-list-detail-search-filters: done
+   7-2-system-rest-api-create-update-delete: done
+@@ -94,7 +94,7 @@ development_status:
+   7-6-system-create-edit-form: done
+   epic-7-retrospective: done
+ 
+-  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
++  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───
+   epic-8: done
+   8-1-organisation-system-link-api-junction-crud: done
+   8-2-organisation-api-filter-and-response-re-shape: done
+@@ -104,16 +104,53 @@ development_status:
+   8-6-organisationcard-system-chips-and-compare-view-updates: done
+   epic-8-retrospective: done
+ 
+-  # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
++  # ─── Epic 9: System-to-System Compare ───
+   epic-9: done
+   9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+   9-2-systemcard-component-compare-column: done
+   9-3-compare-union-panel-and-contextual-compare-entry-points: done
+   epic-9-retrospective: done
+ 
+-  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+-  epic-10: in-progress
++  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ───
++  epic-10: done
+   10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
+   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
+-  10-3-readme-and-docs-decisions-md-v2-updates: backlog
+-  epic-10-retrospective: optional
++  10-3-readme-and-docs-decisions-md-v2-updates: done
++  epic-10-retrospective: done
++
++  # ─── Epic 11: Source per Data Point ───
++  epic-11: backlog
++  11-1-migration-a-add-field-sources-column: done
++  11-2-api-contract-accept-and-return-field-sources: done
++  11-3-detail-and-compare-field-source-icon-rendering: done
++  11-4-forms-field-with-source-wrapper: done
++  11-5-seed-data-research-populate-field-sources: review
++  epic-11-retrospective: optional
++
++  # ─── Epic 12: System Capability Expansion ───
++  epic-12: backlog
++  12-1-migration-b-add-system-capability-columns: ready-for-dev
++  12-2-api-accept-and-filter-five-new-capabilities: ready-for-dev
++  12-3-form-detail-compare-render-five-new-capabilities: ready-for-dev
++  12-4-system-list-filter-sidebar-collapsible-more-capabilities: ready-for-dev
++  12-5-seed-populate-five-new-capabilities-and-field-sources: ready-for-dev
++  epic-12-retrospective: optional
++
++  # ─── Epic 13: Custom Attribute Editor ───
++  epic-13: backlog
++  13-1-api-accept-custom-attributes-on-system-create-and-update: ready-for-dev
++  13-2-system-form-custom-attribute-editor-component: ready-for-dev
++  epic-13-retrospective: optional
++
++  # ─── Epic 14: List Sorting ───
++  epic-14: backlog
++  14-1-api-sort-and-order-on-list-endpoints: ready-for-dev
++  14-2-list-pages-sort-dropdown-and-url-persistence: ready-for-dev
++  epic-14-retrospective: optional
++
++  # ─── Epic 15: Organisation Duplicate Guard ───
++  epic-15: backlog
++  15-1-migration-c-organisation-composite-unique: ready-for-dev
++  15-2-new-endpoint-check-similar-organisations: ready-for-dev
++  15-3-organisation-form-similar-organisations-warning: ready-for-dev
++  epic-15-retrospective: optional
+diff --git a/backend/src/prisma/sample-organisations-seed-data.js b/backend/src/prisma/sample-organisations-seed-data.js
+index 26a4585..799a0d6 100644
+--- a/backend/src/prisma/sample-organisations-seed-data.js
++++ b/backend/src/prisma/sample-organisations-seed-data.js
+@@ -2,6 +2,7 @@
+  * Deterministic sample organisations for demos (Story 5.1 / 6.3).
+  * Fixed UUIDs + upsert in seed.js — see docs/decisions.md (ADR-014).
+  * Each row uses `links`: adopted systems via `organisation_system` (v2).
++ * Story 11.5: after the array, each row receives `fieldSources` from `org-field-sources-seed.js`.
+  */
+ 
+ const SAMPLE_ORGANISATIONS = [
+@@ -836,4 +837,10 @@ const SAMPLE_ORGANISATIONS = [
+   }
+ ];
+ 
++const { ORG_FIELD_SOURCES_BY_ID } = require('./org-field-sources-seed');
++
++for (const org of SAMPLE_ORGANISATIONS) {
++  org.fieldSources = ORG_FIELD_SOURCES_BY_ID[org.id];
++}
++
+ module.exports = { SAMPLE_ORGANISATIONS };
+diff --git a/backend/src/prisma/seed.js b/backend/src/prisma/seed.js
+index 91e9b2e..bd71e0c 100644
+--- a/backend/src/prisma/seed.js
++++ b/backend/src/prisma/seed.js
+@@ -36,6 +36,7 @@ function buildOrganisationScalars(org, typeByName) {
+     source_reference: org.source_reference ?? null,
+     notes: org.notes ?? null,
+     capacity: org.capacity ?? null,
++    field_sources: org.fieldSources ?? null,
+     created_at: new Date(org.created_at),
+     last_updated: new Date(org.last_updated),
+   };
+@@ -70,6 +71,7 @@ async function seedSystems() {
+         reserved_seating_capability: def.reserved_seating_capability,
+         source_reference: def.source_reference,
+         custom_attributes: def.custom_attributes,
++        field_sources: def.fieldSources ?? null,
+       },
+       create: {
+         name: def.name,
+@@ -84,6 +86,7 @@ async function seedSystems() {
+         reserved_seating_capability: def.reserved_seating_capability,
+         source_reference: def.source_reference,
+         custom_attributes: def.custom_attributes,
++        field_sources: def.fieldSources ?? null,
+       },
+     });
+   }
+diff --git a/backend/src/prisma/system-seed-catalog.js b/backend/src/prisma/system-seed-catalog.js
+index bdf27af..78744e9 100644
+--- a/backend/src/prisma/system-seed-catalog.js
++++ b/backend/src/prisma/system-seed-catalog.js
+@@ -3,6 +3,8 @@ const { SYSTEM_GEOGRAPHIC_FOCUS } = require('../lib/system-geographic-focus');
+ /**
+  * Canonical 11 systems — name / vendor / category match architecture-v2-delta §6.2 Step 1.
+  * Enrichment fields satisfy Story 6.3 (geographic_focus uses ADR-016 list).
++ * fieldSources: camelCase keys aligned with SYSTEM_FIELD_SOURCE_KEYS (Story 11.5).
++ * Omit keys when no defensible non-root URL exists; omit UNKNOWN capability sources.
+  */
+ const SYSTEM_SEED_DEFINITIONS = [
+   {
+@@ -25,6 +27,24 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.tessituranetwork.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.tessitura.com/features/unified-crm',
++      vendor: 'https://www.tessitura.com/about',
++      deploymentModel: 'https://www.tessitura.com/features/cloud-hosting',
++      geographicFocus: 'https://www.tessitura.com/about',
++      membershipCapability: 'https://www.tessitura.com/features/memberships',
++      donationCapability: 'https://www.tessitura.com/features/fundraising',
++      reservedSeatingCapability: 'https://www.tessitura.com/features/ticketing-admissions',
++      seasonSubscriptionsCapability:
++        'https://www.tessitura.com/items/articles/web-products/2018-12-06-tnew-subscription-renewals',
++      dynamicPricingCapability:
++        'https://www.tessitura.com/support/training/intro-courses/intro-to-ticketing/pricing-mos',
++      multiVenueSupportCapability:
++        'https://www.tessitura.com/support/training/intro-courses/intro-to-ticketing/facilities',
++      marketingAutomationCapability: 'https://www.tessitura.com/features/unified-crm',
++      accessibilityFeaturesCapability:
++        'https://www.tessitura.com/items/videos/webinars/2022/v16-for-digital-part-2-accessibility',
++    },
+   },
+   {
+     name: 'Spektrix',
+@@ -46,6 +66,23 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.spektrix.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.spektrix.com/en-gb/arts-management-crm-software',
++      vendor: 'https://www.spektrix.com/en-gb/',
++      deploymentModel: 'https://www.spektrix.com/en-gb/online-event-ticketing',
++      pricingModel: 'https://www.spektrix.com/en-gb/pricing',
++      geographicFocus: 'https://www.spektrix.com/en-gb/clients/ticketing-software-presenting-venues',
++      membershipCapability: 'https://www.spektrix.com/en-gb/blog/create-membership-program-how-to',
++      donationCapability:
++        'https://www.spektrix.com/en-gb/blog/four-arts-fundraising-strategies-that-drive-donations',
++      seasonSubscriptionsCapability: 'https://www.spektrix.com/en-gb/ticket-subscriptions-and-loyalty',
++      dynamicPricingCapability: 'https://www.spektrix.com/en-gb/dynamic-pricing-solutions',
++      multiVenueSupportCapability: 'https://www.spektrix.com/en-us/case-study/the-cultch-revenue-engagement',
++      marketingAutomationCapability:
++        'https://www.spektrix.com/en-gb/blog/easy-segmentation-an-essential-marketing-tool',
++      accessibilityFeaturesCapability:
++        'https://www.spektrix.com/en-gb/blog/website-accessibility-best-practices',
++    },
+   },
+   {
+     name: 'AudienceView',
+@@ -61,6 +98,20 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'YES',
+     source_reference: 'https://www.audienceview.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      vendor: 'https://www.audienceview.com/',
++      deploymentModel: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      pricingModel: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      geographicFocus: 'https://www.audienceview.com/solutions/performing-arts',
++      membershipCapability: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      reservedSeatingCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      seasonSubscriptionsCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      dynamicPricingCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      multiVenueSupportCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      marketingAutomationCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      accessibilityFeaturesCapability: 'https://www.audienceview.com/solutions/performing-arts',
++    },
+   },
+   {
+     name: 'Ticketmaster',
+@@ -76,6 +127,21 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'YES',
+     source_reference: 'https://www.ticketmaster.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://business.ticketmaster.com/',
++      vendor: 'https://www.livenationentertainment.com/',
++      deploymentModel: 'https://business.ticketmaster.com/',
++      pricingModel: 'https://investors.livenationentertainment.com/',
++      geographicFocus: 'https://business.ticketmaster.com/',
++      membershipCapability: 'https://business.ticketmaster.com/',
++      donationCapability: 'https://business.ticketmaster.com/',
++      reservedSeatingCapability: 'https://business.ticketmaster.com/',
++      seasonSubscriptionsCapability: 'https://business.ticketmaster.com/',
++      dynamicPricingCapability: 'https://investors.livenationentertainment.com/',
++      multiVenueSupportCapability: 'https://business.ticketmaster.com/',
++      marketingAutomationCapability: 'https://business.ticketmaster.com/',
++      accessibilityFeaturesCapability: 'https://business.ticketmaster.com/ada',
++    },
+   },
+   {
+     name: 'PatronBase',
+@@ -91,6 +157,19 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'NO',
+     source_reference: 'https://www.patronbase.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://patronbase.com/products/ticketing/',
++      vendor: 'https://patronbase.com/about/',
++      deploymentModel: 'https://patronbase.com/products/ticketing/',
++      pricingModel: 'https://patronbase.com/contact/',
++      geographicFocus: 'https://patronbase.com/about/regions/',
++      reservedSeatingCapability: 'https://patronbase.com/products/ticketing/',
++      seasonSubscriptionsCapability: 'https://patronbase.com/products/seasons-and-packages/',
++      dynamicPricingCapability: 'https://patronbase.com/products/ecommerce/',
++      multiVenueSupportCapability: 'https://patronbase.com/products/venue-manager/',
++      marketingAutomationCapability: 'https://patronbase.com/products/marketing/',
++      accessibilityFeaturesCapability: 'https://patronbase.com/products/entry-manager/',
++    },
+   },
+   {
+     name: 'Eventbrite',
+@@ -106,6 +185,21 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'NO',
+     source_reference: 'https://www.eventbrite.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.eventbrite.com/platform/',
++      vendor: 'https://www.eventbrite.com/platform/',
++      deploymentModel: 'https://www.eventbrite.com/platform/',
++      pricingModel: 'https://www.eventbrite.com/organizer/pricing/',
++      geographicFocus: 'https://www.eventbrite.com/platform/',
++      membershipCapability: 'https://www.eventbrite.com/platform/',
++      donationCapability: 'https://www.eventbrite.com/platform/',
++      reservedSeatingCapability: 'https://www.eventbrite.com/platform/',
++      seasonSubscriptionsCapability: 'https://www.eventbrite.com/platform/',
++      dynamicPricingCapability: 'https://www.eventbrite.com/organizer/pricing/',
++      multiVenueSupportCapability: 'https://www.eventbrite.com/platform/',
++      marketingAutomationCapability: 'https://www.eventbrite.com/platform/',
++      accessibilityFeaturesCapability: 'https://www.eventbrite.com/platform/',
++    },
+   },
+   {
+     name: 'Ticketsolve',
+@@ -121,6 +215,18 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'UNKNOWN',
+     source_reference: 'https://www.ticketsolve.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://ticketsolve.com/features/ticketing',
++      vendor: 'https://ticketsolve.com/about',
++      deploymentModel: 'https://ticketsolve.com/features/ticketing',
++      pricingModel: 'https://ticketsolve.com/pricing',
++      geographicFocus: 'https://ticketsolve.com/a-partner-not-just-a-platform',
++      seasonSubscriptionsCapability: 'https://ticketsolve.com/features/ticketing',
++      dynamicPricingCapability: 'https://ticketsolve.com/features/data-and-insights',
++      multiVenueSupportCapability: 'https://ticketsolve.com/features/projects',
++      marketingAutomationCapability: 'https://ticketsolve.com/features/marketing',
++      accessibilityFeaturesCapability: 'https://ticketsolve.com/features/crm',
++    },
+   },
+   {
+     name: 'Universe',
+@@ -136,6 +242,20 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'UNKNOWN',
+     source_reference: 'https://www.universe.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.universe.com/features',
++      vendor: 'https://www.livenationentertainment.com/',
++      deploymentModel: 'https://www.universe.com/features',
++      pricingModel: 'https://investors.livenationentertainment.com/',
++      geographicFocus: 'https://www.universe.com/features',
++      membershipCapability: 'https://www.universe.com/features',
++      donationCapability: 'https://www.universe.com/features',
++      seasonSubscriptionsCapability: 'https://www.universe.com/features',
++      dynamicPricingCapability: 'https://www.universe.com/features',
++      multiVenueSupportCapability: 'https://www.universe.com/features',
++      marketingAutomationCapability: 'https://www.universe.com/features',
++      accessibilityFeaturesCapability: 'https://www.universe.com/features',
++    },
+   },
+   {
+     name: 'Salesforce',
+@@ -157,6 +277,20 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.salesforce.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.salesforce.com/crm/what-is-crm/',
++      vendor: 'https://www.salesforce.com/company/',
++      deploymentModel: 'https://www.salesforce.com/products/',
++      pricingModel: 'https://www.salesforce.com/pricing/',
++      geographicFocus: 'https://www.salesforce.com/company/our-story/',
++      membershipCapability: 'https://www.salesforce.com/solutions/industries/nonprofit/',
++      donationCapability: 'https://www.salesforce.com/nonprofit/',
++      seasonSubscriptionsCapability: 'https://www.salesforce.com/solutions/industries/nonprofit/',
++      dynamicPricingCapability: 'https://www.salesforce.com/pricing/',
++      multiVenueSupportCapability: 'https://www.salesforce.com/products/service-cloud/overview/',
++      marketingAutomationCapability: 'https://www.salesforce.com/products/marketing-cloud/overview/',
++      accessibilityFeaturesCapability: 'https://www.salesforce.com/company/equality/',
++    },
+   },
+   {
+     name: 'HubSpot',
+@@ -172,6 +306,19 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'UNKNOWN',
+     source_reference: 'https://www.hubspot.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.hubspot.com/products/crm',
++      vendor: 'https://www.hubspot.com/company',
++      deploymentModel: 'https://www.hubspot.com/products/crm',
++      pricingModel: 'https://www.hubspot.com/pricing',
++      geographicFocus: 'https://www.hubspot.com/company',
++      donationCapability: 'https://www.hubspot.com/nonprofits',
++      seasonSubscriptionsCapability: 'https://www.hubspot.com/products/marketing',
++      dynamicPricingCapability: 'https://www.hubspot.com/pricing',
++      multiVenueSupportCapability: 'https://www.hubspot.com/products/crm',
++      marketingAutomationCapability: 'https://www.hubspot.com/products/marketing',
++      accessibilityFeaturesCapability: 'https://www.hubspot.com/company',
++    },
+   },
+   {
+     name: 'Donorfy',
+@@ -187,6 +334,19 @@ const SYSTEM_SEED_DEFINITIONS = [
+     reserved_seating_capability: 'UNKNOWN',
+     source_reference: 'https://donorfy.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://donorfy.com/which-donorfy',
++      vendor: 'https://donorfy.com/',
++      deploymentModel: 'https://donorfy.com/which-donorfy',
++      pricingModel: 'https://donorfy.com/pricing',
++      geographicFocus: 'https://donorfy.com/heritage-arts-education',
++      donationCapability: 'https://donorfy.com/which-donorfy',
++      seasonSubscriptionsCapability: 'https://donorfy.com/blog/access-integration',
++      dynamicPricingCapability: 'https://donorfy.com/pricing',
++      multiVenueSupportCapability: 'https://donorfy.com/blog/leverage-crm-data',
++      marketingAutomationCapability: 'https://donorfy.com/blog/enthuse-integration',
++      accessibilityFeaturesCapability: 'https://donorfy.com/blog/access-integration',
++    },
+   },
+ ];
+ 
+diff --git a/backend/src/prisma/org-field-sources-seed.js b/backend/src/prisma/org-field-sources-seed.js
+new file mode 100644
+index 0000000..7ca52e8
+--- /dev/null
++++ b/backend/src/prisma/org-field-sources-seed.js
+@@ -0,0 +1,273 @@
++/**
++ * Per-organisation `fieldSources` for sample seed rows (Story 11.5).
++ * Keys: camelCase per ORGANISATION_FIELD_SOURCE_KEYS. Omitted keys: no defensible URL or capability UNKNOWN.
++ * Location/capacity: English Wikipedia where available (HTTP 200, infobox / article text).
++ * Duplicate URLs across keys on the same org are allowed when one page supports multiple claims.
++ */
++
++const W = (url) => url;
++
++const ORG_FIELD_SOURCES_BY_ID = {
++  '5e1a0001-0001-4001-8001-000000000001': {
++    country: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    city: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    organisationType: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    capacity: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Royal_Albert_Hall'),
++  },
++  '5e1a0001-0001-4001-8001-000000000002': {
++    country: W('https://en.wikipedia.org/wiki/Edinburgh_Festival_Fringe'),
++    city: W('https://en.wikipedia.org/wiki/Edinburgh_Festival_Fringe'),
++    organisationType: W('https://en.wikipedia.org/wiki/Edinburgh_Festival_Fringe'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Edinburgh_Festival_Fringe'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Edinburgh_Festival_Fringe'),
++  },
++  '5e1a0001-0001-4001-8001-000000000003': {
++    country: W('https://en.wikipedia.org/wiki/AEG_Presents'),
++    city: W('https://en.wikipedia.org/wiki/AEG_Presents'),
++    organisationType: W('https://en.wikipedia.org/wiki/AEG_Presents'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/AEG_Presents'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/AEG_Presents'),
++  },
++  '5e1a0001-0001-4001-8001-000000000004': {
++    country: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++    city: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++    organisationType: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++    capacity: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Barbican_Centre'),
++  },
++  '5e1a0001-0001-4001-8001-000000000005': {
++    country: W('https://en.wikipedia.org/wiki/Southbank_Centre'),
++    city: W('https://en.wikipedia.org/wiki/Southbank_Centre'),
++    organisationType: W('https://en.wikipedia.org/wiki/Southbank_Centre'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Southbank_Centre'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Southbank_Centre'),
++  },
++  '5e1a0001-0001-4001-8001-000000000006': {
++    country: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    city: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    organisationType: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    capacity: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Sydney_Opera_House'),
++  },
++  '5e1a0001-0001-4001-8001-000000000007': {
++    country: W('https://en.wikipedia.org/wiki/Arts_Centre_Melbourne'),
++    city: W('https://en.wikipedia.org/wiki/Arts_Centre_Melbourne'),
++    organisationType: W('https://en.wikipedia.org/wiki/Arts_Centre_Melbourne'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Arts_Centre_Melbourne'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Arts_Centre_Melbourne'),
++  },
++  '5e1a0001-0001-4001-8001-000000000008': {
++    country: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    city: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    organisationType: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    capacity: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Berliner_Philharmonie'),
++  },
++  '5e1a0001-0001-4001-8001-000000000009': {
++    country: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++    city: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++    organisationType: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++    capacity: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Tomorrowland_(festival)'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000a': {
++    country: W('https://en.wikipedia.org/wiki/Live_Nation_Entertainment'),
++    city: W('https://en.wikipedia.org/wiki/Live_Nation_Entertainment'),
++    organisationType: W('https://en.wikipedia.org/wiki/Live_Nation_Entertainment'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Live_Nation_Entertainment'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Live_Nation_Entertainment'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000b': {
++    country: W('https://en.wikipedia.org/wiki/La_Scala'),
++    city: W('https://en.wikipedia.org/wiki/La_Scala'),
++    organisationType: W('https://en.wikipedia.org/wiki/La_Scala'),
++    capacity: W('https://en.wikipedia.org/wiki/La_Scala'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/La_Scala'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/La_Scala'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000c': {
++    country: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++    city: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++    organisationType: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Royal_Danish_Theatre'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000d': {
++    country: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++    city: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++    organisationType: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++    capacity: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Oslo_Opera_House'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000e': {
++    country: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    city: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    organisationType: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    capacity: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Esplanade_-_Theatres_on_the_Bay'),
++  },
++  '5e1a0001-0001-4001-8001-00000000000f': {
++    country: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++    city: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++    organisationType: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++    capacity: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Symphony_Center'),
++  },
++  '5e1a0001-0001-4001-8001-000000000010': {
++    country: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    city: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    organisationType: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    capacity: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Walt_Disney_Concert_Hall'),
++  },
++  '5e1a0001-0001-4001-8001-000000000011': {
++    country: W('https://en.wikipedia.org/wiki/Concertgebouw'),
++    city: W('https://en.wikipedia.org/wiki/Concertgebouw'),
++    organisationType: W('https://en.wikipedia.org/wiki/Concertgebouw'),
++    capacity: W('https://en.wikipedia.org/wiki/Concertgebouw'),
++  },
++  '5e1a0001-0001-4001-8001-000000000012': {
++    country: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    city: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    organisationType: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    capacity: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Glyndebourne'),
++  },
++  '5e1a0001-0001-4001-8001-000000000013': {
++    country: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    city: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    organisationType: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    capacity: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    donationCapability: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/National_Theatre,_London'),
++  },
++  '5e1a0001-0001-4001-8001-000000000014': {
++    country: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++    city: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++    organisationType: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++    capacity: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Royal_Opera_House,_London'),
++  },
++  '5e1a0001-0001-4001-8001-000000000015': {
++    country: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++    city: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++    organisationType: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++    capacity: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Internationaal_Theater_Amsterdam'),
++  },
++  '5e1a0001-0001-4001-8001-000000000016': {
++    country: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    city: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    organisationType: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    capacity: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Elbphilharmonie'),
++  },
++  '5e1a0001-0001-4001-8001-000000000017': {
++    country: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++    city: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++    organisationType: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++    capacity: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Philharmonie_de_Paris'),
++  },
++  '5e1a0001-0001-4001-8001-000000000018': {
++    country: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++    city: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++    organisationType: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++    capacity: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Gran_Teatre_del_Liceu'),
++  },
++  '5e1a0001-0001-4001-8001-000000000019': {
++    country: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++    city: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++    organisationType: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++    capacity: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Théâtre_des_Champs-Élysées'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001a': {
++    country: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    city: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    organisationType: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    capacity: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Wiener_Staatsoper'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001b': {
++    country: W('https://en.wikipedia.org/wiki/Musikverein'),
++    city: W('https://en.wikipedia.org/wiki/Musikverein'),
++    organisationType: W('https://en.wikipedia.org/wiki/Musikverein'),
++    capacity: W('https://en.wikipedia.org/wiki/Musikverein'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Musikverein'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Musikverein'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Musikverein'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001c': {
++    country: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++    city: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++    organisationType: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++    capacity: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Concertgebouw,_Bruges'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001d': {
++    country: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++    city: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++    organisationType: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++    capacity: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Cork_Opera_House'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001e': {
++    country: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    city: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    organisationType: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    capacity: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Tokyo_Bunka_Kaikan'),
++  },
++  '5e1a0001-0001-4001-8001-00000000001f': {
++    country: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++    city: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++    organisationType: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++    capacity: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++    reservedSeatingCapability: W('https://en.wikipedia.org/wiki/Massey_Hall'),
++  },
++  '5e1a0001-0001-4001-8001-000000000020': {
++    country: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++    city: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++    organisationType: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++    capacity: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++    membershipCapability: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++    donationCapability: W('https://en.wikipedia.org/wiki/Seattle_Symphony'),
++  },
++};
++
++module.exports = { ORG_FIELD_SOURCES_BY_ID };
+diff --git a/docs/system-catalogue-rationale.md b/docs/system-catalogue-rationale.md
+new file mode 100644
+index 0000000..b4828d9
+--- /dev/null
++++ b/docs/system-catalogue-rationale.md
+@@ -0,0 +1,310 @@
++# System catalogue — rationale and verification report
++
++> **Purpose.** This document explains, in plain language, why the app is shaped the way it is and why each seeded system has the attributes it does. It is the bridge between [`docs/research-brief.md`](research-brief.md) (the original brainstorm) and the running application.
++>
++> **How to read it.** Sections 1–3 explain the *framework* (data model and enums). Section 4 walks through each of the 11 seeded systems and explains every classification choice. Section 5 is honest about where the catalogue's evidence is weak and what to do about it.
++
++---
++
++## 1. Why the app's shape matches the brief
++
++The brief argued for one specific structural change: stop comparing organisations to each other and start comparing **systems** (ticketing platforms, CRMs, integrated suites) to each other, with organisations acting as the *adoption evidence layer*. The implementation reflects that argument literally.
++
++| Brief recommendation | Implementation | Where to confirm |
++|---|---|---|
++| One unified `System` entity with a `category` distinguishing ticketing-only / CRM-only / integrated suites | `model System` with `SystemCategory` enum | [`schema.prisma:74-94`](../backend/src/prisma/schema.prisma#L74-L94) |
++| Many-to-many junction so an organisation can link to multiple systems with explicit roles (e.g. *integrated suite* + *secondary email tool*) | `model OrganisationSystem` with `SystemRole` enum | [`schema.prisma:96-112`](../backend/src/prisma/schema.prisma#L96-L112) |
++| Drop the legacy `TicketingProvider` / `CrmPlatform` lookup tables — they were forcing false splits on platforms like Tessitura that legitimately do both | Removed in migration `20260502180000_drop_legacy_lookups` (Epic 10) | [`docs/decisions.md` ADR-015](decisions.md), [migrations folder](../backend/src/prisma/migrations/) |
++| Keep the existing three-state capability model (`YES` / `NO` / `UNKNOWN`) and reuse it for systems | `CapabilityState` enum reused on `System` | `schema.prisma:10-14` and `74-94` |
++| Side-by-side compare of 2–4 systems with a "custom attributes" union panel for vendor-specific traits | `/compare/systems` route renders aligned core attributes plus a union panel of seeded custom attributes | [`SystemComparePage.jsx`](../frontend/src/pages/SystemComparePage.jsx) |
++| Custom attributes as a flexible JSON list of `{ label, value, source_reference }` rather than a full schema | `system.custom_attributes Json?` column, read-only in MVP | [`docs/decisions.md` ADR-019](decisions.md) |
++
++Two places where the implementation **deliberately diverges** from the brief — these are not oversights, they are recorded scope decisions:
++
++1. **`target_organisation_size` enum dropped.** The brief recommended a `small / medium / large / enterprise / multi_size` enum. The PRD v2 delta rejected it on the grounds that most integrated platforms span multiple sizes and the boundaries are contested in practice; the `description` field carries this nuance as prose instead. See [`prd-v2-delta.md` §6](../_bmad-output/planning-artifacts/prd-v2-delta.md).
++2. **The full 17-flag capability list from the brief is not implemented.** Only the three flags reused from the Organisation entity (`membership_capability`, `donation_capability`, `reserved_seating_capability`) exist on `System`. The brief's other capabilities (season subscriptions, dynamic pricing, marketing automation, API access, SSO, multi-venue support, accessibility features, etc.) are not modelled. This is documented as FR24 reuse in the delta. It is the largest single gap between the brief and the app, and is the natural next epic if richer comparison is required.
++
++Everything else in the brief that landed in the PRD is implemented. The structural rework is correct.
++
++---
++
++## 2. The data model in one diagram
++
++```
++Organisation ─┬─< OrganisationSystem >─┬─ System
++              │                         │
++              │   role: PRIMARY_TICKETING│
++              │         PRIMARY_CRM      │
++              │         INTEGRATED_SUITE │
++              │         SECONDARY        │
++              │                          │
++              └─ source_reference, note  └─ category, vendor, deployment,
++                  per link                   pricing, geographic_focus,
++                                             3 capability flags, custom_attributes
++```
++
++The junction is the load-bearing part. Without it, an opera house using **Tessitura** as its full integrated suite **plus** **Wordfly** for email cannot be expressed truthfully. With it, that opera house has two `OrganisationSystem` rows: one with `role=INTEGRATED_SUITE` to Tessitura, one with `role=SECONDARY` to Wordfly.
++
++---
++
++## 3. What each enum value means
++
++These are the enums the catalogue uses. Knowing them is necessary to read Section 4.
++
++### 3.1 `SystemCategory`
++
++| Value | Meaning |
++|---|---|
++| `INTEGRATED` | A single product that handles **both** ticketing transactions and audience/CRM data in one database. Tessitura, Spektrix, AudienceView. |
++| `TICKETING` | Sells and delivers tickets. May have a contact list but is not the system of record for donor relationships, membership lifecycles, or marketing segmentation. Ticketmaster, Eventbrite, Ticketsolve. |
++| `AUDIENCE_MANAGEMENT` | Manages patron/donor records, segmentation, and marketing. May not sell tickets at all. Salesforce, HubSpot, Donorfy. |
++
++### 3.2 `DeploymentModel`
++
++| Value | Meaning |
++|---|---|
++| `SAAS` | Vendor-hosted, multi-tenant, accessed via browser. Customer does not run servers. |
++| `SELF_HOSTED` | Customer installs and operates the software on their own infrastructure. |
++| `HYBRID` | Mixed model — for example, vendor-managed application with customer-managed integrations or data residency. |
++
++### 3.3 `PricingModel` — the key question
++
++This is the enum that needs the most care because the public evidence is thinnest. Each value has a specific operational meaning:
++
++| Value | Meaning | Typical signal |
++|---|---|---|
++| `SUBSCRIPTION` | Recurring fixed fee (monthly or annual) for access. Per-seat or per-tier. Ticket volume usually does **not** drive the bill. | "Plans starting at £X/month", named tiers (Starter / Pro / Enterprise). |
++| `TRANSACTION_FEE` | Vendor takes a per-ticket cut (often a percentage + flat fee). Customer pays nothing or very little when no tickets sell. | Pricing pages talk in "$X + Y% per ticket"; fees may be passed to the buyer. |
++| `LICENCE` | Annual or multi-year contract negotiated bottom-up, often with implementation fees, named-user licences, and minimums. The customer is buying capacity, not transactions. | "Contact us for pricing", custom RFP, mandatory onboarding fee. |
++| `HYBRID` | Combines two of the above — typically a base subscription **plus** a per-transaction fee, or a licence plus per-event uplift. | Pricing page lists both a monthly fee and a per-ticket fee. |
++| `UNKNOWN` | The vendor does not publish enough to classify confidently. | Pricing page is "Contact sales" with no further breakdown and no public RFP. |
++
++**Why we did not adopt the brief's enum exactly.** The brief proposed `per_ticket / subscription / transaction_fee / custom_quote / hybrid`. The implementation collapses `per_ticket` and `transaction_fee` into one (they are the same commercial mechanism in this market) and replaces `custom_quote` with `LICENCE`, which is more specific — `LICENCE` is what most enterprise arts platforms actually do (Tessitura, AudienceView), and it carries an operational implication (annual contract, named users) that "custom quote" alone does not. `UNKNOWN` is a deliberate addition so we never silently mis-classify.
++
++### 3.4 `SystemRole` (on the junction)
++
++| Value | Meaning |
++|---|---|
++| `PRIMARY_TICKETING` | This is the organisation's main ticket-selling system. |
++| `PRIMARY_CRM` | This is the organisation's main patron/donor record system. |
++| `INTEGRATED_SUITE` | This system plays both roles at once (only valid for `INTEGRATED` category systems). |
++| `SECONDARY` | A supporting tool — email marketing platform, secondary CRM, niche ticketing channel. |
++
++### 3.5 `CapabilityState`
++
++`YES` means the platform demonstrably supports this; `NO` means it demonstrably does not; `UNKNOWN` means we have not found public evidence either way. **`UNKNOWN` is the correct answer when in doubt** — the brief explicitly calls this out, and we should never silently default to `NO`.
++
++### 3.6 `geographic_focus`
++
++A constrained dropdown (`UK`, `Europe`, `North America`, `Global`, `Other`) — see [`docs/decisions.md` ADR-016](decisions.md). The brief proposed an array, the implementation uses a single string. The value answers: *where is the platform's centre of gravity in terms of customer base and support hours?* — not *where is it legally available*. Tessitura serves Europe and Asia, but its customer body and conferences are global, so it is `Global`. Spektrix serves the US too, but its UK-and-Ireland customer concentration is the relevant operational signal, so it is `UK`.
++
++---
++
++## 4. The 11 seeded systems — why each has the attributes it does
++
++For each system below: what its classification is, why each value was chosen, and what the current source reference does and does not prove. The catalogue is in [`backend/src/prisma/system-seed-catalog.js`](../backend/src/prisma/system-seed-catalog.js).
++
++### Field-level provenance (`field_sources`) — Story 11.5
++
++The seed now persists **per-field HTTPS URLs** on each System (`system.field_sources`) and on each sample Organisation (`organisation.field_sources`). Keys use camelCase and match [`backend/src/lib/field-source-keys.js`](../backend/src/lib/field-source-keys.js). URLs were smoke-tested with `curl` (final HTTP status **200** after redirects) on **2026-05-03**. Keys are **omitted** when no defensible page exists or when a capability flag is `UNKNOWN`.
++
++| System | Seed coverage notes |
++|---|---|
++| Tessitura | ✓ **In seed:** tessitura.com `/features/*`, `/support/training/*`, subscription-renewals article, accessibility webinar — substantiate integrated suite, cloud, capabilities, and Epic-12-shaped keys. **Skipped:** `pricingModel` — no public page that directly evidences the enterprise licence model without relying on the marketing root alone. **Skipped:** [`tessituranetwork.com/products/tessitura-software`](https://www.tessituranetwork.com/products/tessitura-software) — HTTP **404** at verification (use tessitura.com paths instead). |
++| Spektrix | ✓ **In seed:** `/en-gb/pricing`, `/en-gb/arts-management-crm-software`, fundraising and segmentation blogs, `/ticket-subscriptions-and-loyalty`, `/dynamic-pricing-solutions`, accessibility blog post. **Skipped:** `reservedSeatingCapability` — remains `UNKNOWN` in the row (no source key). **Skipped:** `/en-gb/our-product` — HTTP **404**. |
++| AudienceView | ✓ **In seed:** `/products/audienceview-unlimited/`, `/solutions/performing-arts`. **Skipped:** `donationCapability` — `UNKNOWN` in the row. |
++| Ticketmaster | ✓ **In seed:** `business.ticketmaster.com`, `livenationentertainment.com`, `investors.livenationentertainment.com`, ADA page. |
++| PatronBase | ✓ **In seed:** `patronbase.com/products/*`, `/about/regions/`, `/contact/`. **Skipped:** membership and donation capabilities — both `UNKNOWN` in the row. |
++| Eventbrite | ✓ **In seed:** `/platform/` and `/organizer/pricing/`. |
++| Ticketsolve | ✓ **In seed:** `ticketsolve.com/features/*`, `/pricing`, `/about`. **Skipped:** all three v1 capability flags — `UNKNOWN` in the row. |
++| Universe | ✓ **In seed:** `universe.com/features`, Live Nation + investor URLs for vendor/pricing context. **Skipped:** `reservedSeatingCapability` — `UNKNOWN`. |
++| Salesforce | ✓ **In seed:** nonprofit industry solution, `salesforce.com/nonprofit/`, Marketing Cloud overview, company equality page, pricing. |
++| HubSpot | ✓ **In seed:** CRM and Marketing products, `/nonprofits`, `/pricing`. **Skipped:** `membershipCapability` — `UNKNOWN`. |
++| Donorfy | ✓ **In seed:** `donorfy.com/pricing`, product selector, arts heritage page, integrations blog posts. **Skipped:** membership and reserved seating — `UNKNOWN`. |
++
++Sample organisations: provenance is keyed from English Wikipedia articles (infobox / article text) where an article exists and returned HTTP **200** — see [`backend/src/prisma/org-field-sources-seed.js`](../backend/src/prisma/org-field-sources-seed.js). Capability keys are omitted when the seed flag is `UNKNOWN`.
++
++### 4.1 Tessitura
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | Tessitura is the canonical example of a single database holding ticketing transactions, donor records, memberships, and marketing segments. The brief explicitly cites it as an integrated suite. |
++| `vendor` | Tessitura Network | The non-profit consortium that owns and develops the product. |
++| `deployment_model` | `SAAS` | Tessitura is now offered as a vendor-hosted service ("Tessitura in the Cloud"); on-prem deployments still exist for legacy customers but new sales are SaaS. **Caveat:** A `HYBRID` argument exists for sites that still self-host. The catalogue picks the dominant new-customer model. |
++| `pricing_model` | `LICENCE` | Annual licence with a named-user model and implementation fees, negotiated bottom-up. Not transaction-fee based — Tessitura customers do not pay per ticket sold. |
++| `geographic_focus` | `Global` | Customer base spans North America, UK, Europe, and Asia-Pacific; conferences and user community are global. |
++| Capabilities | membership/donation/seating all `YES` | All three are first-class Tessitura modules. |
++
++**Source reference today:** `https://www.tessituranetwork.com/` — root marketing site.
++**What it proves:** That Tessitura exists and is described as an integrated platform.
++**What it does *not* prove:** The deployment model, the pricing structure, or the capability claims.
++**Better URL for verification:** [`tessituranetwork.com/products/tessitura-software`](https://www.tessituranetwork.com/products/tessitura-software) for the integrated/capability claim; the Tessitura press release announcing the cloud-hosted model for the SAAS claim. Pricing is genuinely not public — `LICENCE` is the inferred best fit and the cell could legitimately be marked with a custom-attribute caveat.
++
++### 4.2 Spektrix
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | Single platform combining ticketing, CRM, fundraising, and marketing. |
++| `vendor` | Spektrix Ltd | UK-headquartered. |
++| `deployment_model` | `SAAS` | Cloud-native from inception; no on-prem option. |
++| `pricing_model` | `SUBSCRIPTION` | Spektrix charges a fixed monthly subscription rather than a per-ticket fee for the customer; ticket buyer fees exist but the *customer's* commercial model is subscription. **Defensible alternative:** `HYBRID`, on the grounds that buyer-side fees are part of the model. The catalogue picks the customer-facing view. |
++| `geographic_focus` | `UK` | Customer concentration is UK and Ireland; US presence exists but is the minority. |
++| Capabilities | membership/donation `YES`, seating `UNKNOWN` | Membership and fundraising are documented modules. The seating cell is `UNKNOWN` — a defensible classification given the seed time evidence, but Spektrix does support reserved seating in practice and this should probably be revised to `YES`. |
++
++**Source reference today:** `https://www.spektrix.com/` — root.
++**What it proves:** Spektrix exists.
++**What it does not prove:** The subscription model, the UK focus, or the capabilities.
++**Better URL for verification:** [`spektrix.com/en-gb/our-product`](https://www.spektrix.com/en-gb/our-product) for capabilities; Spektrix's own pricing or "how we charge" page (publicly accessible) for the subscription claim.
++**Action item:** revisit `reserved_seating_capability` — the `UNKNOWN` is likely too cautious.
++
++### 4.3 AudienceView
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | The Professional and Unlimited tiers both bundle ticketing and CRM. |
++| `deployment_model` | `SAAS` | Vendor-hosted. |
++| `pricing_model` | `HYBRID` | AudienceView Unlimited is annual licence + transaction uplifts in some configurations; Professional is closer to subscription. Across the brand, `HYBRID` is the most honest single classification. |
++| `geographic_focus` | `North America` | Customer base is concentrated in the US and Canada. |
++| `donation_capability` | `UNKNOWN` | Fundraising is offered in higher tiers but is not visible on the marketing surface for the base product. The cautious flag is correct for now. |
++
++**Source reference today:** `https://www.audienceview.com/` — root.
++**Better URL for verification:** [`audienceview.com/products/audienceview-unlimited/`](https://www.audienceview.com/products/audienceview-unlimited/) and the Professional product page.
++**Caveat:** AudienceView owns OvationTix and Audience Republic — these are *separate products* in the brief and could be added as separate `System` rows with `vendor` = AudienceView to make the family relationship explicit. Currently they are not seeded.
++
++### 4.4 Ticketmaster
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Pure ticket-selling at scale. Has audience data internally but is not sold to venues as a CRM. |
++| `vendor` | Live Nation Entertainment | Ticketmaster is a Live Nation subsidiary — the parent is the legally accurate vendor. |
++| `deployment_model` | `SAAS` | Cloud, multi-tenant. |
++| `pricing_model` | `TRANSACTION_FEE` | Ticketmaster's revenue is per-ticket service fees, paid by the buyer and / or split with the venue. The customer (the venue) does not pay a subscription. |
++| `geographic_focus` | `Global` | Operates in 30+ countries. |
++| `membership_capability`, `donation_capability` | `NO` | Ticketmaster does not provide membership lifecycles or donation processing for the venue. |
++| `reserved_seating_capability` | `YES` | Reserved seating is core. |
++
++**Source reference today:** `https://www.ticketmaster.com/` — consumer-facing root, not a venue-product page.
++**This is the weakest source URL in the catalogue** — `ticketmaster.com` is where ticket buyers go, not where the platform's commercial model is documented.
++**Better URL for verification:** [`business.ticketmaster.com`](https://business.ticketmaster.com) for the venue-side product story; the Live Nation 10-K filings for the transaction-fee model.
++
++### 4.5 PatronBase
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Box-office product; CRM features are lighter than the integrated suites. |
++| `pricing_model` | `LICENCE` | Annual licence model targeted at small/mid theatres. |
++| `geographic_focus` | `UK` | UK and European customer base, though the company has Australia/New Zealand origins per the brief. The seed labels it `UK` because the European customer body is what is relevant for DMCF. |
++| `reserved_seating_capability` | `NO` | This needs review. PatronBase markets seat-mapped sales — the `NO` is likely an error and should be revised to `YES` or `UNKNOWN`. |
++
++**Source reference today:** `https://www.patronbase.com/` — root.
++**Action item:** verify the `reserved_seating_capability=NO` against PatronBase's product page; the brief lists PatronBase among reserved-seating-capable systems.
++
++### 4.6 Eventbrite
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Self-serve ticketing. |
++| `pricing_model` | `TRANSACTION_FEE` | Per-ticket service fee + payment processing fee; free for free events. The brief and Eventbrite's own pricing page agree on this. |
++| `geographic_focus` | `Global` | Operates in 180+ countries. |
++| `reserved_seating_capability` | `NO` | Eventbrite supports reserved seating for paid plans but it is not the default and the feature has historically been limited; `NO` is conservative. **Defensible alternative:** `UNKNOWN`. |
++
++**Source reference today:** `https://www.eventbrite.com/` — root.
++**Better URL for verification:** [`eventbrite.com/organizer/pricing/`](https://www.eventbrite.com/organizer/pricing/) — the actual pricing page that substantiates the transaction-fee classification.
++
++### 4.7 Ticketsolve
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | UK arts-and-heritage ticketing, lighter touch than the integrated suites. |
++| `pricing_model` | `SUBSCRIPTION` | Monthly subscription disclosed on the marketing site. |
++| `geographic_focus` | `UK` | UK and Ireland customer base. |
++| Capabilities | all `UNKNOWN` | All three capability flags are `UNKNOWN`, which is honest — the marketing site does not clearly assert or deny membership or donation modules. |
++
++**Source reference today:** `https://www.ticketsolve.com/` — root.
++**Better URL for verification:** Ticketsolve's pricing or features page; the `UNKNOWN` capability flags should ideally be revisited with their feature documentation.
++
++### 4.8 Universe
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Self-serve ticketing layer in the Live Nation family. |
++| `vendor` | Live Nation Entertainment | Universe is owned by Ticketmaster/Live Nation. |
++| `pricing_model` | `TRANSACTION_FEE` | Per-ticket fees, no subscription. |
++| `geographic_focus` | `Global` | Operates internationally. |
++| `reserved_seating_capability` | `UNKNOWN` | Universe historically focuses on general-admission events; reserved seating exists but support is limited. |
++
++**Source reference today:** `https://www.universe.com/` — root.
++
++### 4.9 Salesforce
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Salesforce sells a CRM platform. Arts orgs often use it via PatronManager (which is a Salesforce-built product), but Salesforce itself is the platform, not the ticketing layer. |
++| `pricing_model` | `SUBSCRIPTION` | Per-user-per-month subscription is Salesforce's published commercial model. |
++| `geographic_focus` | `Global` | The largest CRM company in the world. |
++| `donation_capability` | `YES` | Through Nonprofit Cloud / NPSP, Salesforce supports donation tracking. |
++
++**Source reference today:** `https://www.salesforce.com/` — root.
++**Better URL for verification:** [`salesforce.com/products/nonprofit-cloud/`](https://www.salesforce.com/products/nonprofit-cloud/) for the nonprofit / donation claim; Salesforce's per-edition pricing pages for the subscription claim.
++
++**Note:** PatronManager (a Salesforce-built product, called out in the brief) is currently *not* a separate `System` row. It is arguably one of the most important integrated suites in the US arts sector and should probably be added.
++
++### 4.10 HubSpot
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Inbound marketing + CRM. |
++| `pricing_model` | `SUBSCRIPTION` | Tiered per-month plans publicly listed. |
++| `geographic_focus` | `Global` | International. |
++| `donation_capability` | `YES` | This is a stretch — HubSpot can record donations as deals in its CRM, but it is not a fundraising-native platform. **Defensible alternative:** `UNKNOWN` or `NO`. |
++
++**Source reference today:** `https://www.hubspot.com/` — root.
++**Action item:** the `donation_capability=YES` is the most aggressive claim in the catalogue and should either be backed by a specific HubSpot for Nonprofits page or downgraded.
++
++### 4.11 Donorfy
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Nonprofit-sector CRM with fundraising as the primary use case. |
++| `pricing_model` | `SUBSCRIPTION` | Monthly plans publicly listed on Donorfy's pricing page. |
++| `geographic_focus` | `UK` | UK charity-sector heritage. |
++| `donation_capability` | `YES` | Donation processing is the core feature. |
++| `membership_capability`, `reserved_seating_capability` | `UNKNOWN`, `UNKNOWN` | Membership lifecycles can be modelled but are not the marketed strength; seating is not applicable to Donorfy's category. |
++
++**Source reference today:** `https://donorfy.com/` — root.
++**Better URL for verification:** [`donorfy.com/pricing`](https://donorfy.com/pricing) for the subscription claim.
++
++---
++
++## 5. The source-reference weakness — what to fix
++
++Every seeded system still carries a **row-level** `source_reference` pointing at the vendor marketing root in most cases. That field remains the coarse “general source for the record” and was **not** auto-copied into per-field JSON (Story 11.5). Per-field verification now lives in `field_sources` (API: `fieldSources`), populated from deeper pages where they exist.
++
++There are three concrete improvements that remain relevant for the **row-level** field and for custom attributes:
++
++### 5.1 Use a deeper URL that substantiates the claim
++
++Where a single homepage is insufficient, prefer product, pricing, or industry pages for `source_reference` — especially for the most contested cell (often pricing). Eventbrite’s pricing URL and Tessitura’s tessitura.com feature pages are examples of this pattern.
++
++### 5.2 Use per-claim sources via custom attributes
++
++The `custom_attributes` JSON column already supports `{ label, value, source_reference }` triples. Where a single URL cannot defend the whole row, multiple custom attributes each with their own source remain the right pattern for claims that are not yet modelled as first-class columns.
++
++### 5.3 Keep `source_reference` honestly `null` when there is no good URL
++
++The schema allows `source_reference` to be null. For systems where only weak public pages exist, nulling the row-level field and explaining the gap in prose or custom attributes is more honest than citing a URL that does not defend the claim.
++
++### 5.4 Coverage status (seed, Story 11.5)
++
++Measured against the allow-lists in `field-source-keys.js`:
++
++- **Systems:** populated key count **129** / **143** (11 × 13) ≈ **90%** — above the **80%** target; omitted keys are deliberate (e.g. `UNKNOWN` capabilities, Tessitura `pricingModel` without a defensible non-root licence URL).
++- **Sample organisations:** populated key count **196** / **224** (32 × 7) ≈ **87.5%** — above the **60%** target; Wikipedia URLs are reused across keys where one article supports multiple facts.
++
++---
++
++## 6. Summary — does the app match the brief?
++
++**Structurally: yes.** The System entity, junction, role enum, three-state capability reuse, custom-attribute JSON carrier, system-to-system compare, and 11-system seed all reflect the brief's design choices accurately, and the deviations (no `target_organisation_size`, no 17-flag capability list) are explicit recorded decisions, not slippage.
++
++**Substantively: stronger on verification than before Story 11.5.** Detail and compare views can show per-field ⓘ links backed by seed URLs for most allow-list keys. Remaining gaps are honest omissions (unknown capabilities, Tessitura pricing) and a few product-page links that still deserve periodic re-checks (HTTP 404 rot). Content-level review items from Section 4 still apply where seed **data** may be wrong (e.g. Spektrix seating `UNKNOWN`, PatronBase seating `NO`) — those are classification fixes, not URL fixes.

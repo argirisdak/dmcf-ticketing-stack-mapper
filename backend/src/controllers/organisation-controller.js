@@ -1,6 +1,9 @@
 const organisationService = require('../services/organisation-service');
 const prisma = require('../lib/prisma');
+const { ORGANISATION_SORT_KEYS } = require('../lib/sort-allowlists');
 const { COUNTRIES } = require('../lib/countries');
+const { ORGANISATION_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
+const { validateFieldSources } = require('../lib/validate-field-sources');
 
 const MAX_LIMIT = 100;
 const DEFAULT_LIMIT = 20;
@@ -13,6 +16,7 @@ function isUuidParam(id) {
   return typeof id === 'string' && UUID_REGEX.test(id.trim());
 }
 
+const ORGANISATION_SORT_SET = new Set(ORGANISATION_SORT_KEYS);
 const COUNTRY_SET = new Set(COUNTRIES);
 const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
 const VALID_ROLES = new Set(['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']);
@@ -93,6 +97,49 @@ function checkForbiddenOrganisationBodyKeys(body) {
   }
   return forbidden;
 }
+
+const checkSimilarOrganisations = async (req, res) => {
+  const fields = [];
+
+  const nameRaw = asQueryString(req.query.name);
+  const name = nameRaw === undefined ? '' : String(nameRaw).trim();
+  if (name.length < 2) {
+    fields.push({ field: 'name', message: 'Name must be at least 2 characters.' });
+  }
+
+  const excludeRaw = asQueryString(req.query.excludeId);
+  let excludeId = null;
+  if (excludeRaw !== undefined) {
+    const trimmed = excludeRaw.trim();
+    if (trimmed === '') {
+      excludeId = null;
+    } else if (!isUuidParam(trimmed)) {
+      fields.push({ field: 'excludeId', message: 'Must be a valid UUID.' });
+    } else {
+      excludeId = trimmed;
+    }
+  }
+
+  if (fields.length > 0) {
+    return res.status(400).json({
+      data: null,
+      error: { message: 'Validation failed', fields },
+      meta: null,
+    });
+  }
+
+  try {
+    const data = await organisationService.findSimilarOrganisations(name, excludeId);
+    return res.json({ data, error: null, meta: null });
+  } catch (err) {
+    console.error('[GET /api/organisations/check-similar] unexpected error', err);
+    return res.status(500).json({
+      data: null,
+      error: { message: 'An unexpected error occurred', fields: [] },
+      meta: null,
+    });
+  }
+};
 
 const listOrganisations = async (req, res) => {
   const fields = [];
@@ -185,6 +232,30 @@ const listOrganisations = async (req, res) => {
   const seatQ = normaliseCapability(seatingRaw, 'seating');
   if (!seatQ.ok) fields.push({ field: seatQ.field, message: seatQ.message });
 
+  const sortRaw = asQueryString(req.query.sort);
+  const orderRaw = asQueryString(req.query.order);
+  let listSort = 'name';
+  let listOrder = 'asc';
+  if (sortRaw !== undefined && sortRaw.trim() !== '') {
+    const s = sortRaw.trim();
+    if (!ORGANISATION_SORT_SET.has(s)) {
+      fields.push({
+        field: 'sort',
+        message: `Sort field must be one of: ${ORGANISATION_SORT_KEYS.join(', ')}`,
+      });
+    } else {
+      listSort = s;
+    }
+  }
+  if (orderRaw !== undefined && orderRaw.trim() !== '') {
+    const o = orderRaw.trim().toLowerCase();
+    if (o !== 'asc' && o !== 'desc') {
+      fields.push({ field: 'order', message: 'Order must be asc or desc' });
+    } else {
+      listOrder = o;
+    }
+  }
+
   if (fields.length > 0) {
     return res.status(400).json({
       data: null,
@@ -193,7 +264,7 @@ const listOrganisations = async (req, res) => {
     });
   }
 
-  const listParams = { page, limit };
+  const listParams = { page, limit, sort: listSort, order: listOrder };
 
   if (qRaw !== undefined && qRaw.trim() !== '') {
     listParams.q = qRaw.trim();
@@ -332,6 +403,18 @@ function parseOrganisationWritePayload(raw) {
     fields.push({ field: 'capacity', message: cap.message });
   }
 
+  const fieldSourcesRaw =
+    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
+  let fieldSources;
+  if (fieldSourcesRaw !== undefined) {
+    const vr = validateFieldSources(fieldSourcesRaw, ORGANISATION_FIELD_SOURCE_KEYS);
+    if (!vr.ok) {
+      fields.push(...vr.errors);
+    } else {
+      fieldSources = vr.value;
+    }
+  }
+
   const sourceReference = normaliseOptionalString(raw.sourceReference);
   const notes = normaliseOptionalString(raw.notes);
   const city = normaliseOptionalString(raw.city);
@@ -351,6 +434,7 @@ function parseOrganisationWritePayload(raw) {
     sourceReference,
     notes,
     capacity: cap.value,
+    ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
   };
 
   return { fields: [], payload };
@@ -379,6 +463,72 @@ async function validateOrganisationForeignKeys(payload) {
   }
 
   return { response: null };
+}
+
+/** Prisma P2002 meta.target may list columns or the DB constraint name. */
+function isOrganisationNameCityCountryUniqueViolation(err) {
+  if (err?.code !== 'P2002') return false;
+  const target = err.meta?.target;
+  if (typeof target === 'string') {
+    return target.includes('name_city_country');
+  }
+  if (Array.isArray(target)) {
+    if (target.some((x) => typeof x === 'string' && String(x).includes('name_city_country'))) {
+      return true;
+    }
+    const set = new Set(target);
+    return set.has('name') && set.has('city') && set.has('country');
+  }
+  return false;
+}
+
+function organisationCompositeUniqueConflictEnvelope(req) {
+  const raw = stripClientControlledOrganisationKeys(req.body);
+  const parsed = parseOrganisationWritePayload(raw);
+  const name =
+    parsed.payload?.name ??
+    (typeof raw.name === 'string' ? raw.name.trim() : raw.name != null ? String(raw.name).trim() : '');
+  const country =
+    parsed.payload?.country ??
+    (typeof raw.country === 'string'
+      ? raw.country.trim()
+      : raw.country != null
+        ? String(raw.country).trim()
+        : '');
+  const cityRaw = parsed.payload?.city;
+  const cityLabel = cityRaw == null || cityRaw === '' ? '(no city)' : cityRaw;
+
+  return {
+    data: null,
+    error: {
+      message: `An organisation called "${name}" already exists in ${cityLabel}, ${country}.`,
+      fields: [{ field: 'name', message: 'Conflicts with existing organisation in this city and country.' }],
+    },
+    meta: null,
+  };
+}
+
+function genericUniqueConflictEnvelope() {
+  return {
+    data: null,
+    error: { message: 'A record with this value already exists', fields: [] },
+    meta: null,
+  };
+}
+
+function handleOrganisationWritePrismaError(err, req, res, logLabel) {
+  if (err?.code === 'P2002') {
+    if (isOrganisationNameCityCountryUniqueViolation(err)) {
+      return res.status(409).json(organisationCompositeUniqueConflictEnvelope(req));
+    }
+    return res.status(409).json(genericUniqueConflictEnvelope());
+  }
+  console.error(logLabel, err);
+  return res.status(500).json({
+    data: null,
+    error: { message: 'An unexpected error occurred', fields: [] },
+    meta: null,
+  });
 }
 
 const createOrganisation = async (req, res) => {
@@ -423,12 +573,7 @@ const createOrganisation = async (req, res) => {
     const data = await organisationService.createOrganisation(payload);
     return res.status(201).json({ data, error: null, meta: null });
   } catch (err) {
-    console.error('[POST /api/organisations] unexpected error', err);
-    return res.status(500).json({
-      data: null,
-      error: { message: 'An unexpected error occurred', fields: [] },
-      meta: null,
-    });
+    return handleOrganisationWritePrismaError(err, req, res, '[POST /api/organisations] unexpected error');
   }
 };
 
@@ -483,12 +628,7 @@ const updateOrganisation = async (req, res) => {
     }
     return res.status(200).json({ data, error: null, meta: null });
   } catch (err) {
-    console.error('[PUT /api/organisations/:id] unexpected error', err);
-    return res.status(500).json({
-      data: null,
-      error: { message: 'An unexpected error occurred', fields: [] },
-      meta: null,
-    });
+    return handleOrganisationWritePrismaError(err, req, res, '[PUT /api/organisations/:id] unexpected error');
   }
 };
 
@@ -517,6 +657,7 @@ const deleteOrganisation = async (req, res) => {
 
 module.exports = {
   listOrganisations,
+  checkSimilarOrganisations,
   getOrganisationById,
   createOrganisation,
   updateOrganisation,

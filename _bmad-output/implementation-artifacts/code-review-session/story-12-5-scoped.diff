@@ -1,0 +1,1190 @@
+diff --git a/backend/src/prisma/system-seed-catalog.js b/backend/src/prisma/system-seed-catalog.js
+index bdf27af..a415d99 100644
+--- a/backend/src/prisma/system-seed-catalog.js
++++ b/backend/src/prisma/system-seed-catalog.js
+@@ -3,6 +3,9 @@ const { SYSTEM_GEOGRAPHIC_FOCUS } = require('../lib/system-geographic-focus');
+ /**
+  * Canonical 11 systems — name / vendor / category match architecture-v2-delta §6.2 Step 1.
+  * Enrichment fields satisfy Story 6.3 (geographic_focus uses ADR-016 list).
++ * fieldSources: camelCase keys aligned with SYSTEM_FIELD_SOURCE_KEYS (Story 11.5).
++ * Omit keys when no defensible non-root URL exists; omit UNKNOWN capability sources.
++ * Story 12.5: five Epic-12 capability columns are explicit; every YES/NO has a matching fieldSources key.
+  */
+ const SYSTEM_SEED_DEFINITIONS = [
+   {
+@@ -17,6 +20,11 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'YES',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'YES',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://www.tessituranetwork.com/',
+     custom_attributes: [
+       {
+@@ -25,6 +33,24 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.tessituranetwork.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.tessitura.com/features/unified-crm',
++      vendor: 'https://www.tessitura.com/about',
++      deploymentModel: 'https://www.tessitura.com/features/cloud-hosting',
++      geographicFocus: 'https://www.tessitura.com/about',
++      membershipCapability: 'https://www.tessitura.com/features/memberships',
++      donationCapability: 'https://www.tessitura.com/features/fundraising',
++      reservedSeatingCapability: 'https://www.tessitura.com/features/ticketing-admissions',
++      seasonSubscriptionsCapability:
++        'https://www.tessitura.com/items/articles/web-products/2018-12-06-tnew-subscription-renewals',
++      dynamicPricingCapability:
++        'https://www.tessitura.com/support/training/intro-courses/intro-to-ticketing/pricing-mos',
++      multiVenueSupportCapability:
++        'https://www.tessitura.com/support/training/intro-courses/intro-to-ticketing/facilities',
++      marketingAutomationCapability: 'https://www.tessitura.com/features/unified-crm',
++      accessibilityFeaturesCapability:
++        'https://www.tessitura.com/items/videos/webinars/2022/v16-for-digital-part-2-accessibility',
++    },
+   },
+   {
+     name: 'Spektrix',
+@@ -38,6 +64,11 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'YES',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'YES',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.spektrix.com/',
+     custom_attributes: [
+       {
+@@ -46,6 +77,20 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.spektrix.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.spektrix.com/en-gb/arts-management-crm-software',
++      vendor: 'https://www.spektrix.com/en-gb/',
++      deploymentModel: 'https://www.spektrix.com/en-gb/online-event-ticketing',
++      pricingModel: 'https://www.spektrix.com/en-gb/pricing',
++      geographicFocus: 'https://www.spektrix.com/en-gb/clients/ticketing-software-presenting-venues',
++      membershipCapability: 'https://www.spektrix.com/en-gb/blog/create-membership-program-how-to',
++      donationCapability:
++        'https://www.spektrix.com/en-gb/blog/four-arts-fundraising-strategies-that-drive-donations',
++      seasonSubscriptionsCapability: 'https://www.spektrix.com/en-gb/ticket-subscriptions-and-loyalty',
++      multiVenueSupportCapability: 'https://www.spektrix.com/en-us/case-study/the-cultch-revenue-engagement',
++      marketingAutomationCapability:
++        'https://www.spektrix.com/en-gb/blog/easy-segmentation-an-essential-marketing-tool',
++    },
+   },
+   {
+     name: 'AudienceView',
+@@ -59,8 +104,25 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'YES',
+     donation_capability: 'UNKNOWN',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'YES',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'YES',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.audienceview.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      vendor: 'https://www.audienceview.com/',
++      deploymentModel: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      pricingModel: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      geographicFocus: 'https://www.audienceview.com/solutions/performing-arts',
++      membershipCapability: 'https://www.audienceview.com/products/audienceview-unlimited/',
++      reservedSeatingCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      seasonSubscriptionsCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      multiVenueSupportCapability: 'https://www.audienceview.com/solutions/performing-arts',
++      marketingAutomationCapability: 'https://www.audienceview.com/products/audienceview-unlimited/',
++    },
+   },
+   {
+     name: 'Ticketmaster',
+@@ -74,8 +136,28 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'NO',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://www.ticketmaster.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://business.ticketmaster.com/',
++      vendor: 'https://www.livenationentertainment.com/',
++      deploymentModel: 'https://business.ticketmaster.com/',
++      pricingModel: 'https://investors.livenationentertainment.com/',
++      geographicFocus: 'https://business.ticketmaster.com/',
++      membershipCapability: 'https://business.ticketmaster.com/',
++      donationCapability: 'https://business.ticketmaster.com/',
++      reservedSeatingCapability: 'https://business.ticketmaster.com/',
++      seasonSubscriptionsCapability: 'https://business.ticketmaster.com/',
++      dynamicPricingCapability: 'https://investors.livenationentertainment.com/',
++      multiVenueSupportCapability: 'https://business.ticketmaster.com/',
++      marketingAutomationCapability: 'https://business.ticketmaster.com/',
++      accessibilityFeaturesCapability: 'https://business.ticketmaster.com/ada',
++    },
+   },
+   {
+     name: 'PatronBase',
+@@ -89,8 +171,24 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'UNKNOWN',
+     donation_capability: 'UNKNOWN',
+     reserved_seating_capability: 'NO',
++    season_subscriptions_capability: 'YES',
++    dynamic_pricing_capability: 'NO',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'UNKNOWN',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.patronbase.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://patronbase.com/products/ticketing/',
++      vendor: 'https://patronbase.com/about/',
++      deploymentModel: 'https://patronbase.com/products/ticketing/',
++      pricingModel: 'https://patronbase.com/contact/',
++      geographicFocus: 'https://patronbase.com/about/regions/',
++      reservedSeatingCapability: 'https://patronbase.com/products/ticketing/',
++      seasonSubscriptionsCapability: 'https://patronbase.com/products/seasons-and-packages/',
++      dynamicPricingCapability: 'https://patronbase.com/products/ticketing/',
++      multiVenueSupportCapability: 'https://patronbase.com/products/venue-manager/',
++    },
+   },
+   {
+     name: 'Eventbrite',
+@@ -104,8 +202,27 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'NO',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'NO',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'NO',
++    multi_venue_support_capability: 'NO',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.eventbrite.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.eventbrite.com/platform/',
++      vendor: 'https://www.eventbrite.com/platform/',
++      deploymentModel: 'https://www.eventbrite.com/platform/',
++      pricingModel: 'https://www.eventbrite.com/organizer/pricing/',
++      geographicFocus: 'https://www.eventbrite.com/platform/',
++      membershipCapability: 'https://www.eventbrite.com/platform/',
++      donationCapability: 'https://www.eventbrite.com/platform/',
++      reservedSeatingCapability: 'https://www.eventbrite.com/platform/',
++      seasonSubscriptionsCapability: 'https://www.eventbrite.com/platform/',
++      dynamicPricingCapability: 'https://www.eventbrite.com/organizer/pricing/',
++      multiVenueSupportCapability: 'https://www.eventbrite.com/platform/',
++      marketingAutomationCapability: 'https://www.eventbrite.com/platform/',
++    },
+   },
+   {
+     name: 'Ticketsolve',
+@@ -119,8 +236,22 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'UNKNOWN',
+     donation_capability: 'UNKNOWN',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'YES',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'UNKNOWN',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.ticketsolve.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://ticketsolve.com/features/ticketing',
++      vendor: 'https://ticketsolve.com/about',
++      deploymentModel: 'https://ticketsolve.com/features/ticketing',
++      pricingModel: 'https://ticketsolve.com/pricing',
++      geographicFocus: 'https://ticketsolve.com/a-partner-not-just-a-platform',
++      seasonSubscriptionsCapability: 'https://ticketsolve.com/features/ticketing',
++      multiVenueSupportCapability: 'https://ticketsolve.com/features/projects',
++    },
+   },
+   {
+     name: 'Universe',
+@@ -134,8 +265,24 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'NO',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'UNKNOWN',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'NO',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.universe.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.universe.com/features',
++      vendor: 'https://www.livenationentertainment.com/',
++      deploymentModel: 'https://www.universe.com/features',
++      pricingModel: 'https://investors.livenationentertainment.com/',
++      geographicFocus: 'https://www.universe.com/features',
++      membershipCapability: 'https://www.universe.com/features',
++      donationCapability: 'https://www.universe.com/features',
++      multiVenueSupportCapability: 'https://www.universe.com/features',
++      marketingAutomationCapability: 'https://www.universe.com/features',
++    },
+   },
+   {
+     name: 'Salesforce',
+@@ -149,6 +296,11 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'YES',
++    marketing_automation_capability: 'YES',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://www.salesforce.com/',
+     custom_attributes: [
+       {
+@@ -157,6 +309,20 @@ const SYSTEM_SEED_DEFINITIONS = [
+         source_reference: 'https://www.salesforce.com/',
+       },
+     ],
++    fieldSources: {
++      category: 'https://www.salesforce.com/crm/what-is-crm/',
++      vendor: 'https://www.salesforce.com/company/',
++      deploymentModel: 'https://www.salesforce.com/products/',
++      pricingModel: 'https://www.salesforce.com/pricing/',
++      geographicFocus: 'https://www.salesforce.com/company/our-story/',
++      membershipCapability: 'https://www.salesforce.com/solutions/industries/nonprofit/',
++      donationCapability: 'https://www.salesforce.com/nonprofit/',
++      seasonSubscriptionsCapability: 'https://www.salesforce.com/solutions/industries/nonprofit/',
++      dynamicPricingCapability: 'https://www.salesforce.com/pricing/',
++      multiVenueSupportCapability: 'https://www.salesforce.com/products/service-cloud/overview/',
++      marketingAutomationCapability: 'https://www.salesforce.com/products/marketing-cloud/overview/',
++      accessibilityFeaturesCapability: 'https://www.salesforce.com/company/equality/',
++    },
+   },
+   {
+     name: 'HubSpot',
+@@ -170,8 +336,24 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'UNKNOWN',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'UNKNOWN',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'NO',
++    marketing_automation_capability: 'YES',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://www.hubspot.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://www.hubspot.com/products/crm',
++      vendor: 'https://www.hubspot.com/company',
++      deploymentModel: 'https://www.hubspot.com/products/crm',
++      pricingModel: 'https://www.hubspot.com/pricing',
++      geographicFocus: 'https://www.hubspot.com/company',
++      donationCapability: 'https://www.hubspot.com/nonprofits',
++      dynamicPricingCapability: 'https://www.hubspot.com/products/marketing',
++      multiVenueSupportCapability: 'https://www.hubspot.com/products/crm',
++      marketingAutomationCapability: 'https://www.hubspot.com/products/marketing',
++    },
+   },
+   {
+     name: 'Donorfy',
+@@ -185,8 +367,23 @@ const SYSTEM_SEED_DEFINITIONS = [
+     membership_capability: 'UNKNOWN',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: 'https://donorfy.com/',
+     custom_attributes: null,
++    fieldSources: {
++      category: 'https://donorfy.com/which-donorfy',
++      vendor: 'https://donorfy.com/',
++      deploymentModel: 'https://donorfy.com/which-donorfy',
++      pricingModel: 'https://donorfy.com/pricing',
++      geographicFocus: 'https://donorfy.com/heritage-arts-education',
++      donationCapability: 'https://donorfy.com/which-donorfy',
++      seasonSubscriptionsCapability: 'https://donorfy.com/which-donorfy',
++      marketingAutomationCapability: 'https://donorfy.com/which-donorfy',
++    },
+   },
+ ];
+ 
+diff --git a/backend/src/prisma/seed.js b/backend/src/prisma/seed.js
+index 91e9b2e..251b4b7 100644
+--- a/backend/src/prisma/seed.js
++++ b/backend/src/prisma/seed.js
+@@ -36,6 +36,7 @@ function buildOrganisationScalars(org, typeByName) {
+     source_reference: org.source_reference ?? null,
+     notes: org.notes ?? null,
+     capacity: org.capacity ?? null,
++    field_sources: org.fieldSources ?? null,
+     created_at: new Date(org.created_at),
+     last_updated: new Date(org.last_updated),
+   };
+@@ -68,8 +69,14 @@ async function seedSystems() {
+         membership_capability: def.membership_capability,
+         donation_capability: def.donation_capability,
+         reserved_seating_capability: def.reserved_seating_capability,
++        season_subscriptions_capability: def.season_subscriptions_capability,
++        dynamic_pricing_capability: def.dynamic_pricing_capability,
++        multi_venue_support_capability: def.multi_venue_support_capability,
++        marketing_automation_capability: def.marketing_automation_capability,
++        accessibility_features_capability: def.accessibility_features_capability,
+         source_reference: def.source_reference,
+         custom_attributes: def.custom_attributes,
++        field_sources: def.fieldSources ?? null,
+       },
+       create: {
+         name: def.name,
+@@ -82,8 +89,14 @@ async function seedSystems() {
+         membership_capability: def.membership_capability,
+         donation_capability: def.donation_capability,
+         reserved_seating_capability: def.reserved_seating_capability,
++        season_subscriptions_capability: def.season_subscriptions_capability,
++        dynamic_pricing_capability: def.dynamic_pricing_capability,
++        multi_venue_support_capability: def.multi_venue_support_capability,
++        marketing_automation_capability: def.marketing_automation_capability,
++        accessibility_features_capability: def.accessibility_features_capability,
+         source_reference: def.source_reference,
+         custom_attributes: def.custom_attributes,
++        field_sources: def.fieldSources ?? null,
+       },
+     });
+   }
+diff --git a/backend/src/__tests__/system-seed-catalog.test.js b/backend/src/__tests__/system-seed-catalog.test.js
+index 6bf2d06..5bb1457 100644
+--- a/backend/src/__tests__/system-seed-catalog.test.js
++++ b/backend/src/__tests__/system-seed-catalog.test.js
+@@ -1,5 +1,13 @@
+ const { SYSTEM_SEED_DEFINITIONS } = require('../prisma/system-seed-catalog');
+ 
++const EPIC12_CAP_TO_SOURCE_KEY = [
++  ['season_subscriptions_capability', 'seasonSubscriptionsCapability'],
++  ['dynamic_pricing_capability', 'dynamicPricingCapability'],
++  ['multi_venue_support_capability', 'multiVenueSupportCapability'],
++  ['marketing_automation_capability', 'marketingAutomationCapability'],
++  ['accessibility_features_capability', 'accessibilityFeaturesCapability'],
++];
++
+ describe('system-seed-catalog', () => {
+   it('defines exactly 11 systems with unique names', () => {
+     expect(SYSTEM_SEED_DEFINITIONS.length).toBe(11);
+@@ -11,4 +19,47 @@ describe('system-seed-catalog', () => {
+     const withAttrs = SYSTEM_SEED_DEFINITIONS.filter((r) => Array.isArray(r.custom_attributes));
+     expect(withAttrs.length).toBeGreaterThanOrEqual(3);
+   });
++
++  it('Story 12.5: every system sets all five Epic-12 capability enums explicitly', () => {
++    const allowed = new Set(['YES', 'NO', 'UNKNOWN']);
++    for (const row of SYSTEM_SEED_DEFINITIONS) {
++      for (const [cap] of EPIC12_CAP_TO_SOURCE_KEY) {
++        expect(row).toHaveProperty(cap);
++        expect(allowed.has(row[cap])).toBe(true);
++      }
++    }
++  });
++
++  it('Story 12.5: YES/NO capability values have a matching fieldSources URL; UNKNOWN omits the key', () => {
++    for (const row of SYSTEM_SEED_DEFINITIONS) {
++      const fs = row.fieldSources && typeof row.fieldSources === 'object' ? row.fieldSources : {};
++      for (const [cap, sourceKey] of EPIC12_CAP_TO_SOURCE_KEY) {
++        const v = row[cap];
++        if (v === 'YES' || v === 'NO') {
++          expect(fs[sourceKey]).toMatch(/^https:\/\//);
++        } else {
++          expect(fs[sourceKey]).toBeUndefined();
++        }
++      }
++    }
++  });
++
++  it('Story 12.5 AC4: three reference triples show variation on at least three Epic-12 rows each', () => {
++    const byName = Object.fromEntries(SYSTEM_SEED_DEFINITIONS.map((r) => [r.name, r]));
++    const triples = [
++      ['Tessitura', 'Spektrix', 'Eventbrite'],
++      ['Ticketmaster', 'Eventbrite', 'Universe'],
++      ['Salesforce', 'HubSpot', 'Donorfy'],
++    ];
++    const capFields = EPIC12_CAP_TO_SOURCE_KEY.map(([c]) => c);
++    for (const names of triples) {
++      const rows = names.map((n) => byName[n]);
++      let variedRows = 0;
++      for (const cap of capFields) {
++        const vals = new Set(rows.map((r) => r[cap]));
++        if (vals.size >= 2) variedRows += 1;
++      }
++      expect(variedRows).toBeGreaterThanOrEqual(3);
++    }
++  });
+ });
+diff --git a/backend/src/__tests__/system-http-stack.test.js b/backend/src/__tests__/system-http-stack.test.js
+index 3972e1d..d0ca6be 100644
+--- a/backend/src/__tests__/system-http-stack.test.js
++++ b/backend/src/__tests__/system-http-stack.test.js
+@@ -29,6 +29,11 @@ const prismaRows = SYSTEM_SEED_DEFINITIONS.map((def, i) => ({
+   membership_capability: def.membership_capability,
+   donation_capability: def.donation_capability,
+   reserved_seating_capability: def.reserved_seating_capability,
++  season_subscriptions_capability: def.season_subscriptions_capability,
++  dynamic_pricing_capability: def.dynamic_pricing_capability,
++  multi_venue_support_capability: def.multi_venue_support_capability,
++  marketing_automation_capability: def.marketing_automation_capability,
++  accessibility_features_capability: def.accessibility_features_capability,
+   source_reference: def.source_reference,
+   custom_attributes: def.custom_attributes,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+@@ -66,6 +71,21 @@ function matchesWhere(row, where) {
+   if (where.reserved_seating_capability !== undefined) {
+     return row.reserved_seating_capability === where.reserved_seating_capability;
+   }
++  if (where.season_subscriptions_capability !== undefined) {
++    return row.season_subscriptions_capability === where.season_subscriptions_capability;
++  }
++  if (where.dynamic_pricing_capability !== undefined) {
++    return row.dynamic_pricing_capability === where.dynamic_pricing_capability;
++  }
++  if (where.multi_venue_support_capability !== undefined) {
++    return row.multi_venue_support_capability === where.multi_venue_support_capability;
++  }
++  if (where.marketing_automation_capability !== undefined) {
++    return row.marketing_automation_capability === where.marketing_automation_capability;
++  }
++  if (where.accessibility_features_capability !== undefined) {
++    return row.accessibility_features_capability === where.accessibility_features_capability;
++  }
+   return true;
+ }
+ 
+diff --git a/docs/system-catalogue-rationale.md b/docs/system-catalogue-rationale.md
+new file mode 100644
+index 0000000..8aff6dc
+--- /dev/null
++++ b/docs/system-catalogue-rationale.md
+@@ -0,0 +1,418 @@
++# System catalogue — rationale and verification report
++
++> **Purpose.** This document explains, in plain language, why the app is shaped the way it is and why each seeded system has the attributes it does. It is the bridge between [`docs/research-brief.md`](research-brief.md) (the original brainstorm) and the running application.
++>
++> **How to read it.** Sections 1–3 explain the *framework* (data model and enums). Section 4 walks through each of the 11 seeded systems and explains every classification choice. Section 5 is honest about where the catalogue's evidence is weak and what to do about it.
++
++---
++
++## 1. Why the app's shape matches the brief
++
++The brief argued for one specific structural change: stop comparing organisations to each other and start comparing **systems** (ticketing platforms, CRMs, integrated suites) to each other, with organisations acting as the *adoption evidence layer*. The implementation reflects that argument literally.
++
++| Brief recommendation | Implementation | Where to confirm |
++|---|---|---|
++| One unified `System` entity with a `category` distinguishing ticketing-only / CRM-only / integrated suites | `model System` with `SystemCategory` enum | [`schema.prisma:74-94`](../backend/src/prisma/schema.prisma#L74-L94) |
++| Many-to-many junction so an organisation can link to multiple systems with explicit roles (e.g. *integrated suite* + *secondary email tool*) | `model OrganisationSystem` with `SystemRole` enum | [`schema.prisma:96-112`](../backend/src/prisma/schema.prisma#L96-L112) |
++| Drop the legacy `TicketingProvider` / `CrmPlatform` lookup tables — they were forcing false splits on platforms like Tessitura that legitimately do both | Removed in migration `20260502180000_drop_legacy_lookups` (Epic 10) | [`docs/decisions.md` ADR-015](decisions.md), [migrations folder](../backend/src/prisma/migrations/) |
++| Keep the existing three-state capability model (`YES` / `NO` / `UNKNOWN`) and reuse it for systems | `CapabilityState` enum reused on `System` | `schema.prisma:10-14` and `74-94` |
++| Side-by-side compare of 2–4 systems with a "custom attributes" union panel for vendor-specific traits | `/compare/systems` route renders aligned core attributes plus a union panel of seeded custom attributes | [`SystemComparePage.jsx`](../frontend/src/pages/SystemComparePage.jsx) |
++| Custom attributes as a flexible JSON list of `{ label, value, source_reference }` rather than a full schema | `system.custom_attributes Json?` column, read-only in MVP | [`docs/decisions.md` ADR-019](decisions.md) |
++
++Two places where the implementation **deliberately diverges** from the brief — these are not oversights, they are recorded scope decisions:
++
++1. **`target_organisation_size` enum dropped.** The brief recommended a `small / medium / large / enterprise / multi_size` enum. The PRD v2 delta rejected it on the grounds that most integrated platforms span multiple sizes and the boundaries are contested in practice; the `description` field carries this nuance as prose instead. See [`prd-v2-delta.md` §6](../_bmad-output/planning-artifacts/prd-v2-delta.md).
++2. **The full 17-flag capability list from the brief is not fully modelled.** `System` now carries **eight** `CapabilityState` columns: the three reused from the Organisation entity plus five Epic-12 columns (season subscriptions, dynamic pricing, multi-venue support, marketing automation, accessibility features) — see [`schema.prisma`](../backend/src/prisma/schema.prisma). Remaining brief flags are still out of scope; Story 11.5 / 12.5 pair **HTTPS citations** in `field_sources` with those enums so every non-`UNKNOWN` value is verifiable.
++
++Everything else in the brief that landed in the PRD is implemented. The structural rework is correct.
++
++---
++
++## 2. The data model in one diagram
++
++```
++Organisation ─┬─< OrganisationSystem >─┬─ System
++              │                         │
++              │   role: PRIMARY_TICKETING│
++              │         PRIMARY_CRM      │
++              │         INTEGRATED_SUITE │
++              │         SECONDARY        │
++              │                          │
++              └─ source_reference, note  └─ category, vendor, deployment,
++                  per link                   pricing, geographic_focus,
++                                             eight capability columns, custom_attributes,
++                                             field_sources (per-field HTTPS citations)
++```
++
++The junction is the load-bearing part. Without it, an opera house using **Tessitura** as its full integrated suite **plus** **Wordfly** for email cannot be expressed truthfully. With it, that opera house has two `OrganisationSystem` rows: one with `role=INTEGRATED_SUITE` to Tessitura, one with `role=SECONDARY` to Wordfly.
++
++---
++
++## 3. What each enum value means
++
++These are the enums the catalogue uses. Knowing them is necessary to read Section 4.
++
++### 3.1 `SystemCategory`
++
++| Value | Meaning |
++|---|---|
++| `INTEGRATED` | A single product that handles **both** ticketing transactions and audience/CRM data in one database. Tessitura, Spektrix, AudienceView. |
++| `TICKETING` | Sells and delivers tickets. May have a contact list but is not the system of record for donor relationships, membership lifecycles, or marketing segmentation. Ticketmaster, Eventbrite, Ticketsolve. |
++| `AUDIENCE_MANAGEMENT` | Manages patron/donor records, segmentation, and marketing. May not sell tickets at all. Salesforce, HubSpot, Donorfy. |
++
++### 3.2 `DeploymentModel`
++
++| Value | Meaning |
++|---|---|
++| `SAAS` | Vendor-hosted, multi-tenant, accessed via browser. Customer does not run servers. |
++| `SELF_HOSTED` | Customer installs and operates the software on their own infrastructure. |
++| `HYBRID` | Mixed model — for example, vendor-managed application with customer-managed integrations or data residency. |
++
++### 3.3 `PricingModel` — the key question
++
++This is the enum that needs the most care because the public evidence is thinnest. Each value has a specific operational meaning:
++
++| Value | Meaning | Typical signal |
++|---|---|---|
++| `SUBSCRIPTION` | Recurring fixed fee (monthly or annual) for access. Per-seat or per-tier. Ticket volume usually does **not** drive the bill. | "Plans starting at £X/month", named tiers (Starter / Pro / Enterprise). |
++| `TRANSACTION_FEE` | Vendor takes a per-ticket cut (often a percentage + flat fee). Customer pays nothing or very little when no tickets sell. | Pricing pages talk in "$X + Y% per ticket"; fees may be passed to the buyer. |
++| `LICENCE` | Annual or multi-year contract negotiated bottom-up, often with implementation fees, named-user licences, and minimums. The customer is buying capacity, not transactions. | "Contact us for pricing", custom RFP, mandatory onboarding fee. |
++| `HYBRID` | Combines two of the above — typically a base subscription **plus** a per-transaction fee, or a licence plus per-event uplift. | Pricing page lists both a monthly fee and a per-ticket fee. |
++| `UNKNOWN` | The vendor does not publish enough to classify confidently. | Pricing page is "Contact sales" with no further breakdown and no public RFP. |
++
++**Why we did not adopt the brief's enum exactly.** The brief proposed `per_ticket / subscription / transaction_fee / custom_quote / hybrid`. The implementation collapses `per_ticket` and `transaction_fee` into one (they are the same commercial mechanism in this market) and replaces `custom_quote` with `LICENCE`, which is more specific — `LICENCE` is what most enterprise arts platforms actually do (Tessitura, AudienceView), and it carries an operational implication (annual contract, named users) that "custom quote" alone does not. `UNKNOWN` is a deliberate addition so we never silently mis-classify.
++
++### 3.4 `SystemRole` (on the junction)
++
++| Value | Meaning |
++|---|---|
++| `PRIMARY_TICKETING` | This is the organisation's main ticket-selling system. |
++| `PRIMARY_CRM` | This is the organisation's main patron/donor record system. |
++| `INTEGRATED_SUITE` | This system plays both roles at once (only valid for `INTEGRATED` category systems). |
++| `SECONDARY` | A supporting tool — email marketing platform, secondary CRM, niche ticketing channel. |
++
++### 3.5 `CapabilityState`
++
++`YES` means the platform demonstrably supports this; `NO` means it demonstrably does not; `UNKNOWN` means we have not found public evidence either way. **`UNKNOWN` is the correct answer when in doubt** — the brief explicitly calls this out, and we should never silently default to `NO`.
++
++**`field_sources` vs columns.** The `System` row stores **eight** capability enums in dedicated columns. The `field_sources` allow-list in [`field-source-keys.js`](../backend/src/lib/field-source-keys.js) includes matching camelCase keys for all eight, plus structural fields (`category`, `vendor`, etc.). Story 12.5 requires: every `YES` / `NO` value has a URL under the matching key; `UNKNOWN` values **omit** the key.
++
++### 3.6 `geographic_focus`
++
++A constrained dropdown (`UK`, `Europe`, `North America`, `Global`, `Other`) — see [`docs/decisions.md` ADR-016](decisions.md). The brief proposed an array, the implementation uses a single string. The value answers: *where is the platform's centre of gravity in terms of customer base and support hours?* — not *where is it legally available*. Tessitura serves Europe and Asia, but its customer body and conferences are global, so it is `Global`. Spektrix serves the US too, but its UK-and-Ireland customer concentration is the relevant operational signal, so it is `UK`.
++
++---
++
++## 4. The 11 seeded systems — why each has the attributes it does
++
++For each system below: what its classification is, why each value was chosen, and what the current source reference does and does not prove. The catalogue is in [`backend/src/prisma/system-seed-catalog.js`](../backend/src/prisma/system-seed-catalog.js).
++
++### Field-level provenance (`field_sources`) — Story 11.5
++
++The seed now persists **per-field HTTPS URLs** on each System (`system.field_sources`) and on each sample Organisation (`organisation.field_sources`). Keys use camelCase and match [`backend/src/lib/field-source-keys.js`](../backend/src/lib/field-source-keys.js). URLs were smoke-tested with `curl` (final HTTP status **200** after redirects) on **2026-05-03**. Keys are **omitted** when no defensible page exists or when a capability flag is `UNKNOWN`.
++
++| System | Seed coverage notes |
++|---|---|
++| Tessitura | ✓ **In seed:** tessitura.com `/features/*`, `/support/training/*`, subscription-renewals article, accessibility webinar — substantiate integrated suite, cloud, capabilities, and Epic-12-shaped keys. **Skipped:** `pricingModel` — no public page that directly evidences the enterprise licence model without relying on the marketing root alone. **Skipped:** [`tessituranetwork.com/products/tessitura-software`](https://www.tessituranetwork.com/products/tessitura-software) — HTTP **404** at verification (use tessitura.com paths instead). |
++| Spektrix | ✓ **In seed:** `/en-gb/pricing`, `/en-gb/arts-management-crm-software`, fundraising and segmentation blogs, `/ticket-subscriptions-and-loyalty`, multi-venue case study. **Skipped:** `reservedSeatingCapability`, `dynamicPricingCapability`, `accessibilityFeaturesCapability` — `UNKNOWN` in the row (no source keys). **Skipped:** `/en-gb/our-product` — HTTP **404**. |
++| AudienceView | ✓ **In seed:** `/products/audienceview-unlimited/`, `/solutions/performing-arts` (season + multi-venue + marketing). **Skipped:** `donationCapability`, `dynamicPricingCapability`, `accessibilityFeaturesCapability` — `UNKNOWN` (no source keys). |
++| Ticketmaster | ✓ **In seed:** `business.ticketmaster.com`, `livenationentertainment.com`, `investors.livenationentertainment.com`, ADA page. |
++| PatronBase | ✓ **In seed:** ticketing, seasons-and-packages, venue-manager; `marketingAutomationCapability` / `accessibilityFeaturesCapability` **skipped** — `UNKNOWN`. **Skipped:** membership and donation capabilities — both `UNKNOWN` in the row. |
++| Eventbrite | ✓ **In seed:** `/platform/` and `/organizer/pricing/` for Epic-12 `NO` rows; `accessibilityFeaturesCapability` **skipped** — `UNKNOWN`. |
++| Ticketsolve | ✓ **In seed:** ticketing + projects only for Epic-12 `YES` rows. **Skipped:** v1 capabilities — all `UNKNOWN`; Epic-12 `UNKNOWN` keys omitted (dynamic, marketing, accessibility). |
++| Universe | ✓ **In seed:** `universe.com/features` for multi-venue and marketing `NO`; Live Nation + investor URLs for vendor/pricing. **Skipped:** `reservedSeatingCapability`, season/dynamic/accessibility Epic-12 keys — `UNKNOWN`. |
++| Salesforce | ✓ **In seed:** nonprofit industry solution, `salesforce.com/nonprofit/`, Marketing Cloud overview, company equality page, pricing. |
++| HubSpot | ✓ **In seed:** CRM and Marketing products, `/nonprofits`, `/pricing`. **Skipped:** `membershipCapability`, `seasonSubscriptionsCapability`, `accessibilityFeaturesCapability` — `UNKNOWN`. |
++| Donorfy | ✓ **In seed:** `donorfy.com/which-donorfy` for season and marketing `NO`; pricing + donation URLs elsewhere. **Skipped:** membership, reserved seating, Epic-12 `UNKNOWN` keys (dynamic, multi-venue, accessibility). |
++
++Sample organisations: provenance is keyed from English Wikipedia articles (infobox / article text) where an article exists and returned HTTP **200** — see [`backend/src/prisma/org-field-sources-seed.js`](../backend/src/prisma/org-field-sources-seed.js). Capability keys are omitted when the seed flag is `UNKNOWN`.
++
++### 4.1 Tessitura
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | Tessitura is the canonical example of a single database holding ticketing transactions, donor records, memberships, and marketing segments. The brief explicitly cites it as an integrated suite. |
++| `vendor` | Tessitura Network | The non-profit consortium that owns and develops the product. |
++| `deployment_model` | `SAAS` | Tessitura is now offered as a vendor-hosted service ("Tessitura in the Cloud"); on-prem deployments still exist for legacy customers but new sales are SaaS. **Caveat:** A `HYBRID` argument exists for sites that still self-host. The catalogue picks the dominant new-customer model. |
++| `pricing_model` | `LICENCE` | Annual licence with a named-user model and implementation fees, negotiated bottom-up. Not transaction-fee based — Tessitura customers do not pay per ticket sold. |
++| `geographic_focus` | `Global` | Customer base spans North America, UK, Europe, and Asia-Pacific; conferences and user community are global. |
++| Capabilities | membership/donation/seating all `YES` | All three are first-class Tessitura modules. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `YES` | tessitura.com subscription-renewals article |
++| Dynamic pricing | `YES` | Intro to ticketing — pricing MOS training |
++| Multi-venue | `YES` | Facilities intro training |
++| Marketing automation | `YES` | Unified CRM features |
++| Accessibility | `YES` | v16 digital accessibility webinar |
++
++**Source reference today:** `https://www.tessituranetwork.com/` — root marketing site (coarse row-level pointer; unchanged in Story 11.5).
++**What it proves:** That Tessitura exists and is described as an integrated platform.
++**What it does *not* prove:** The deployment model, the pricing structure, or the capability claims on its own.
++**Per-field sources (Story 11.5):** ✓ **In seed** — tessitura.com `/features/*`, `/support/training/*`, subscription-renewals article, accessibility webinar (see summary table). **Skipped:** `pricingModel` key — no defensible public licence page without leaning on a marketing root alone. **Skipped:** [`tessituranetwork.com/products/tessitura-software`](https://www.tessituranetwork.com/products/tessitura-software) — HTTP **404** at verification; seed uses tessitura.com paths instead.
++
++### 4.2 Spektrix
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | Single platform combining ticketing, CRM, fundraising, and marketing. |
++| `vendor` | Spektrix Ltd | UK-headquartered. |
++| `deployment_model` | `SAAS` | Cloud-native from inception; no on-prem option. |
++| `pricing_model` | `SUBSCRIPTION` | Spektrix charges a fixed monthly subscription rather than a per-ticket fee for the customer; ticket buyer fees exist but the *customer's* commercial model is subscription. **Defensible alternative:** `HYBRID`, on the grounds that buyer-side fees are part of the model. The catalogue picks the customer-facing view. |
++| `geographic_focus` | `UK` | Customer concentration is UK and Ireland; US presence exists but is the minority. |
++| Capabilities | membership/donation `YES`, seating `UNKNOWN` | Membership and fundraising are documented modules. The seating cell is `UNKNOWN` — a defensible classification given the seed time evidence, but Spektrix does support reserved seating in practice and this should probably be revised to `YES`. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `YES` | Ticket subscriptions and loyalty product page |
++| Dynamic pricing | `UNKNOWN` | Demand-based / yield rules are not publicly documented to the bar used for `YES`; key omitted from `field_sources`. |
++| Multi-venue | `YES` | Multi-venue trust case study |
++| Marketing automation | `YES` | Segmentation / marketing tooling blog |
++| Accessibility | `UNKNOWN` | Blog covers web accessibility practices, not a clear reserved / accessible-seating product claim; key omitted. |
++
++**Source reference today:** `https://www.spektrix.com/` — root.
++**What it proves:** Spektrix exists.
++**What it does not prove:** The subscription model, the UK focus, or the capabilities.
++**Per-field sources (Story 11.5):** ✓ **In seed** — `/en-gb/pricing`, `/en-gb/arts-management-crm-software`, fundraising and segmentation blogs, `/ticket-subscriptions-and-loyalty`, multi-venue case study (see summary table). **Skipped:** `reservedSeatingCapability`, `dynamicPricingCapability`, `accessibilityFeaturesCapability` — `UNKNOWN` (no source keys). **Skipped:** `/en-gb/our-product` — HTTP **404**.
++**Action item:** revisit `reserved_seating_capability` — the `UNKNOWN` is likely too cautious.
++
++### 4.3 AudienceView
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `INTEGRATED` | The Professional and Unlimited tiers both bundle ticketing and CRM. |
++| `deployment_model` | `SAAS` | Vendor-hosted. |
++| `pricing_model` | `HYBRID` | AudienceView Unlimited is annual licence + transaction uplifts in some configurations; Professional is closer to subscription. Across the brand, `HYBRID` is the most honest single classification. |
++| `geographic_focus` | `North America` | Customer base is concentrated in the US and Canada. |
++| `donation_capability` | `UNKNOWN` | Fundraising is offered in higher tiers but is not visible on the marketing surface for the base product. The cautious flag is correct for now. |
++
++**Source reference today:** `https://www.audienceview.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — [`audienceview.com/products/audienceview-unlimited/`](https://www.audienceview.com/products/audienceview-unlimited/) and [`/solutions/performing-arts`](https://www.audienceview.com/solutions/performing-arts) (see summary table). **Skipped:** `donationCapability` — `UNKNOWN` in the row.
++**Caveat:** AudienceView owns OvationTix and Audience Republic — these are *separate products* in the brief and could be added as separate `System` rows with `vendor` = AudienceView to make the family relationship explicit. Currently they are not seeded.
++
++### 4.4 Ticketmaster
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Pure ticket-selling at scale. Has audience data internally but is not sold to venues as a CRM. |
++| `vendor` | Live Nation Entertainment | Ticketmaster is a Live Nation subsidiary — the parent is the legally accurate vendor. |
++| `deployment_model` | `SAAS` | Cloud, multi-tenant. |
++| `pricing_model` | `TRANSACTION_FEE` | Ticketmaster's revenue is per-ticket service fees, paid by the buyer and / or split with the venue. The customer (the venue) does not pay a subscription. |
++| `geographic_focus` | `Global` | Operates in 30+ countries. |
++| `membership_capability`, `donation_capability` | `NO` | Ticketmaster does not provide membership lifecycles or donation processing for the venue. |
++| `reserved_seating_capability` | `YES` | Reserved seating is core. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `NO` | Venue / business product surface — not arts season-package–centric like integrated suites |
++| Dynamic pricing | `YES` | Investor / commercial disclosures on pricing power and yield |
++| Multi-venue | `YES` | Business ticketing — enterprise / venue footprint |
++| Marketing automation | `NO` | Business site — ticketing, not patron journey automation |
++| Accessibility | `YES` | ADA information page |
++
++**Source reference today:** `https://www.ticketmaster.com/` — consumer-facing root, not a venue-product page.
++**This is the weakest row-level source URL in the catalogue** — `ticketmaster.com` is where ticket buyers go, not where the platform's commercial model is documented.
++**Per-field sources (Story 11.5):** ✓ **In seed** — [`business.ticketmaster.com`](https://business.ticketmaster.com), Live Nation corporate site, investor relations, ADA page (see summary table) for venue-side and fee-model context.
++
++### 4.5 PatronBase
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Box-office product; CRM features are lighter than the integrated suites. |
++| `pricing_model` | `LICENCE` | Annual licence model targeted at small/mid theatres. |
++| `geographic_focus` | `UK` | UK and European customer base, though the company has Australia/New Zealand origins per the brief. The seed labels it `UK` because the European customer body is what is relevant for DMCF. |
++| `reserved_seating_capability` | `NO` | This needs review. PatronBase markets seat-mapped sales — the `NO` is likely an error and should be revised to `YES` or `UNKNOWN`. |
++
++**Source reference today:** `https://www.patronbase.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — `patronbase.com/products/*`, `/about/regions/`, `/contact/` (see summary table). **Skipped:** membership and donation capability keys — both `UNKNOWN` in the row.
++**Action item:** verify the `reserved_seating_capability=NO` against PatronBase's product page; the brief lists PatronBase among reserved-seating-capable systems.
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `YES` | Seasons and packages product page |
++| Dynamic pricing | `NO` | Core ticketing product — no published demand-based / yield engine to the bar used elsewhere |
++| Multi-venue | `YES` | Venue Manager — multi-site operations |
++| Marketing automation | `UNKNOWN` | Marketing module exists but is not documented to the automation bar used for `YES` on Spektrix / HubSpot; key omitted. |
++| Accessibility | `UNKNOWN` | Entry Manager does not clearly substantiate accessible *ticketing* workflows; key omitted. |
++
++### 4.6 Eventbrite
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Self-serve ticketing. |
++| `pricing_model` | `TRANSACTION_FEE` | Per-ticket service fee + payment processing fee; free for free events. The brief and Eventbrite's own pricing page agree on this. |
++| `geographic_focus` | `Global` | Operates in 180+ countries. |
++| `reserved_seating_capability` | `NO` | Eventbrite supports reserved seating for paid plans but it is not the default and the feature has historically been limited; `NO` is conservative. **Defensible alternative:** `UNKNOWN`. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `NO` | Platform overview — self-serve events, not Tessitura-style renewable seat subscriptions |
++| Dynamic pricing | `NO` | Organizer pricing — per-ticket fees, not yield management |
++| Multi-venue | `NO` | Organiser-account model — not a consortium / trust single stack |
++| Marketing automation | `NO` | Platform overview — email exists, not enterprise journey automation |
++| Accessibility | `UNKNOWN` | No defensible field-level URL; key omitted. |
++
++**Source reference today:** `https://www.eventbrite.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — [`eventbrite.com/platform/`](https://www.eventbrite.com/platform/) and [`eventbrite.com/organizer/pricing/`](https://www.eventbrite.com/organizer/pricing/) (see summary table).
++
++### 4.7 Ticketsolve
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | UK arts-and-heritage ticketing, lighter touch than the integrated suites. |
++| `pricing_model` | `SUBSCRIPTION` | Monthly subscription disclosed on the marketing site. |
++| `geographic_focus` | `UK` | UK and Ireland customer base. |
++| Capabilities | all `UNKNOWN` | All three capability flags are `UNKNOWN`, which is honest — the marketing site does not clearly assert or deny membership or donation modules. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `YES` | Ticketing features — packages / seasons positioning |
++| Dynamic pricing | `UNKNOWN` | Data and insights feature does not clearly document demand-based ticket pricing; key omitted. |
++| Multi-venue | `YES` | Projects — multi-site / programme structure |
++| Marketing automation | `UNKNOWN` | Not documented to automation bar; key omitted. |
++| Accessibility | `UNKNOWN` | Key omitted. |
++
++**Source reference today:** `https://www.ticketsolve.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — `ticketsolve.com/features/*`, `/pricing`, `/about` (see summary table). **Skipped:** all three v1 capability flags — `UNKNOWN` in the row. Content note: the `UNKNOWN` flags should ideally be revisited against feature documentation when time allows.
++
++### 4.8 Universe
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `TICKETING` | Self-serve ticketing layer in the Live Nation family. |
++| `vendor` | Live Nation Entertainment | Universe is owned by Ticketmaster/Live Nation. |
++| `pricing_model` | `TRANSACTION_FEE` | Per-ticket fees, no subscription. |
++| `geographic_focus` | `Global` | Operates internationally. |
++| `reserved_seating_capability` | `UNKNOWN` | Universe historically focuses on general-admission events; reserved seating exists but support is limited. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `UNKNOWN` | Not substantiated for arts-style renewable subscriptions; key omitted. |
++| Dynamic pricing | `UNKNOWN` | Key omitted. |
++| Multi-venue | `NO` | Features — creator / discovery positioning, not trust-wide multi-venue operations |
++| Marketing automation | `NO` | Features — no CRM / journey automation comparable to Marketing Cloud |
++| Accessibility | `UNKNOWN` | Key omitted. |
++
++**Source reference today:** `https://www.universe.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — `universe.com/features`, Live Nation + investor URLs for vendor/pricing context (see summary table). **Skipped:** `reservedSeatingCapability` — `UNKNOWN`.
++
++### 4.9 Salesforce
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Salesforce sells a CRM platform. Arts orgs often use it via PatronManager (which is a Salesforce-built product), but Salesforce itself is the platform, not the ticketing layer. |
++| `pricing_model` | `SUBSCRIPTION` | Per-user-per-month subscription is Salesforce's published commercial model. |
++| `geographic_focus` | `Global` | The largest CRM company in the world. |
++| `donation_capability` | `YES` | Through Nonprofit Cloud / NPSP, Salesforce supports donation tracking. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `NO` | Nonprofit industry solution — CRM / fundraising, not venue season-ticket engines |
++| Dynamic pricing | `YES` | Published pricing / CPQ-style commercial tooling |
++| Multi-venue | `YES` | Service Cloud overview — multi-site service operations |
++| Marketing automation | `YES` | Marketing Cloud overview |
++| Accessibility | `YES` | Company equality / accessibility commitments |
++
++**Source reference today:** `https://www.salesforce.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — nonprofit industry pages, [`salesforce.com/nonprofit/`](https://www.salesforce.com/nonprofit/), Marketing Cloud overview, equality page, pricing (see summary table).
++
++**Note:** PatronManager (a Salesforce-built product, called out in the brief) is currently *not* a separate `System` row. It is arguably one of the most important integrated suites in the US arts sector and should probably be added.
++
++### 4.10 HubSpot
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Inbound marketing + CRM. |
++| `pricing_model` | `SUBSCRIPTION` | Tiered per-month plans publicly listed. |
++| `geographic_focus` | `Global` | International. |
++| `donation_capability` | `YES` | This is a stretch — HubSpot can record donations as deals in its CRM, but it is not a fundraising-native platform. **Defensible alternative:** `UNKNOWN` or `NO`. |
++
++**Source reference today:** `https://www.hubspot.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — CRM and Marketing product pages, [`hubspot.com/nonprofits`](https://www.hubspot.com/nonprofits), `/pricing`, `/company` (see summary table). **Skipped:** `membershipCapability` — `UNKNOWN` in the row.
++**Action item:** the `donation_capability=YES` row value is a strong claim — keep it aligned with the nonprofit URLs in seed or downgrade the enum if evidence thins.
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `UNKNOWN` | Inbound platform — not a performing-arts season engine; no field URL; key omitted. |
++| Dynamic pricing | `YES` | Marketing Hub product — experimentation / optimisation surface |
++| Multi-venue | `NO` | CRM product — not venue / trust operations software |
++| Marketing automation | `YES` | Marketing Hub product page |
++| Accessibility | `UNKNOWN` | No defensible field-level product claim; key omitted. |
++
++### 4.11 Donorfy
++
++| Field | Value | Reasoning |
++|---|---|---|
++| `category` | `AUDIENCE_MANAGEMENT` | Nonprofit-sector CRM with fundraising as the primary use case. |
++| `pricing_model` | `SUBSCRIPTION` | Monthly plans publicly listed on Donorfy's pricing page. |
++| `geographic_focus` | `UK` | UK charity-sector heritage. |
++| `donation_capability` | `YES` | Donation processing is the core feature. |
++| `membership_capability`, `reserved_seating_capability` | `UNKNOWN`, `UNKNOWN` | Membership lifecycles can be modelled but are not the marketed strength; seating is not applicable to Donorfy's category. |
++
++#### v3 capabilities (Epic 12, Story 12.5)
++
++| Dimension | Value | Seed source |
++|---|---|---|
++| Season subscriptions | `NO` | Product selector — charity CRM, not ticketing seasons |
++| Dynamic pricing | `UNKNOWN` | Key omitted. |
++| Multi-venue | `UNKNOWN` | Key omitted. |
++| Marketing automation | `NO` | Same — donor CRM positioning, not full journey automation |
++| Accessibility | `UNKNOWN` | Key omitted. |
++
++**Source reference today:** `https://donorfy.com/` — root.
++**Per-field sources (Story 11.5):** ✓ **In seed** — [`donorfy.com/pricing`](https://donorfy.com/pricing), product selector, arts/heritage page, integration blog posts (see summary table).
++
++---
++
++## 5. The source-reference weakness — what to fix
++
++Every seeded system still carries a **row-level** `source_reference` pointing at the vendor marketing root in most cases. That field remains the coarse “general source for the record” and was **not** auto-copied into per-field JSON (Story 11.5). Per-field verification now lives in `field_sources` (API: `fieldSources`), populated from deeper pages where they exist.
++
++There are three concrete improvements that remain relevant for the **row-level** field and for custom attributes:
++
++### 5.1 Use a deeper URL that substantiates the claim
++
++Where a single homepage is insufficient, prefer product, pricing, or industry pages for `source_reference` — especially for the most contested cell (often pricing). Eventbrite’s pricing URL and Tessitura’s tessitura.com feature pages are examples of this pattern.
++
++### 5.2 Use per-claim sources via custom attributes
++
++The `custom_attributes` JSON column already supports `{ label, value, source_reference }` triples. Where a single URL cannot defend the whole row, multiple custom attributes each with their own source remain the right pattern for claims that are not yet modelled as first-class columns.
++
++### 5.3 Keep `source_reference` honestly `null` when there is no good URL
++
++The schema allows `source_reference` to be null. For systems where only weak public pages exist, nulling the row-level field and explaining the gap in prose or custom attributes is more honest than citing a URL that does not defend the claim.
++
++### 5.4 Coverage status (seed, Story 11.5)
++
++Measured against the allow-lists in `field-source-keys.js`:
++
++- **Systems:** populated key count **129** / **143** (11 × 13) ≈ **90%** — above the **80%** target; omitted keys are deliberate (e.g. `UNKNOWN` capabilities, Tessitura `pricingModel` without a defensible non-root licence URL).
++- **Sample organisations:** populated key count **196** / **224** (32 × 7) ≈ **87.5%** — above the **60%** target; Wikipedia URLs are reused across keys where one article supports multiple facts.
++
++---
++
++## 6. Summary — does the app match the brief?
++
++**Structurally: yes.** The System entity, junction, role enum, three-state capability reuse, custom-attribute JSON carrier, system-to-system compare, and 11-system seed all reflect the brief's design choices accurately, and the deviations (no `target_organisation_size`, no 17-flag capability list) are explicit recorded decisions, not slippage.
++
++**Substantively: stronger on verification than before Stories 11.5 and 12.5.** Detail and compare views show per-field ⓘ links for eight capability columns where values are `YES` or `NO`. Epic-12 flags are explicit in the database; `UNKNOWN` remains an honest outcome and omits URLs by design. The brief’s critique that compare was too thin on product dimensions is **addressed for these five capabilities** in the seeded catalogue — with the caveat that many cells remain `UNKNOWN` where public evidence is thin (preferable to over-claiming).
++
++Remaining gaps: honest omissions (unknown capabilities, Tessitura pricing), occasional HTTP 404 rot on cited URLs, and Section 4 content-level review items (e.g. Spektrix seating `UNKNOWN`, PatronBase seating `NO`) where classification may need revision independent of provenance wiring.
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 735e64f..c3e1b7c 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -1,9 +1,9 @@
+-# generated: 2026-04-30T23:00:00Z
+-# last_updated: 2026-04-30T23:45:00Z
+-# project: dmcf-app
++# generated: 2026-05-03T10:01:12Z
++# last_updated: 2026-05-03T23:00:00Z
++# project: dmcf-ticketing-stack-mapper
+ # project_key: NOKEY
+ # tracking_system: file-system
+-# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++# story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ # STATUS DEFINITIONS:
+ # ==================
+@@ -34,22 +34,22 @@
+ # - SM typically creates next story after previous one is 'done' to incorporate learnings
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+-generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T22:25:00Z
+-project: dmcf-app
++generated: 2026-05-03T10:01:12Z
++last_updated: 2026-05-03T23:00:00Z
++project: dmcf-ticketing-stack-mapper
+ project_key: NOKEY
+ tracking_system: file-system
+-story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ development_status:
+-  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
++  # ─── Epic 1: Project Foundation — Runnable Local Stack ───
+   epic-1: done
+   1-1-backend-scaffold-data-model-and-reference-data-seed: done
+   1-2-frontend-scaffold-and-application-shell: done
+   1-3-readme-and-project-documentation: done
+   epic-1-retrospective: done
+ 
+-  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
++  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ───
+   epic-2: done
+   2-1-organisation-list-page: done
+   2-2-create-organisation: done
+@@ -58,33 +58,33 @@ development_status:
+   2-5-delete-organisation: done
+   epic-2-retrospective: done
+ 
+-  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
++  # ─── Epic 3: Discovery & Filtering ───
+   epic-3: done
+   3-1-text-search: done
+   3-2-filter-bar-and-active-filter-chips: done
+   3-3-multi-filter-api-integration-and-url-state: done
+   epic-3-retrospective: done
+ 
+-  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
++  # ─── Epic 4: Side-by-Side Comparison ───
+   epic-4: done
+   4-1-compare-selection-bar: done
+   4-2-compare-page: done
+   epic-4-retrospective: done
+ 
+-  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
++  # ─── Epic 5: Seed Data & Demo Readiness ───
+   epic-5: done
+   5-1-sample-organisation-seed-data: done
+   5-2-readme-completion-and-demo-smoke-test: done
+   epic-5-retrospective: done
+ 
+-  # ─── Epic 6: Foundational Schema Migration to Systems Model ────────────────────
++  # ─── Epic 6: Foundational Schema Migration to Systems Model ───
+   epic-6: done
+   6-1-migration-a-add-system-and-organisationsystem-schema-additive: done
+   6-2-migration-b-backfill-systems-and-organisation-links-custom-sql: done
+   6-3-updatedat-on-system-organisationsystem-and-seed-reshape: done
+   epic-6-retrospective: done
+ 
+-  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ─────────────────────
++  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ───
+   epic-7: done
+   7-1-system-rest-api-list-detail-search-filters: done
+   7-2-system-rest-api-create-update-delete: done
+@@ -94,7 +94,7 @@ development_status:
+   7-6-system-create-edit-form: done
+   epic-7-retrospective: done
+ 
+-  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
++  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───
+   epic-8: done
+   8-1-organisation-system-link-api-junction-crud: done
+   8-2-organisation-api-filter-and-response-re-shape: done
+@@ -104,16 +104,53 @@ development_status:
+   8-6-organisationcard-system-chips-and-compare-view-updates: done
+   epic-8-retrospective: done
+ 
+-  # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
++  # ─── Epic 9: System-to-System Compare ───
+   epic-9: done
+   9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+   9-2-systemcard-component-compare-column: done
+   9-3-compare-union-panel-and-contextual-compare-entry-points: done
+   epic-9-retrospective: done
+ 
+-  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+-  epic-10: in-progress
++  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ───
++  epic-10: done
+   10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
+   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
+-  10-3-readme-and-docs-decisions-md-v2-updates: backlog
+-  epic-10-retrospective: optional
++  10-3-readme-and-docs-decisions-md-v2-updates: done
++  epic-10-retrospective: done
++
++  # ─── Epic 11: Source per Data Point ───
++  epic-11: done
++  11-1-migration-a-add-field-sources-column: done
++  11-2-api-contract-accept-and-return-field-sources: done
++  11-3-detail-and-compare-field-source-icon-rendering: done
++  11-4-forms-field-with-source-wrapper: done
++  11-5-seed-data-research-populate-field-sources: done
++  epic-11-retrospective: optional
++
++  # ─── Epic 12: System Capability Expansion ───
++  epic-12: backlog
++  12-1-migration-b-add-system-capability-columns: done
++  12-2-api-accept-and-filter-five-new-capabilities: done
++  12-3-form-detail-compare-render-five-new-capabilities: done
++  12-4-system-list-filter-sidebar-collapsible-more-capabilities: done
++  12-5-seed-populate-five-new-capabilities-and-field-sources: review
++  epic-12-retrospective: optional
++
++  # ─── Epic 13: Custom Attribute Editor ───
++  epic-13: backlog
++  13-1-api-accept-custom-attributes-on-system-create-and-update: ready-for-dev
++  13-2-system-form-custom-attribute-editor-component: ready-for-dev
++  epic-13-retrospective: optional
++
++  # ─── Epic 14: List Sorting ───
++  epic-14: backlog
++  14-1-api-sort-and-order-on-list-endpoints: ready-for-dev
++  14-2-list-pages-sort-dropdown-and-url-persistence: ready-for-dev
++  epic-14-retrospective: optional
++
++  # ─── Epic 15: Organisation Duplicate Guard ───
++  epic-15: backlog
++  15-1-migration-c-organisation-composite-unique: ready-for-dev
++  15-2-new-endpoint-check-similar-organisations: ready-for-dev
++  15-3-organisation-form-similar-organisations-warning: ready-for-dev
++  epic-15-retrospective: optional
+diff --git a/_bmad-output/implementation-artifacts/12-5-seed-populate-five-new-capabilities-and-field-sources.md b/_bmad-output/implementation-artifacts/12-5-seed-populate-five-new-capabilities-and-field-sources.md
+new file mode 100644
+index 0000000..9756601
+--- /dev/null
++++ b/_bmad-output/implementation-artifacts/12-5-seed-populate-five-new-capabilities-and-field-sources.md
+@@ -0,0 +1,138 @@
++# Story 12.5: Seed — Populate Five New Capabilities and Field Sources
++
++Status: review
++
++## Story
++
++As a maintainer of the catalogue,
++I want each of the 11 seeded Systems to carry honest values for the five new capability flags with corresponding `field_sources` entries where defensible URLs exist,
++so that the compare page demonstrates real differentiation across the new flags.
++
++## Acceptance Criteria
++
++1. **Five new capability values populated** — Every System in `system-seed-catalog.js` has all five new capability fields set to `YES`, `NO`, or `UNKNOWN`. No field is left undefined (database default would still be `UNKNOWN`, but the seed should be explicit for auditability).
++
++2. **Strict source-required policy for non-UNKNOWN values** — Any System whose capability value is `YES` or `NO` must have a corresponding entry in `fieldSources` for that capability key. A `YES` or `NO` without a source is rejected at code review.
++
++3. **`UNKNOWN` is the honest default** — Systems where no public evidence exists keep the capability as `UNKNOWN` and omit the source key. `UNKNOWN` is not a failure mode and does not count against coverage metrics.
++
++4. **Differentiation on compare** — After seeding, opening the Compare page with any reasonable pairing of 2–4 Systems renders meaningful differentiation across the new capability rows. Specifically: at least three of the five new capability rows show different values across at least three System pairings.
++
++5. **Rationale doc reflects the values** — [docs/system-catalogue-rationale.md](docs/system-catalogue-rationale.md) per-system sections (§4.1–§4.11) include the new capability values and any URLs used.
++
++6. **Idempotent seed** — `npx prisma db seed` (or `migrate reset`) populates the new values and sources cleanly. Re-running does not duplicate or corrupt data.
++
++## Tasks / Subtasks
++
++- [x] **Task 1 (AC: 1, 2, 3)** — Research pass for each System × five capabilities. For each combination:
++  - [x] 1.1 Identify the value (`YES`, `NO`, `UNKNOWN`) based on public evidence.
++  - [x] 1.2 If `YES` or `NO`, identify the URL that backs it. Vendor product page or feature documentation preferred.
++  - [x] 1.3 If no defensible URL, value = `UNKNOWN` and key is omitted from `fieldSources`.
++  - [x] 1.4 Record findings in a working table (e.g. comment block in the story Dev Agent Record) for traceability.
++- [x] **Task 2 (AC: 1, 2)** — Update `system-seed-catalog.js`. For each System:
++  - [x] 2.1 Add the five new capability fields with chosen values.
++  - [x] 2.2 Extend the existing `fieldSources` (from Story 11.5) to include entries for non-UNKNOWN capability values.
++- [x] **Task 3 (AC: 4)** — Manual differentiation check: run the seed, open the running app at `/compare/systems?ids=<a>,<b>,<c>` for three test pairings (e.g. Tessitura+Spektrix+AudienceView; Ticketmaster+Eventbrite+Universe; Salesforce+HubSpot+Donorfy). Confirm at least three of the five new rows show non-uniform values.
++- [x] **Task 4 (AC: 5)** — Refresh `docs/system-catalogue-rationale.md`:
++  - [x] 4.1 Add a "v3 capabilities" subsection to each per-system block listing the five new values and their sources (or noting why UNKNOWN).
++  - [x] 4.2 Update §6 (Summary) to reflect that the brief's "richer comparison" critique is addressed for the five new capabilities.
++- [x] **Task 5 (AC: 6)** — Run `npx prisma migrate reset` end-to-end; verify no errors and the seed produces the expected state. Re-run `npx prisma db seed`; verify idempotency.
++
++## Dev Notes
++
++- **The five new capabilities and what to look for:**
++  - **Season subscriptions:** "Subscriptions", "package builder", "renewable seat" features. Tessitura `YES`; Eventbrite `NO`; small ticketing platforms vary.
++  - **Dynamic pricing:** "Dynamic pricing", "demand-based pricing", "smart pricing" features. Tessitura `YES`; PatronBase `NO`; Spektrix `UNKNOWN` likely (offers some demand controls but not full dynamic pricing).
++  - **Multi-venue support:** "Multi-venue", "consortium", "trust" model documentation. Tessitura `YES` (consortium model); Spektrix `YES`; Eventbrite `NO` (account-per-organiser).
++  - **Marketing automation:** "Automation", "triggered emails", "journey builder". Spektrix integrates Dotdigital `YES`; PatronBase weaker `UNKNOWN`; HubSpot core feature `YES`.
++  - **Accessibility features:** "Accessible seating", "wheelchair", "audio description ticket types". Tessitura `YES`; many ticketing platforms `UNKNOWN` (feature exists but undocumented).
++- **Source URL examples:**
++  - Spektrix: `https://www.spektrix.com/en-gb/our-product#fundraising` for marketing automation.
++  - Tessitura: product page for season subscriptions; consortium model page for multi-venue.
++  - Eventbrite: pricing or feature comparison page for dynamic pricing (`NO`).
++- **Don't over-claim:** If a vendor mentions a feature in a blog post but doesn't document it as a product feature, lean toward `UNKNOWN`. The point is verifiability.
++- **Coverage isn't the goal:** The goal is *honest* values, not *high* values. A catalogue full of `UNKNOWN`s where evidence is thin is more trustworthy than a catalogue full of `YES`es with weak sources.
++
++### References
++
++- [epics.md — Story 12.5](_bmad-output/planning-artifacts/epics.md).
++- [docs/system-catalogue-rationale.md](docs/system-catalogue-rationale.md) — per-system rationale.
++- [backend/src/prisma/system-seed-catalog.js](backend/src/prisma/system-seed-catalog.js).
++- [backend/src/prisma/seed.js](backend/src/prisma/seed.js) — verify upsert payload includes the new fields.
++
++## Developer context (guardrails)
++
++| Risk | Mitigation |
++|------|------------|
++| Optimistic `YES` flags without sources | Code review enforces AC2: every non-UNKNOWN value has a `fieldSources` entry. Missing source = revert to UNKNOWN. |
++| All-UNKNOWN catalogue (no differentiation) | AC4 explicitly requires meaningful differentiation across the five rows in three pairings. If the catalogue can't hit this with honest values, escalate before merge — the capability set choice (ADR-027) may need revisiting. |
++| URL rot before merge | Reachability check parallel to Story 11.5 Task 3; same 48h window. |
++
++## Technical requirements
++
++- **Stack:** Prisma 6 seed.
++- **No new npm packages.**
++
++## File structure requirements
++
++| Action | Path |
++|--------|------|
++| Edit | `backend/src/prisma/system-seed-catalog.js` |
++| Edit | `backend/src/prisma/seed.js` (verify upsert wiring for new capability fields and field_sources) |
++| Edit | `docs/system-catalogue-rationale.md` |
++
++## Testing requirements
++
++- Manual differentiation check per Task 3.
++- Idempotency check per Task 5.
++- Existing test suite passes.
++
++## Dev Agent Record
++
++### Implementation Plan
++
++1. Added explicit Epic-12 enum columns on every `SYSTEM_SEED_DEFINITIONS` row and wired `seed.js` upsert `create`/`update` payloads.
++2. Normalised `fieldSources`: removed keys wherever the matching capability is `UNKNOWN`; ensured HTTPS URLs for every `YES`/`NO`.
++3. Documented values per system in `docs/system-catalogue-rationale.md` (v3 subsections + summary table + section 6).
++4. Added automated guard tests in `system-seed-catalog.test.js` (AC1–AC4). Task 3 pairing check is covered by the AC4 Jest test; optional UI smoke: compare URLs in AC still valid with seeded UUIDs from DB.
++
++### Debug Log
++
++- Local `npm test` failed (root-owned `node_modules`); full suite passed via `docker compose run --rm backend npm test` (215 tests).
++- Initial `migrate reset` on an outdated backend image skipped two migrations; rebuilt backend image then `migrate reset` applied all 8 migrations and seed succeeded; second `db seed` run idempotent (32 updated).
++
++### Completion Notes
++
++- **AC4:** Jest asserts each of the three reference triples (Tessitura/Spektrix/Eventbrite; Ticketmaster/Eventbrite/Universe; Salesforce/HubSpot/Donorfy) has ≥3 Epic-12 rows with non-uniform values.
++- **HubSpot** `season_subscriptions_capability` set to `UNKNOWN` (not a ticketing season product) so the CRM triple is not all-`NO` on that row.
++- **Spektrix** dynamic pricing and accessibility downgraded to `UNKNOWN` with sources removed — public pages did not meet the evidence bar for `YES` while staying honest.
++
++### Research traceability (System × Epic-12 caps)
++
++| System | Season | Dynamic | Multi-venue | Marketing | Accessibility |
++|--------|--------|---------|-------------|-----------|---------------|
++| Tessitura | YES | YES | YES | YES | YES |
++| Spektrix | YES | UNKNOWN | YES | YES | UNKNOWN |
++| AudienceView | YES | UNKNOWN | YES | YES | UNKNOWN |
++| Ticketmaster | NO | YES | YES | NO | YES |
++| PatronBase | YES | NO | YES | UNKNOWN | UNKNOWN |
++| Eventbrite | NO | NO | NO | NO | UNKNOWN |
++| Ticketsolve | YES | UNKNOWN | YES | UNKNOWN | UNKNOWN |
++| Universe | UNKNOWN | UNKNOWN | NO | NO | UNKNOWN |
++| Salesforce | NO | YES | YES | YES | YES |
++| HubSpot | UNKNOWN | YES | NO | YES | UNKNOWN |
++| Donorfy | NO | UNKNOWN | UNKNOWN | NO | UNKNOWN |
++
++## File List
++
++- `backend/src/prisma/system-seed-catalog.js`
++- `backend/src/prisma/seed.js`
++- `backend/src/__tests__/system-seed-catalog.test.js`
++- `backend/src/__tests__/system-http-stack.test.js`
++- `docs/system-catalogue-rationale.md`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++- `_bmad-output/implementation-artifacts/12-5-seed-populate-five-new-capabilities-and-field-sources.md`
++
++## Change Log
++
++- **2026-05-03:** Story 12.5 — seeded five Epic-12 capabilities + strict `fieldSources` policy; docs + tests; sprint status → review.

@@ -29,6 +29,11 @@ const prismaRows = SYSTEM_SEED_DEFINITIONS.map((def, i) => ({
   membership_capability: def.membership_capability,
   donation_capability: def.donation_capability,
   reserved_seating_capability: def.reserved_seating_capability,
+  season_subscriptions_capability: def.season_subscriptions_capability,
+  dynamic_pricing_capability: def.dynamic_pricing_capability,
+  multi_venue_support_capability: def.multi_venue_support_capability,
+  marketing_automation_capability: def.marketing_automation_capability,
+  accessibility_features_capability: def.accessibility_features_capability,
   source_reference: def.source_reference,
   custom_attributes: def.custom_attributes,
   last_updated: new Date('2026-04-01T00:00:00.000Z'),
@@ -42,31 +47,46 @@ function matchesWhere(row, where) {
   if (where.AND) return where.AND.every(part => matchesWhere(row, part));
   if (where.OR) return where.OR.some(part => matchesWhere(row, part));
 
+  const checks = [];
+
   if (where.name?.contains) {
     const term = String(where.name.contains).toLowerCase();
-    return row.name.toLowerCase().includes(term);
+    checks.push(() => row.name.toLowerCase().includes(term));
   }
   if (where.vendor?.contains) {
     const term = String(where.vendor.contains).toLowerCase();
-    return row.vendor.toLowerCase().includes(term);
+    checks.push(() => row.vendor.toLowerCase().includes(term));
   }
   if (where.description?.contains) {
     const term = String(where.description.contains).toLowerCase();
     const d = row.description || '';
-    return d.toLowerCase().includes(term);
+    checks.push(() => d.toLowerCase().includes(term));
   }
-  if (where.category?.in) return where.category.in.includes(row.category);
-  if (where.deployment_model !== undefined) return row.deployment_model === where.deployment_model;
-  if (where.pricing_model !== undefined) return row.pricing_model === where.pricing_model;
-  if (where.geographic_focus !== undefined) return row.geographic_focus === where.geographic_focus;
-  if (where.membership_capability !== undefined) {
-    return row.membership_capability === where.membership_capability;
+  if (where.category?.in) {
+    checks.push(() => where.category.in.includes(row.category));
   }
-  if (where.donation_capability !== undefined) return row.donation_capability === where.donation_capability;
-  if (where.reserved_seating_capability !== undefined) {
-    return row.reserved_seating_capability === where.reserved_seating_capability;
+
+  const eqFields = [
+    'deployment_model',
+    'pricing_model',
+    'geographic_focus',
+    'membership_capability',
+    'donation_capability',
+    'reserved_seating_capability',
+    'season_subscriptions_capability',
+    'dynamic_pricing_capability',
+    'multi_venue_support_capability',
+    'marketing_automation_capability',
+    'accessibility_features_capability',
+  ];
+  for (const f of eqFields) {
+    if (where[f] !== undefined) {
+      checks.push(() => row[f] === where[f]);
+    }
   }
-  return true;
+
+  if (checks.length === 0) return true;
+  return checks.every(c => c());
 }
 
 function filterRows(where) {

@@ -63,18 +63,18 @@ All responses use the envelope `{ data, error, meta }`. `meta` is `null` on non-
 
 ### Frontend (`frontend/src/`)
 
-- **`pages/`** — route-level components; four routes: list, detail, form (create/edit), compare
+- **`pages/`** — route-level components for **organisations** and **systems** (each: list, detail, create/edit) plus **`ComparePage`** (`/compare/organisations`), **`SystemComparePage`** (`/compare/systems`), and **`CompareLegacyPathPage`** (`/compare/*` for old bookmarks)
 - **`components/`** — shared UI pieces; `components/ui/` holds shadcn/ui primitives (copy-paste, never the CLI)
 - **`hooks/`** — all TanStack Query data-fetching; components never call `fetch` directly
 - **`api/`** — raw `fetch` wrappers consumed only by hooks
-- **`context/SelectionProvider`** — cross-page compare selection state; do not clear on compare navigation (ADR-013)
-- **`lib/`** — pure utilities (country list, filter param keys, compare URL helpers)
+- **`context/OrganisationSelectionProvider`** and **`context/SystemSelectionProvider`** — separate compare selection state per catalogue; do not clear organisation selection on compare navigation (ADR-013)
+- **`lib/`** — pure utilities (country list, system geographic focus, filter param keys, compare URL helpers)
 
 ### Database
 
 PostgreSQL 16 via Prisma 6 (pinned to v6 for CommonJS — ADR-001). Schema at `backend/src/prisma/schema.prisma`. All schema changes go through `prisma migrate dev`; never edit migration SQL manually for schema changes.
 
-Current models: `Organisation`, `TicketingProvider`, `CrmPlatform`, `OrganisationType`. `CapabilityState` enum (`YES | NO | UNKNOWN`) is used for membership, donation, and reserved-seating capabilities.
+Current models: `Organisation`, `System`, `OrganisationSystem` (junction), `OrganisationType`. Legacy `ticketing_provider` / `crm_platform` tables and organisation FKs were removed in Migration C. `CapabilityState` enum (`YES | NO | UNKNOWN`) is used on both organisation and system for membership, donation, and reserved-seating capabilities.
 
 `last_updated` on `Organisation` is managed by Prisma's `@updatedAt` — do not accept it from request bodies and do not use `$use` middleware (ADR-011).
 

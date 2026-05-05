@@ -2,7 +2,7 @@
 
 This file records all meaningful architectural decisions made during implementation. Each entry states what was decided and why.
 
-**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**; v2 schema migration — three-step sequence — **ADR-015**; system `geographic_focus` list dual maintenance — **ADR-016**; `GET /api/systems` multi-value `category` filter — **ADR-017**.
+**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**; v2 schema migration — three-step sequence — **ADR-015**; system `geographic_focus` list dual maintenance — **ADR-016**; `GET /api/systems` multi-value `category` filter — **ADR-017**; organisation–system junction hard-delete — **ADR-018**; system `custom_attributes` as JSON — **ADR-019**; system name unique / vendor disambiguation — **ADR-020**; three-migration sequence (§8 traceability) — **ADR-021**; no batch compare endpoint — **ADR-022**; selection context split (organisations vs systems) — **ADR-023**; compare paths `/compare/systems` & `/compare/organisations` — **ADR-024**; per-field source provenance via `field_sources` JSON column — **ADR-025**; organisation composite uniqueness `(name, city, country)` + warning UX — **ADR-026**; system capability column set scope — **ADR-027**; list sort query-param contract — **ADR-028**; custom-attribute editor reuses JSON column (no schema change) — **ADR-029**; Prisma `--create-only` migration drift repair (hand-edit) — **ADR-030**.
 
 ---
 
@@ -13,6 +13,8 @@ This file records all meaningful architectural decisions made during implementat
 **Rationale:** Prisma v7 requires ESM and a `prisma.config.ts` file (TypeScript in a JS project). v6 runs in CommonJS without modification and has no confirmed EOL date for an internal MVP timeline. Organisation freshness is maintained via **`@updatedAt` on `last_updated`** (see **ADR-011**), not `$use` middleware.
 
 **Implication:** If the project migrates to TypeScript or ESM in a future phase, reassess the Prisma major version and config model independently of `last_updated` mechanics.
+
+**Migration SQL:** Schema remains authoritative in **`schema.prisma`**; new DDL is produced with **`prisma migrate`**. The **only** supported hand-edit to an **already generated** `migration.sql` is the narrow drift-repair case in **ADR-030** (remove unintended statements such as spurious `DROP INDEX` from `--create-only` output before apply). Do not use ad-hoc SQL edits to introduce or change columns without a matching `schema.prisma` change.
 
 ---
 
@@ -115,11 +117,13 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
 
 **Decision:** `GET /api/organisations` maps each Prisma row through `toOrganisationListDto` in `backend/src/services/organisation-list-dto.js` instead of returning raw `findMany` results.
 
-**Rationale:** The Prisma client exposes snake_case property names that match `schema.prisma`, while the public API contract requires camelCase JSON and nested lookup objects (`organisationType`, `ticketingProvider`, `crmPlatform`). A dedicated mapper keeps that boundary explicit and easy to reuse in Story 2.2+ for create/detail/update responses.
+**Rationale:** The Prisma client exposes snake_case property names that match `schema.prisma`, while the public API contract requires camelCase JSON and a stable DTO shape. **Pre–Migration C**, the mapper also nested legacy lookup objects **`ticketingProvider`** and **`crmPlatform`** alongside **`organisationType`**. **After Migration C** (Epic 8+), those provider/platform nests are **not** returned; linked systems are expressed as a **`systems`** array on the DTO (see paragraph below). The mapper remains the single place that defines list/create/detail/update JSON.
 
 **Implication:** New organisation endpoints should reuse or extend the same mapping pattern rather than serialising Prisma rows directly.
 
 **POST `/api/organisations` (Story 2.2):** Request bodies use **camelCase** keys (`name`, `country`, `organisationTypeId`, optional FK ids, three `*Capability` enums as `YES` | `NO` | `UNKNOWN`, optional `sourceReference`, `notes`, `capacity`). The handler strips client-supplied `id` and timestamp fields before persist. Successful **201** responses use the same **`toOrganisationDto`** mapper as the list (including `updatedAt`).
+
+**v2 list/detail shape (Epic 8+, after Migration C):** `toOrganisationDto` in `organisation-list-dto.js` exposes a **`systems`** array of junction links (via `organisation-system-dto` / `toLinkDto`: role, per-link notes, nested `system` summary). Legacy nested **`ticketingProvider`** / **`crmPlatform`** fields are **not** returned after legacy FK columns and lookup tables were removed. Treat the mapper implementation as the contract.
 
 ---
 
@@ -190,6 +194,159 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
 **Rationale:** Category is a primary discovery dimension for Systems and users will frequently want to view more than one category at once (e.g. "show me integrated and ticketing systems"). A comma-separated single-param approach (`?category=INTEGRATED,TICKETING`) is non-standard; Express's built-in `req.query` parsing of repeated keys into arrays is the idiomatic choice. `URLSearchParams` on the frontend handles repeated params natively.
 
 **Implication:** The frontend must serialise multi-category selection using `URLSearchParams.append('category', value)` per selected value — not a comma-separated string. Backend controller normalises a single string param to a one-element array so single-value and multi-value clients behave identically.
+
+---
+
+## ADR-018: OrganisationSystem unlink is a hard-delete
+
+**Decision:** Removing a link between an organisation and a system **deletes** the `organisation_system` row. There is **no** soft-delete column, **no** `active` flag, and **no** adoption-history table in the MVP.
+
+**Rationale:** Keeps the junction model small and queries unambiguous for an internal tool. Confirmed destructive UX (confirm dialog) is acceptable; audit requirements can be revisited in a later phase if needed.
+
+**Implication:** Clients must not assume “unlink” leaves a tombstone row. Any future history feature would be a new table or event log, not a reinterpretation of delete.
+
+---
+
+## ADR-019: System custom attributes as JSON on `System.custom_attributes`
+
+**Decision:** Vendor-specific or integration-specific fields that do not warrant first-class columns are stored in **`system.custom_attributes`** as **JSON** (Prisma `Json`), not in a separate `system_attribute` / EAV table.
+
+**Rationale:** Avoids schema churn for rare keys while keeping one row per system. Editors validate shape at the API boundary; MVP exposes attributes as **read-only** in the UI (Growth may add full editing).
+
+**Implication:** Query/filter semantics for custom keys stay limited unless indexed paths are introduced later. Document breaking JSON changes in release notes if clients depend on specific keys.
+
+---
+
+## ADR-020: System `name` is unique; use `vendor` for disambiguation
+
+**Decision:** `system.name` is **unique** at the database level. Products that share a marketing name from different vendors are distinguished via **`vendor`** (and related descriptive fields), not by relaxing uniqueness.
+
+**Rationale:** List and compare UIs use `name` as the primary human label; duplicate names would confuse operators and break mental models for “one catalogue row per product”.
+
+**Implication:** Seed and imports must assign unambiguous `name` values or vary `vendor` in the displayed label where the product name collides.
+
+---
+
+## ADR-021: Three-migration sequence (architecture-v2-delta §8 traceability)
+
+**Decision:** Any schema change that **moves** data from legacy structures into new tables must follow the **additive → backfill → destructive** migration sequence. This decision records **§8 traceability** for the v2 programme; the full rationale and operational implications are in **ADR-015**.
+
+**Rationale:** Duplicating the long ADR-015 narrative would drift; a short pointer keeps one source of truth while satisfying the delta doc’s decision list.
+
+**Implication:** When proposing shortcuts (e.g. combining backfill and drop), cite **ADR-015** and reject unless risk is explicitly accepted.
+
+---
+
+## ADR-022: No batch compare endpoint — parallel `GET /api/systems/:id` (and organisations)
+
+**Decision:** There is **no** dedicated “compare many systems in one request” API. The compare UI loads **one resource at a time** via existing detail endpoints (e.g. parallel **`GET /api/systems/:id`** calls).
+
+**Rationale:** Keeps read contracts simple, leverages HTTP caching patterns the browser already uses, and avoids N+1 payload design debates for an internal MVP.
+
+**Implication:** If compare latency becomes an issue, prefer a measured move to a batch read **after** profiling — not by default.
+
+---
+
+## ADR-023: Split selection context — organisations vs systems
+
+**Decision:** Compare selection state for **organisations** and **systems** is held in **separate** React context providers (`OrganisationSelectionProvider` and `SystemSelectionProvider` in `frontend/src/context/`), not a single shared bag of mixed entity types.
+
+**Rationale:** Prevents ID collisions and ambiguous UI when both catalogues are in use; each compare flow has its own selection bar and URL shape.
+
+**Implication:** Features that span both entity types must not reuse the wrong context; cross-linking from org detail to system compare should pass explicit ids, not “whatever was selected elsewhere”.
+
+---
+
+## ADR-024: Compare paths `/compare/systems` and `/compare/organisations`
+
+**Decision:** First-class compare URLs are **`/compare/systems`** and **`/compare/organisations`** (with `?ids=` comma-separated UUIDs as implemented). Legacy **`/compare?ids=...`** bookmarks from v1 **may break** or are served only via a **legacy route** shim; that is acceptable for an internal MVP.
+
+**Rationale:** Explicit paths align with the split catalogues and routing structure; cleaning old bookmarks is lower cost than perpetuating a single ambiguous compare entry.
+
+**Implication:** Documentation and new links must use the prefixed paths. Support tickets for old bookmarks should point users to the new URLs.
+
+---
+
+## ADR-025: Per-field source provenance via `field_sources` JSON column on System and Organisation
+
+**Decision:** Material data points on `System` and `Organisation` carry their own source URL via a `field_sources Json?` column on each entity. Shape: `{ "<fieldName>": "<url>" }` with field-name keys validated against a per-entity allow-list (`SYSTEM_FIELD_SOURCE_KEYS`, `ORGANISATION_FIELD_SOURCE_KEYS`) co-located with the DTOs in `backend/src/lib/field-source-keys.js` and mirrored in `frontend/src/lib/field-source-keys.js`. The row-level `source_reference` field is preserved as a general fallback but **does not** auto-substitute into per-field claims at any UI surface.
+
+**Rationale:** The original brief specified per-data-point provenance; v2 reduced this to one row-level source per record, which proved insufficient — a comparison row's specific claim (pricing model, deployment) is not defended by a vendor's marketing root URL. Three implementation paths were considered:
+
+- **Companion column per attribute** (`pricing_model_source`, `deployment_model_source`, ...) — rejected: schema sprawls; every new attribute needs a migration.
+- **Side table `FieldSource(entity, entity_id, field_name, source_reference)`** — rejected: extra join on every read, more migration ceremony, no concrete query need yet that benefits from relational shape.
+- **JSON column on the entity row** — chosen. Same reasoning as ADR-019 for `custom_attributes`: scales free with new fields, sources travel with the row, no join, render is trivial.
+
+The strict no-fallback rule (showing ⓘ only when `field_sources[fieldName]` exists) is deliberate: substituting the row-level source as a fallback would mislead readers into thinking the marketing root URL backs a specific claim it doesn't.
+
+**Implication:** When a new sourceable field is added to either DTO, both the backend and frontend allow-list constants must be updated in the same commit (dual maintenance, mirroring the ADR-008 / ADR-016 pattern). If a "find broken sources" feature is ever required, the JSON column trades cheaply for a normalised side table at that time — re-evaluate then.
+
+---
+
+## ADR-026: Organisation composite uniqueness `(name, city, country)` plus async warning UX
+
+**Decision:** Add a composite unique constraint `@@unique([name, city, country])` to the `Organisation` model. On `POST` and `PUT`, Prisma `P2002` errors targeting `name_city_country_key` map to a `409 Conflict` with a message naming the conflicting `(name, city, country)`. In addition, the create form (only — not edit) runs a `300ms`-debounced fuzzy match against `GET /api/organisations/check-similar` on the name field's blur and surfaces a non-blocking warning panel listing similar existing organisations, with **Continue** / **Cancel and amend** actions.
+
+**Rationale:** Hard `UNIQUE(name)` would block legitimate name reuse — there are several "Theatre Royal" venues across the UK (Bath, Newcastle, Plymouth, Drury Lane). A composite of `(name, city, country)` catches accidental duplicates without forcing valid data through workarounds. The fuzzy-match warning catches typo'd near-duplicates that the constraint cannot see (e.g. "Royal Opera House" vs "Royal Opera Hse"). Together they give a soft + hard guard:
+
+- Hard guard at the DB layer for exact-collision rejection.
+- Soft guard at the UI layer for similar-but-not-exact names, deliberately non-blocking because the user may have legitimate reasons to proceed.
+
+PostgreSQL treats NULL as distinct in unique constraints, so two `(X, NULL, UK)` rows do not collide. This is intentionally accepted — the warning UX catches it, and forcing a city sentinel value would be more harmful than helpful for an internal MVP.
+
+Systems do **not** need this guard. `system.name` is already hard-unique via ADR-020 because system names are vendor product names protected by IP — there is no legitimate same-name-different-city case for products.
+
+**Implication:** Pre-flight collision check is mandatory before applying the migration in any non-throwaway environment. The fuzzy-match endpoint reuses the existing `pg_trgm` GIN index — no new indexes. Threshold (`0.4` similarity) is empirical; tune if too noisy or too strict.
+
+---
+
+## ADR-027: System capability column set — five new flags, custom attributes for the rest
+
+**Decision:** Five sector-relevant capability flags added to `System` as first-class columns: `season_subscriptions_capability`, `dynamic_pricing_capability`, `multi_venue_support_capability`, `marketing_automation_capability`, `accessibility_features_capability`. All reuse the existing `CapabilityState` enum and integrate with `field_sources` (ADR-025). The remaining capabilities mentioned in the original brief (general admission, mobile wallet, API access, SSO, email marketing, audience segmentation, reporting analytics, CRM database, ticketing) are **not** added as columns — they belong in `custom_attributes` on a per-system basis when actually needed for a procurement decision.
+
+**Rationale:** The bar for promoting a capability to a column is *defensibly fillable on at least 8 of 11 seeded Systems with a publicly verifiable source URL*. Capabilities that fail this bar produce mostly-`UNKNOWN` columns that add noise without signal. Categories of disqualification:
+
+- **Redundant with `category`:** `ticketing` is implied by `TICKETING|INTEGRATED`; `crm_database` by `AUDIENCE_MANAGEMENT|INTEGRATED`. Adding them duplicates information.
+- **Universal among modern platforms:** `api_access`, `reporting_analytics`, `email_marketing`, `mobile_wallet`. A row of 11 `YES` values differentiates nothing.
+- **Genuinely sector-relevant differentiators:** the five chosen — these are the ones procurement-relevant decisions actually turn on (`Tessitura YES vs PatronBase NO` on dynamic pricing, etc.).
+
+The five chosen carry intentional asymmetry: a `YES` or `NO` on these flags must be backed by a per-flag source URL via `field_sources` (strict source-required policy in seed data). `UNKNOWN` is the honest default and is not treated as a failure mode.
+
+**Implication:** If a future use-case shows that one of the rejected capabilities does discriminate procurement decisions across the catalogue, promote it to a column then — additive migration, low cost. Don't pre-emptively add columns "in case they're useful". The custom-attribute carrier handles long-tail capabilities without schema churn.
+
+---
+
+## ADR-028: List sort query-param contract — `?sort` + `?order` with per-entity allow-list
+
+**Decision:** Both `GET /api/organisations` and `GET /api/systems` accept `sort=<field>&order=<asc|desc>`. Each entity has a fixed allow-list (`ORGANISATION_SORT_KEYS`, `SYSTEM_SORT_KEYS`) of valid sort fields, defined in `backend/src/lib/sort-allowlists.js`. Default sort: `name asc` for both entities. Invalid `sort` or `order` returns 400 with the standard validation envelope. Multi-column sort (`?sort=country,name`) is **not** supported in v3 — single-column only.
+
+**Rationale:** The query-param contract reads consistently with the rest of the API surface (already uses query params for filter, search, pagination). A fixed allow-list per entity prevents arbitrary user-controlled `orderBy` from reaching Prisma — both a security posture (no injection of related fields) and a maintenance posture (the API contract is documented by the constants). Default `name asc` is the most intuitive starting point and matches how operators read alphabetised lists.
+
+Multi-column sort was rejected for v3 because the use case (tiebreaking when sorting by `country` for multi-page consistency) is theoretical at MVP scale. If pagination jitter on tied rows becomes visible, add a stable tiebreaker `[{ country: order }, { name: 'asc' }]` rather than exposing a multi-column param.
+
+**Implication:** Frontend mirror in `frontend/src/lib/sort-options.js` with human-friendly labels ("A→Z", "newest first") must stay aligned with the backend allow-list. New sortable fields require updating both files in the same commit.
+
+---
+
+## ADR-029: Custom-attribute editor reuses the existing JSON column — no schema change
+
+**Decision:** The v3 custom-attribute editor on `SystemFormPage` writes to the existing `system.custom_attributes Json?` column (introduced in ADR-019). No new table, no new column, no schema migration. The API extends `POST` and `PUT /api/systems` to accept a `customAttributes` array with strict per-element shape validation.
+
+**Rationale:** ADR-019 already chose JSON over a side table for read-only display; v3's promotion of the editor to MVP doesn't change the storage trade-offs. Adding a `SystemCustomAttribute` table now would be over-engineering — the editor only exercises previously dormant write paths on the same column.
+
+**Implication:** The custom-attribute shape (`{ label, value, sourceReference }`) is now load-bearing for both seed and user input. Validation lives at the API boundary (200-char caps on `label` and `value`, 500-char cap on `sourceReference`, `^https?://` scheme on `sourceReference`). Empty rows (label and value both blank) are stripped on submit; an empty post-strip array clears the column to `null`. No filter/query semantics on custom-attribute keys — same posture as before.
+
+---
+
+## ADR-030: Prisma `--create-only` migration drift repair (hand-edit allowed)
+
+**Related:** **ADR-001** — Prisma remains the stack choice; this ADR is **not** permission to define schema by editing migration SQL instead of `schema.prisma`. It only allows trimming **bad** lines from a file Prisma already generated.
+
+**Decision:** After `npx prisma migrate dev --name <name> --create-only`, if the generated `migration.sql` contains statements that **do not belong** to the intentional schema change for the story—typically **`DROP INDEX`** (or similar) emitted because indexes were created in earlier **raw-SQL** migrations and are **not** represented on Prisma models—it is **permitted** to **hand-edit that migration file** and remove **only** those unintended statements **before** applying the migration. The remaining SQL must still satisfy the story’s migration discipline (e.g. **ADR-015** / **ADR-021**: additive vs backfill vs destructive phases; Story 11.1-style additive migrations must contain only the intended DDL such as `ALTER TABLE … ADD COLUMN`).
+
+**Rationale:** The project rule “never edit migration SQL manually” is aimed at **defining schema by editing SQL** instead of `schema.prisma`. Drift repair is different: applying Prisma’s emitted **drops** could remove production search indexes; modelling every historic raw-SQL index in `schema.prisma` is not always practical mid-stream. A narrow, reviewed edit is safer than blind apply.
+
+**Implication:** Every drift repair is reviewed line-by-line in PR; record it in the story **Dev Agent Record**. Prefer longer-term alignment (model indexes in Prisma or dedicated index migrations) so future `--create-only` runs stop emitting spurious drops.
 
 ---
 

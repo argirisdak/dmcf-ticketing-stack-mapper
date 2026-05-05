@@ -1,0 +1,1184 @@
+diff --git a/README.md b/README.md
+index 399ff41..fd539f1 100644
+--- a/README.md
++++ b/README.md
+@@ -151,6 +151,23 @@ Ensure `frontend/.env` contains `VITE_API_BASE_URL=http://localhost:3001`.
+ | **Frontend** | http://localhost:5173       | Vite + React app shell                     |
+ | **Database** | *(none on host)*            | PostgreSQL 16 inside Docker network only   |
+ 
++## Frontend routes
++
++| Path | Description |
++|------|-------------|
++| `/organisations` | Organisation catalogue list (app root `/` redirects here). |
++| `/organisations/new` | Create organisation. |
++| `/organisations/:id` | Organisation detail. |
++| `/organisations/:id/edit` | Edit organisation (includes **Linked systems** editor). |
++| `/systems` | System catalogue list. |
++| `/systems/new` | Create system. |
++| `/systems/:id` | System detail (adoption evidence, **custom attributes** read-only in MVP). |
++| `/systems/:id/edit` | Edit system. |
++| `/compare/systems` | Side-by-side system comparison (`?ids=` comma-separated UUIDs). |
++| `/compare/organisations` | Side-by-side organisation comparison (`?ids=` comma-separated UUIDs). |
++
++**Legacy bookmarks:** `App.jsx` also mounts `/compare/*` via `CompareLegacyPathPage` so old `/compare?ids=...` links are not a dead route; first-class compare URLs are the two paths above.
++
+ ## Database seed and reset
+ 
+ Run Prisma CLI commands from **`backend/`** with **`DATABASE_URL`** set. Copy `backend/.env.example` to `backend/.env` and adjust:
+@@ -168,7 +185,7 @@ Run Prisma CLI commands from **`backend/`** with **`DATABASE_URL`** set. Copy `b
+ 
+ ### `npx prisma db seed`
+ 
+-Upserts reference lookups and **sample organisations** (fixed UUIDs — see **ADR-014** in `docs/decisions.md`). It **does not** delete organisations you created in the app unless they use the same fixed ids as the sample set (see ADR-014 for the upsert semantics).
++Upserts reference lookups, **11 systems** from the system seed catalog, and **sample organisations** with junction links (fixed UUIDs — see **ADR-014** in `docs/decisions.md`). It **does not** delete organisations you created in the app unless they use the same fixed ids as the sample set (see ADR-014 for the upsert semantics).
+ 
+ **Docker (backend service already running):**
+ 
+@@ -235,27 +252,32 @@ cd backend
+ npx prisma migrate reset --force
+ ```
+ 
++### v2 migration sequence and Migration C (forward-only)
++
++The systems model (Epic 6–10) ships as **three** Prisma migrations applied **in this order** (folder names under `backend/src/prisma/migrations/`):
++
++1. `20260429220615_add_system_and_junction` — **additive** (A): `system`, `organisation_system`, enums; legacy lookup tables and organisation FK columns unchanged.
++2. `20260430183000_backfill_systems_and_links` — **backfill** (B): custom SQL from legacy FKs into the new tables.
++3. `20260502180000_drop_legacy_lookups` — **destructive** (C): drops legacy lookup tables and FK columns (`drop_legacy_lookups`).
++
++**Migration C is forward-only.** Before applying it in any **non-throwaway** environment, take a **full database backup**. There is **no SQL inverse** that restores the dropped legacy FK columns and lookup tables once C has run (see **ADR-015** and **ADR-021** in `docs/decisions.md`).
++
+ ## Smoke test checklist
+ 
+ Follow these **in order** after the database has been seeded (fresh `docker compose up --build`, or after **`db seed`** / **`migrate reset`** as above). API responses are JSON objects with top-level keys **`data`**, **`error`**, and **`meta`**.
+ 
+ 1. **Health** — `GET http://localhost:3001/api/health` returns JSON where `data.status` is `"ok"`.
+-2. **Reference data** — These return JSON with **non-empty** `data` arrays:
+-   - `GET http://localhost:3001/api/meta/ticketing-providers`
+-   - `GET http://localhost:3001/api/meta/crm-platforms`
+-   - `GET http://localhost:3001/api/meta/organisation-types`
+-3. **Frontend shell** — Open http://localhost:5173; the app should load without errors in the browser developer console.
+-4. **Organisations list** — Open http://localhost:5173/organisations (the app root `/` redirects here). You should see **multiple** seeded organisations, not an empty state.
+-5. **Filter** — Apply filters that return at least one row, for example open  
+-   http://localhost:5173/organisations?country=United+Kingdom&provider=Tessitura  
+-   Country and provider names must match **`COUNTRIES`** in `backend/src/lib/countries.js` and seeded ticketing provider names exactly (`United Kingdom`, `Tessitura`).
+-6. **Compare** — On the list, tick **two** organisation checkboxes. Use **Compare selected (2) →** in the selection bar. You should land on **`/compare?ids=...`** and see **two** columns with meaningful content (not blank or error).  
+-   **Optional deep-link smoke:**  
+-   `/compare?ids=5e1a0001-0001-4001-8001-000000000001,5e1a0001-0001-4001-8001-000000000009`  
+-   (fixed sample UUIDs from Story 5.1 — useful if you want to verify compare without using the list.)
+-7. **Create** — From the organisations list, choose **Add organisation** (or open http://localhost:5173/organisations/new). Submit a **minimal valid** payload (required fields only). Expect a successful save and navigation to **`/organisations/:id`** (detail page).
+-
+-You can use `curl`, your browser, or any HTTP client for the API checks.
++2. **Reference data** — `GET http://localhost:3001/api/meta/organisation-types` returns JSON with a **non-empty** `data` array (organisation types). **Do not** rely on removed v1 paths `GET /api/meta/ticketing-providers` or `GET /api/meta/crm-platforms` (removed in Story 10.2); if called, the API returns **JSON 404** with the usual route-not-found envelope, not a 200 with provider lists.
++3. **Organisations list** — Open http://localhost:5173/organisations. You should see **multiple** seeded organisations, not an empty state.
++4. **Systems list** — Open http://localhost:5173/systems. You should see **11** seeded systems (seed invariant).
++5. **Organisation filter by linked system** — In the browser **Network** tab (or via `curl`), call `GET http://localhost:3001/api/organisations` with a filter that includes **`system=<uuid>`**, where `<uuid>` is a real system id from seeded data (pick one from the Systems UI, or `GET http://localhost:3001/api/systems?limit=100` and copy an `id`). Expect a **non-empty** `data` array for at least one valid seeded system id.
++6. **Compare systems** — Open  
++   `http://localhost:5173/compare/systems?ids=<uuid-a>,<uuid-b>`  
++   with two distinct system ids from the seeded catalogue. Expect **two** columns with meaningful content (not blank or error).
++7. **Create system** — Open http://localhost:5173/systems/new, submit a **minimal valid** system. Expect a successful save and redirect to **`/systems/:id`** (detail).
++8. **Link system on organisation** — On http://localhost:5173/organisations/:id/edit, add or confirm a link to a system and save. Open the organisation **detail** page and confirm the link appears under **Linked systems**.
++
++You can use `curl`, your browser, or any HTTP client for the API checks. For organisation compare (not required in this ordered list but available), use **`/compare/organisations`** and the list selection bar, or deep-link with `?ids=` the same way as systems compare.
+ 
+ ## Threat model and deployment posture
+ 
+@@ -271,6 +293,28 @@ This application **has no authentication or authorisation**. Anyone who can reac
+ - **Desktop-optimised UI** for the MVP — there is no dedicated mobile layout.
+ - **No CSV export** — out of scope for the MVP; treat as post-MVP if needed.
+ - **No external API integrations** — data is entered manually through the application.
++- **System `custom_attributes`** — displayed on system detail but **read-only** in the MVP; full editing is a Growth-phase item.
++- **Mode B (organisation-filtered system compare)** — not in the MVP; planned for Growth.
++
++## After v2 and v3 changes ship (implementation readiness)
++
++Before applying the **`organisation_composite_unique`** migration (`20260505120000_organisation_composite_unique`) in any environment, run this pre-flight query against that database and resolve any duplicate groups before migrating:
++
++```sql
++SELECT name, city, country, count(*) AS c
++FROM organisation
++GROUP BY name, city, country
++HAVING count(*) > 1;
++```
++
++Re-run **`bmad-check-implementation-readiness`** (or your team’s equivalent checklist) against the updated planning artifacts so the readiness report reflects the **v2 and v3** stack and supersedes any v1 report dated **2026-04-02**. Use these paths **from the repository root**:
++
++- `_bmad-output/planning-artifacts/epics.md`
++- `_bmad-output/planning-artifacts/prd-v2-delta.md`
++- `_bmad-output/planning-artifacts/architecture-v2-delta.md`
++- `_bmad-output/planning-artifacts/prd-v3-delta.md`
++- `_bmad-output/planning-artifacts/architecture-v3-delta.md`
++- `_bmad-output/planning-artifacts/ux-design-specification.md`
+ 
+ ## Local development without Docker (optional)
+ 
+diff --git a/backend/src/__tests__/organisation-controller.test.js b/backend/src/__tests__/organisation-controller.test.js
+index 318cd34..89615f8 100644
+--- a/backend/src/__tests__/organisation-controller.test.js
++++ b/backend/src/__tests__/organisation-controller.test.js
+@@ -3,6 +3,7 @@ const mockCreateOrganisation = jest.fn();
+ const mockGetOrganisationById = jest.fn();
+ const mockUpdateOrganisation = jest.fn();
+ const mockDeleteOrganisation = jest.fn();
++const mockFindSimilarOrganisations = jest.fn();
+ 
+ jest.mock('../lib/prisma', () => ({
+   organisationType: { findMany: jest.fn(), findUnique: jest.fn() },
+@@ -16,6 +17,7 @@ jest.mock('../services/organisation-service', () => ({
+   getOrganisationById: (...args) => mockGetOrganisationById(...args),
+   updateOrganisation: (...args) => mockUpdateOrganisation(...args),
+   deleteOrganisation: (...args) => mockDeleteOrganisation(...args),
++  findSimilarOrganisations: (...args) => mockFindSimilarOrganisations(...args),
+ }));
+ 
+ const request = require('supertest');
+@@ -53,6 +55,7 @@ describe('GET /api/organisations', () => {
+           sourceReference: 'REF-1',
+           notes: null,
+           capacity: 2000,
++          fieldSources: null,
+           lastUpdated: '2026-03-01T12:00:00.000Z',
+           createdAt: '2025-06-01T08:00:00.000Z',
+           updatedAt: '2026-03-01T12:00:00.000Z',
+@@ -85,6 +88,7 @@ describe('GET /api/organisations', () => {
+           sourceReference: null,
+           notes: null,
+           capacity: null,
++          fieldSources: null,
+           lastUpdated: '2026-01-01T00:00:00.000Z',
+           createdAt: '2026-01-01T00:00:00.000Z',
+           updatedAt: '2026-01-01T00:00:00.000Z',
+@@ -124,35 +128,35 @@ describe('GET /api/organisations', () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   it('uses first value when page or limit query keys are repeated', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?page=2&page=99&limit=10&limit=50');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10, sort: 'name', order: 'asc' });
+   });
+ 
+   it('forwards trimmed q to the service when provided', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=  Opera  ');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera' });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera', sort: 'name', order: 'asc' });
+   });
+ 
+   it('omits q when query is absent or whitespace-only', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=%20%09');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   it('uses first value when q query key is repeated', async () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+ 
+     await request(app).get('/api/organisations?q=foo&q=bar');
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo' });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo', sort: 'name', order: 'asc' });
+   });
+ 
+   it('returns 400 for invalid page', async () => {
+@@ -209,6 +213,8 @@ describe('GET /api/organisations', () => {
+       membership: 'YES',
+       donation: 'NO',
+       seating: 'UNKNOWN',
++      sort: 'name',
++      order: 'asc',
+     });
+   });
+ 
+@@ -230,7 +236,7 @@ describe('GET /api/organisations', () => {
+     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+     const res = await request(app).get('/api/organisations?membership=%20%20&donation=%09');
+     expect(res.status).toBe(200);
+-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
++    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
+   });
+ 
+   // v2: reject deprecated provider and crm params
+@@ -324,6 +330,41 @@ describe('GET /api/organisations', () => {
+     );
+     expect(mockListOrganisations).not.toHaveBeenCalled();
+   });
++
++  it('returns 400 for invalid sort with fields message listing allow-list', async () => {
++    const res = await request(app).get('/api/organisations?sort=notAField');
++    expect(res.status).toBe(400);
++    expect(res.body.data).toBeNull();
++    expect(res.body.meta).toBeNull();
++    const sortErr = res.body.error.fields.find((f) => f.field === 'sort');
++    expect(sortErr).toBeDefined();
++    expect(sortErr.message).toMatch(/^Sort field must be one of: /);
++    expect(mockListOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 for invalid order', async () => {
++    const res = await request(app).get('/api/organisations?order=upward');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields).toEqual(
++      expect.arrayContaining([expect.objectContaining({ field: 'order', message: 'Order must be asc or desc' })]),
++    );
++    expect(mockListOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('forwards validated sort and order to the service', async () => {
++    mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++    const res = await request(app).get('/api/organisations?sort=lastUpdated&order=DESC&country=United+Kingdom');
++    expect(res.status).toBe(200);
++    expect(mockListOrganisations).toHaveBeenCalledWith(
++      expect.objectContaining({
++        sort: 'lastUpdated',
++        order: 'desc',
++        country: 'United Kingdom',
++        page: 1,
++        limit: 20,
++      }),
++    );
++  });
+ });
+ 
+ const sampleDto = {
+@@ -338,6 +379,7 @@ const sampleDto = {
+   sourceReference: 'SRC-REF-1',
+   notes: 'Stage door on Bow Street',
+   capacity: 2256,
++  fieldSources: null,
+   lastUpdated: '2026-03-01T12:00:00.000Z',
+   createdAt: '2025-06-01T08:00:00.000Z',
+   updatedAt: '2026-03-01T12:00:00.000Z',
+@@ -389,6 +431,74 @@ describe('GET /api/organisations/:id', () => {
+   });
+ });
+ 
++describe('GET /api/organisations/check-similar', () => {
++  beforeEach(() => {
++    mockFindSimilarOrganisations.mockReset();
++    mockGetOrganisationById.mockReset();
++  });
++
++  it('returns 200 with minimal DTO rows and meta null', async () => {
++    mockFindSimilarOrganisations.mockResolvedValue([
++      { id: VALID_UUID, name: 'Royal Opera House', city: 'London', country: 'United Kingdom' },
++    ]);
++    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'Royal Opera' });
++    expect(res.status).toBe(200);
++    expect(res.body.error).toBeNull();
++    expect(res.body.meta).toBeNull();
++    expect(res.body.data).toEqual([
++      { id: VALID_UUID, name: 'Royal Opera House', city: 'London', country: 'United Kingdom' },
++    ]);
++    expect(mockFindSimilarOrganisations).toHaveBeenCalledWith('Royal Opera', null);
++    const row = res.body.data[0];
++    expect(Object.keys(row).sort()).toEqual(['city', 'country', 'id', 'name']);
++  });
++
++  it('returns 400 when name is one character after trim', async () => {
++    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'A' });
++    expect(res.status).toBe(400);
++    expect(res.body.data).toBeNull();
++    expect(res.body.meta).toBeNull();
++    expect(res.body.error.fields).toEqual([{ field: 'name', message: 'Name must be at least 2 characters.' }]);
++    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 when name is missing', async () => {
++    const res = await request(app).get('/api/organisations/check-similar');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0]).toEqual({
++      field: 'name',
++      message: 'Name must be at least 2 characters.',
++    });
++    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('returns 400 when excludeId is not a UUID', async () => {
++    const res = await request(app)
++      .get('/api/organisations/check-similar')
++      .query({ name: 'Royal', excludeId: 'not-uuid' });
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields).toEqual([{ field: 'excludeId', message: 'Must be a valid UUID.' }]);
++    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
++  });
++
++  it('passes excludeId to the service when valid', async () => {
++    mockFindSimilarOrganisations.mockResolvedValue([]);
++    const res = await request(app)
++      .get('/api/organisations/check-similar')
++      .query({ name: 'Royal', excludeId: VALID_UUID });
++    expect(res.status).toBe(200);
++    expect(res.body.data).toEqual([]);
++    expect(mockFindSimilarOrganisations).toHaveBeenCalledWith('Royal', VALID_UUID);
++  });
++
++  it('does not treat check-similar as organisation id', async () => {
++    mockFindSimilarOrganisations.mockResolvedValue([]);
++    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'Theatre' });
++    expect(res.status).toBe(200);
++    expect(mockGetOrganisationById).not.toHaveBeenCalled();
++  });
++});
++
+ describe('POST /api/organisations', () => {
+   beforeEach(() => {
+     mockCreateOrganisation.mockReset();
+@@ -409,6 +519,7 @@ describe('POST /api/organisations', () => {
+       sourceReference: null,
+       notes: null,
+       capacity: null,
++      fieldSources: null,
+       lastUpdated: '2026-04-03T10:00:00.000Z',
+       createdAt: '2026-04-03T10:00:00.000Z',
+       updatedAt: '2026-04-03T10:00:00.000Z',
+@@ -492,6 +603,91 @@ describe('POST /api/organisations', () => {
+     logSpy.mockRestore();
+   });
+ 
++  it('returns 409 when create hits composite (name, city, country) unique (P2002 meta target columns)', async () => {
++    const body = { ...validCreateBody, city: 'London' };
++    const p2002 = Object.assign(new Error('Unique constraint'), {
++      code: 'P2002',
++      meta: { target: ['name', 'city', 'country'] },
++    });
++    const created = {
++      id: 'first-org-id',
++      name: 'Acme Hall',
++      city: 'London',
++      country: 'United Kingdom',
++      organisationType: { id: 'type-uuid-1', name: 'Venue' },
++      membershipCapability: 'YES',
++      donationCapability: 'NO',
++      reservedSeatingCapability: 'UNKNOWN',
++      sourceReference: null,
++      notes: null,
++      capacity: null,
++      fieldSources: null,
++      lastUpdated: '2026-04-03T10:00:00.000Z',
++      createdAt: '2026-04-03T10:00:00.000Z',
++      updatedAt: '2026-04-03T10:00:00.000Z',
++      systems: [],
++    };
++    mockCreateOrganisation.mockResolvedValueOnce(created).mockRejectedValueOnce(p2002);
++
++    await request(app).post('/api/organisations').send(body);
++    const res = await request(app).post('/api/organisations').send(body);
++
++    expect(res.status).toBe(409);
++    expect(res.body.data).toBeNull();
++    expect(res.body.meta).toBeNull();
++    expect(res.body.error.message).toContain('London');
++    expect(res.body.error.message).toContain('United Kingdom');
++    expect(res.body.error.message).toContain('Acme Hall');
++    expect(res.body.error.fields[0].field).toBe('name');
++    expect(res.body.error.fields[0].message).toBe('Conflicts with existing organisation in this city and country.');
++  });
++
++  it('returns 409 when create hits composite unique (P2002 constraint name in meta.target)', async () => {
++    const body = { ...validCreateBody, city: 'Bath' };
++    const p2002 = Object.assign(new Error('Unique constraint'), {
++      code: 'P2002',
++      meta: { target: 'organisation_name_city_country_key' },
++    });
++    mockCreateOrganisation.mockRejectedValueOnce(p2002);
++
++    const res = await request(app).post('/api/organisations').send(body);
++
++    expect(res.status).toBe(409);
++    expect(res.body.error.message).toContain('Bath');
++    expect(res.body.error.message).toContain('United Kingdom');
++    expect(res.body.error.fields[0].field).toBe('name');
++  });
++
++  it('uses (no city) in 409 message when city is omitted and composite unique fails', async () => {
++    const body = { ...validCreateBody };
++    delete body.city;
++    const p2002 = Object.assign(new Error('Unique constraint'), {
++      code: 'P2002',
++      meta: { target: ['name', 'city', 'country'] },
++    });
++    mockCreateOrganisation.mockRejectedValueOnce(p2002);
++
++    const res = await request(app).post('/api/organisations').send(body);
++
++    expect(res.status).toBe(409);
++    expect(res.body.error.message).toContain('(no city)');
++    expect(res.body.error.message).toContain('United Kingdom');
++  });
++
++  it('returns generic 409 for other P2002 targets on create', async () => {
++    const p2002 = Object.assign(new Error('Unique constraint'), {
++      code: 'P2002',
++      meta: { target: ['organisation_type_id'] },
++    });
++    mockCreateOrganisation.mockRejectedValueOnce(p2002);
++
++    const res = await request(app).post('/api/organisations').send(validCreateBody);
++
++    expect(res.status).toBe(409);
++    expect(res.body.error.message).toBe('A record with this value already exists');
++    expect(res.body.error.fields).toEqual([]);
++  });
++
+   // v2: reject legacy body keys
+   it('returns 400 when ticketing_provider_id is in POST body', async () => {
+     const res = await request(app)
+@@ -563,6 +759,83 @@ describe('POST /api/organisations', () => {
+   });
+ });
+ 
++describe('POST /api/organisations — fieldSources', () => {
++  beforeEach(() => {
++    mockCreateOrganisation.mockReset();
++    prisma.organisationType.findUnique.mockReset();
++    prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
++    const returned = {
++      id: 'new-org-id',
++      name: 'Acme Hall',
++      city: null,
++      country: 'United Kingdom',
++      organisationType: { id: 'type-uuid-1', name: 'Venue' },
++      membershipCapability: 'YES',
++      donationCapability: 'NO',
++      reservedSeatingCapability: 'UNKNOWN',
++      sourceReference: null,
++      notes: null,
++      capacity: null,
++      fieldSources: { country: 'https://example.com/source' },
++      lastUpdated: '2026-04-03T10:00:00.000Z',
++      createdAt: '2026-04-03T10:00:00.000Z',
++      updatedAt: '2026-04-03T10:00:00.000Z',
++      systems: [],
++    };
++    mockCreateOrganisation.mockResolvedValue(returned);
++
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({
++        ...validCreateBody,
++        fieldSources: { country: 'https://example.com/source' },
++      });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.fieldSources).toEqual({ country: 'https://example.com/source' });
++    expect(mockCreateOrganisation).toHaveBeenCalledWith(
++      expect.objectContaining({ fieldSources: { country: 'https://example.com/source' } }),
++    );
++  });
++
++  it('returns 400 for unknown fieldSources key', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: { unknownKey: 'https://x.com' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.unknownKey')).toBe(true);
++  });
++
++  it('returns 400 when fieldSources URL is invalid', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: { country: '//bad' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('fieldSources.country');
++  });
++
++  it('returns 400 when fieldSources is not a plain object', async () => {
++    const res = await request(app)
++      .post('/api/organisations')
++      .send({ ...validCreateBody, fieldSources: [] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0]).toEqual(
++      expect.objectContaining({ field: 'fieldSources', message: 'Must be an object.' }),
++    );
++  });
++});
++
+ describe('PUT /api/organisations/:id', () => {
+   const orgId = VALID_UUID;
+ 
+@@ -664,6 +937,22 @@ describe('PUT /api/organisations/:id', () => {
+     logSpy.mockRestore();
+   });
+ 
++  it('returns 409 when update hits composite (name, city, country) unique (P2002)', async () => {
++    const body = { ...validCreateBody, city: 'York' };
++    const p2002 = Object.assign(new Error('Unique constraint'), {
++      code: 'P2002',
++      meta: { target: ['name', 'city', 'country'] },
++    });
++    mockUpdateOrganisation.mockRejectedValueOnce(p2002);
++
++    const res = await request(app).put(`/api/organisations/${orgId}`).send(body);
++
++    expect(res.status).toBe(409);
++    expect(res.body.error.message).toContain('York');
++    expect(res.body.error.message).toContain('United Kingdom');
++    expect(res.body.error.fields[0].field).toBe('name');
++  });
++
+   // v2: reject legacy body keys on PUT
+   it('returns 400 when ticketing_provider_id is in PUT body', async () => {
+     const res = await request(app)
+@@ -716,6 +1005,29 @@ describe('PUT /api/organisations/:id', () => {
+     );
+     expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+   });
++
++  it('passes fieldSources: {} to clear stored sources', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId, fieldSources: {} });
++
++    const res = await request(app)
++      .put(`/api/organisations/${orgId}`)
++      .send({ ...validCreateBody, fieldSources: {} });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateOrganisation).toHaveBeenCalledWith(
++      orgId,
++      expect.objectContaining({ fieldSources: {} }),
++    );
++  });
++
++  it('omits fieldSources from update payload when key not in body', async () => {
++    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId });
++
++    await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
++
++    const payload = mockUpdateOrganisation.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('fieldSources');
++  });
+ });
+ 
+ describe('DELETE /api/organisations/:id', () => {
+diff --git a/backend/src/controllers/organisation-controller.js b/backend/src/controllers/organisation-controller.js
+index 1d2af09..7bccd75 100644
+--- a/backend/src/controllers/organisation-controller.js
++++ b/backend/src/controllers/organisation-controller.js
+@@ -1,6 +1,9 @@
+ const organisationService = require('../services/organisation-service');
+ const prisma = require('../lib/prisma');
++const { ORGANISATION_SORT_KEYS } = require('../lib/sort-allowlists');
+ const { COUNTRIES } = require('../lib/countries');
++const { ORGANISATION_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
++const { validateFieldSources } = require('../lib/validate-field-sources');
+ 
+ const MAX_LIMIT = 100;
+ const DEFAULT_LIMIT = 20;
+@@ -13,6 +16,7 @@ function isUuidParam(id) {
+   return typeof id === 'string' && UUID_REGEX.test(id.trim());
+ }
+ 
++const ORGANISATION_SORT_SET = new Set(ORGANISATION_SORT_KEYS);
+ const COUNTRY_SET = new Set(COUNTRIES);
+ const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
+ const VALID_ROLES = new Set(['PRIMARY_TICKETING', 'PRIMARY_CRM', 'INTEGRATED_SUITE', 'SECONDARY']);
+@@ -94,6 +98,47 @@ function checkForbiddenOrganisationBodyKeys(body) {
+   return forbidden;
+ }
+ 
++const checkSimilarOrganisations = async (req, res) => {
++  const fields = [];
++
++  const nameRaw = asQueryString(req.query.name);
++  const name = nameRaw === undefined ? '' : String(nameRaw).trim();
++  if (name.length < 2) {
++    fields.push({ field: 'name', message: 'Name must be at least 2 characters.' });
++  }
++
++  const excludeRaw = asQueryString(req.query.excludeId);
++  let excludeId = null;
++  if (excludeRaw !== undefined) {
++    const trimmed = excludeRaw.trim();
++    if (!isUuidParam(trimmed)) {
++      fields.push({ field: 'excludeId', message: 'Must be a valid UUID.' });
++    } else {
++      excludeId = trimmed;
++    }
++  }
++
++  if (fields.length > 0) {
++    return res.status(400).json({
++      data: null,
++      error: { message: 'Validation failed', fields },
++      meta: null,
++    });
++  }
++
++  try {
++    const data = await organisationService.findSimilarOrganisations(name, excludeId);
++    return res.json({ data, error: null, meta: null });
++  } catch (err) {
++    console.error('[GET /api/organisations/check-similar] unexpected error', err);
++    return res.status(500).json({
++      data: null,
++      error: { message: 'An unexpected error occurred', fields: [] },
++      meta: null,
++    });
++  }
++};
++
+ const listOrganisations = async (req, res) => {
+   const fields = [];
+ 
+@@ -185,6 +230,30 @@ const listOrganisations = async (req, res) => {
+   const seatQ = normaliseCapability(seatingRaw, 'seating');
+   if (!seatQ.ok) fields.push({ field: seatQ.field, message: seatQ.message });
+ 
++  const sortRaw = asQueryString(req.query.sort);
++  const orderRaw = asQueryString(req.query.order);
++  let listSort = 'name';
++  let listOrder = 'asc';
++  if (sortRaw !== undefined && sortRaw.trim() !== '') {
++    const s = sortRaw.trim();
++    if (!ORGANISATION_SORT_SET.has(s)) {
++      fields.push({
++        field: 'sort',
++        message: `Sort field must be one of: ${ORGANISATION_SORT_KEYS.join(', ')}`,
++      });
++    } else {
++      listSort = s;
++    }
++  }
++  if (orderRaw !== undefined && orderRaw.trim() !== '') {
++    const o = orderRaw.trim().toLowerCase();
++    if (o !== 'asc' && o !== 'desc') {
++      fields.push({ field: 'order', message: 'Order must be asc or desc' });
++    } else {
++      listOrder = o;
++    }
++  }
++
+   if (fields.length > 0) {
+     return res.status(400).json({
+       data: null,
+@@ -193,7 +262,7 @@ const listOrganisations = async (req, res) => {
+     });
+   }
+ 
+-  const listParams = { page, limit };
++  const listParams = { page, limit, sort: listSort, order: listOrder };
+ 
+   if (qRaw !== undefined && qRaw.trim() !== '') {
+     listParams.q = qRaw.trim();
+@@ -332,6 +401,18 @@ function parseOrganisationWritePayload(raw) {
+     fields.push({ field: 'capacity', message: cap.message });
+   }
+ 
++  const fieldSourcesRaw =
++    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
++  let fieldSources;
++  if (fieldSourcesRaw !== undefined) {
++    const vr = validateFieldSources(fieldSourcesRaw, ORGANISATION_FIELD_SOURCE_KEYS);
++    if (!vr.ok) {
++      fields.push(...vr.errors);
++    } else {
++      fieldSources = vr.value;
++    }
++  }
++
+   const sourceReference = normaliseOptionalString(raw.sourceReference);
+   const notes = normaliseOptionalString(raw.notes);
+   const city = normaliseOptionalString(raw.city);
+@@ -351,6 +432,7 @@ function parseOrganisationWritePayload(raw) {
+     sourceReference,
+     notes,
+     capacity: cap.value,
++    ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
+   };
+ 
+   return { fields: [], payload };
+@@ -381,6 +463,72 @@ async function validateOrganisationForeignKeys(payload) {
+   return { response: null };
+ }
+ 
++/** Prisma P2002 meta.target may list columns or the DB constraint name. */
++function isOrganisationNameCityCountryUniqueViolation(err) {
++  if (err?.code !== 'P2002') return false;
++  const target = err.meta?.target;
++  if (typeof target === 'string') {
++    return target.includes('name_city_country');
++  }
++  if (Array.isArray(target)) {
++    if (target.some((x) => typeof x === 'string' && String(x).includes('name_city_country'))) {
++      return true;
++    }
++    const set = new Set(target);
++    return set.has('name') && set.has('city') && set.has('country');
++  }
++  return false;
++}
++
++function organisationCompositeUniqueConflictEnvelope(req) {
++  const raw = stripClientControlledOrganisationKeys(req.body);
++  const parsed = parseOrganisationWritePayload(raw);
++  const name =
++    parsed.payload?.name ??
++    (typeof raw.name === 'string' ? raw.name.trim() : raw.name != null ? String(raw.name).trim() : '');
++  const country =
++    parsed.payload?.country ??
++    (typeof raw.country === 'string'
++      ? raw.country.trim()
++      : raw.country != null
++        ? String(raw.country).trim()
++        : '');
++  const cityRaw = parsed.payload?.city;
++  const cityLabel = cityRaw == null || cityRaw === '' ? '(no city)' : cityRaw;
++
++  return {
++    data: null,
++    error: {
++      message: `An organisation called "${name}" already exists in ${cityLabel}, ${country}.`,
++      fields: [{ field: 'name', message: 'Conflicts with existing organisation in this city and country.' }],
++    },
++    meta: null,
++  };
++}
++
++function genericUniqueConflictEnvelope() {
++  return {
++    data: null,
++    error: { message: 'A record with this value already exists', fields: [] },
++    meta: null,
++  };
++}
++
++function handleOrganisationWritePrismaError(err, req, res, logLabel) {
++  if (err?.code === 'P2002') {
++    if (isOrganisationNameCityCountryUniqueViolation(err)) {
++      return res.status(409).json(organisationCompositeUniqueConflictEnvelope(req));
++    }
++    return res.status(409).json(genericUniqueConflictEnvelope());
++  }
++  console.error(logLabel, err);
++  return res.status(500).json({
++    data: null,
++    error: { message: 'An unexpected error occurred', fields: [] },
++    meta: null,
++  });
++}
++
+ const createOrganisation = async (req, res) => {
+   if (req.body === null || req.body === undefined || typeof req.body !== 'object' || Array.isArray(req.body)) {
+     return res.status(400).json({
+@@ -423,12 +571,7 @@ const createOrganisation = async (req, res) => {
+     const data = await organisationService.createOrganisation(payload);
+     return res.status(201).json({ data, error: null, meta: null });
+   } catch (err) {
+-    console.error('[POST /api/organisations] unexpected error', err);
+-    return res.status(500).json({
+-      data: null,
+-      error: { message: 'An unexpected error occurred', fields: [] },
+-      meta: null,
+-    });
++    return handleOrganisationWritePrismaError(err, req, res, '[POST /api/organisations] unexpected error');
+   }
+ };
+ 
+@@ -483,12 +626,7 @@ const updateOrganisation = async (req, res) => {
+     }
+     return res.status(200).json({ data, error: null, meta: null });
+   } catch (err) {
+-    console.error('[PUT /api/organisations/:id] unexpected error', err);
+-    return res.status(500).json({
+-      data: null,
+-      error: { message: 'An unexpected error occurred', fields: [] },
+-      meta: null,
+-    });
++    return handleOrganisationWritePrismaError(err, req, res, '[PUT /api/organisations/:id] unexpected error');
+   }
+ };
+ 
+@@ -517,6 +655,7 @@ const deleteOrganisation = async (req, res) => {
+ 
+ module.exports = {
+   listOrganisations,
++  checkSimilarOrganisations,
+   getOrganisationById,
+   createOrganisation,
+   updateOrganisation,
+diff --git a/backend/src/prisma/schema.prisma b/backend/src/prisma/schema.prisma
+index 1044ab8..64b64be 100644
+--- a/backend/src/prisma/schema.prisma
++++ b/backend/src/prisma/schema.prisma
+@@ -52,41 +52,49 @@ model Organisation {
+   source_reference            String?
+   notes                       String?
+   capacity                    Int?
++  field_sources               Json?
+   last_updated                DateTime        @default(now()) @updatedAt
+   created_at                  DateTime        @default(now())
+ 
+-  organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
+-  systems            OrganisationSystem[]
++  organisation_type OrganisationType     @relation(fields: [organisation_type_id], references: [id])
++  systems           OrganisationSystem[]
+ 
++  @@unique([name, city, country], map: "organisation_name_city_country_key")
+   @@map("organisation")
+ }
+ 
+ model OrganisationType {
+-  id            String @id @default(uuid())
+-  name          String @unique
+-  created_at    DateTime @default(now())
+-  updated_at    DateTime @updatedAt
++  id            String         @id @default(uuid())
++  name          String         @unique
++  created_at    DateTime       @default(now())
++  updated_at    DateTime       @updatedAt
+   organisations Organisation[]
+ 
+   @@map("organisation_type")
+ }
+ 
+ model System {
+-  id                          String             @id @default(uuid())
+-  name                        String             @unique
+-  vendor                      String
+-  category                    SystemCategory
+-  deployment_model            DeploymentModel?
+-  pricing_model               PricingModel?
+-  geographic_focus            String?
+-  description                 String?
+-  membership_capability       CapabilityState    @default(UNKNOWN)
+-  donation_capability         CapabilityState    @default(UNKNOWN)
+-  reserved_seating_capability CapabilityState    @default(UNKNOWN)
+-  source_reference            String?
+-  custom_attributes           Json?
+-  last_updated                DateTime           @default(now()) @updatedAt
+-  created_at                  DateTime           @default(now())
++  id                                String           @id @default(uuid())
++  name                              String           @unique
++  vendor                            String
++  category                          SystemCategory
++  deployment_model                  DeploymentModel?
++  pricing_model                     PricingModel?
++  geographic_focus                  String?
++  description                       String?
++  membership_capability             CapabilityState  @default(UNKNOWN)
++  donation_capability               CapabilityState  @default(UNKNOWN)
++  reserved_seating_capability       CapabilityState  @default(UNKNOWN)
++  season_subscriptions_capability   CapabilityState  @default(UNKNOWN)
++  dynamic_pricing_capability        CapabilityState  @default(UNKNOWN)
++  multi_venue_support_capability    CapabilityState  @default(UNKNOWN)
++  marketing_automation_capability   CapabilityState  @default(UNKNOWN)
++  accessibility_features_capability CapabilityState  @default(UNKNOWN)
++  source_reference                  String?
++  custom_attributes                 Json?
++  field_sources                     Json?
++  last_updated                      DateTime         @default(now()) @updatedAt
++  created_at                        DateTime         @default(now())
+ 
+   organisation_systems OrganisationSystem[]
+ 
+diff --git a/docs/decisions.md b/docs/decisions.md
+index ce30ebd..2c0c0b3 100644
+--- a/docs/decisions.md
++++ b/docs/decisions.md
+@@ -2,7 +2,7 @@
+ 
+ This file records all meaningful architectural decisions made during implementation. Each entry states what was decided and why.
+ 
+-**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**; v2 schema migration — three-step sequence — **ADR-015**; system `geographic_focus` list dual maintenance — **ADR-016**; `GET /api/systems` multi-value `category` filter — **ADR-017**.
++**Index (quick find for handoff / audits):** Prisma v6 — **ADR-001**; Tailwind v3 pin — **ADR-005**; shadcn/ui copy-paste — **ADR-006**; React Router v6 via `react-router-dom` — **ADR-007**; country list dual maintenance — **ADR-008**; list pagination when `page` is past the end — **ADR-010**; organisation `last_updated` via `@updatedAt` (no `$use`) — **ADR-011**; GET organisation by id — 404 for missing and malformed ids — **ADR-012**; compare selection preserved after navigating to compare — **ADR-013**; sample organisations — fixed UUID upserts — **ADR-014**; v2 schema migration — three-step sequence — **ADR-015**; system `geographic_focus` list dual maintenance — **ADR-016**; `GET /api/systems` multi-value `category` filter — **ADR-017**; organisation–system junction hard-delete — **ADR-018**; system `custom_attributes` as JSON — **ADR-019**; system name unique / vendor disambiguation — **ADR-020**; three-migration sequence (§8 traceability) — **ADR-021**; no batch compare endpoint — **ADR-022**; selection context split (organisations vs systems) — **ADR-023**; compare paths `/compare/systems` & `/compare/organisations` — **ADR-024**; per-field source provenance via `field_sources` JSON column — **ADR-025**; organisation composite uniqueness `(name, city, country)` + warning UX — **ADR-026**; system capability column set scope — **ADR-027**; list sort query-param contract — **ADR-028**; custom-attribute editor reuses JSON column (no schema change) — **ADR-029**; Prisma `--create-only` migration drift repair (hand-edit) — **ADR-030**.
+ 
+ ---
+ 
+@@ -115,12 +115,14 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
+ 
+ **Decision:** `GET /api/organisations` maps each Prisma row through `toOrganisationListDto` in `backend/src/services/organisation-list-dto.js` instead of returning raw `findMany` results.
+ 
+-**Rationale:** The Prisma client exposes snake_case property names that match `schema.prisma`, while the public API contract requires camelCase JSON and nested lookup objects (`organisationType`, `ticketingProvider`, `crmPlatform`). A dedicated mapper keeps that boundary explicit and easy to reuse in Story 2.2+ for create/detail/update responses.
++**Rationale:** The Prisma client exposes snake_case property names that match `schema.prisma`, while the public API contract requires camelCase JSON and a stable DTO shape. **Pre–Migration C**, the mapper also nested legacy lookup objects **`ticketingProvider`** and **`crmPlatform`** alongside **`organisationType`**. **After Migration C** (Epic 8+), those provider/platform nests are **not** returned; linked systems are expressed as a **`systems`** array on the DTO (see paragraph below). The mapper remains the single place that defines list/create/detail/update JSON.
+ 
+ **Implication:** New organisation endpoints should reuse or extend the same mapping pattern rather than serialising Prisma rows directly.
+ 
+ **POST `/api/organisations` (Story 2.2):** Request bodies use **camelCase** keys (`name`, `country`, `organisationTypeId`, optional FK ids, three `*Capability` enums as `YES` | `NO` | `UNKNOWN`, optional `sourceReference`, `notes`, `capacity`). The handler strips client-supplied `id` and timestamp fields before persist. Successful **201** responses use the same **`toOrganisationDto`** mapper as the list (including `updatedAt`).
+ 
++**v2 list/detail shape (Epic 8+, after Migration C):** `toOrganisationDto` in `organisation-list-dto.js` exposes a **`systems`** array of junction links (via `organisation-system-dto` / `toLinkDto`: role, per-link notes, nested `system` summary). Legacy nested **`ticketingProvider`** / **`crmPlatform`** fields are **not** returned after legacy FK columns and lookup tables were removed. Treat the mapper implementation as the contract.
++
+ ---
+ 
+ ## ADR-010: List pagination — `page` beyond last page
+@@ -193,4 +195,155 @@ The following AC2 bullets are satisfied by the ADRs below (no duplicate Prisma A
+ 
+ ---
+ 
++## ADR-018: OrganisationSystem unlink is a hard-delete
++
++**Decision:** Removing a link between an organisation and a system **deletes** the `organisation_system` row. There is **no** soft-delete column, **no** `active` flag, and **no** adoption-history table in the MVP.
++
++**Rationale:** Keeps the junction model small and queries unambiguous for an internal tool. Confirmed destructive UX (confirm dialog) is acceptable; audit requirements can be revisited in a later phase if needed.
++
++**Implication:** Clients must not assume “unlink” leaves a tombstone row. Any future history feature would be a new table or event log, not a reinterpretation of delete.
++
++---
++
++## ADR-019: System custom attributes as JSON on `System.custom_attributes`
++
++**Decision:** Vendor-specific or integration-specific fields that do not warrant first-class columns are stored in **`system.custom_attributes`** as **JSON** (Prisma `Json`), not in a separate `system_attribute` / EAV table.
++
++**Rationale:** Avoids schema churn for rare keys while keeping one row per system. Editors validate shape at the API boundary; MVP exposes attributes as **read-only** in the UI (Growth may add full editing).
++
++**Implication:** Query/filter semantics for custom keys stay limited unless indexed paths are introduced later. Document breaking JSON changes in release notes if clients depend on specific keys.
++
++---
++
++## ADR-020: System `name` is unique; use `vendor` for disambiguation
++
++**Decision:** `system.name` is **unique** at the database level. Products that share a marketing name from different vendors are distinguished via **`vendor`** (and related descriptive fields), not by relaxing uniqueness.
++
++**Rationale:** List and compare UIs use `name` as the primary human label; duplicate names would confuse operators and break mental models for “one catalogue row per product”.
++
++**Implication:** Seed and imports must assign unambiguous `name` values or vary `vendor` in the displayed label where the product name collides.
++
++---
++
++## ADR-021: Three-migration sequence (architecture-v2-delta §8 traceability)
++
++**Decision:** Any schema change that **moves** data from legacy structures into new tables must follow the **additive → backfill → destructive** migration sequence. This decision records **§8 traceability** for the v2 programme; the full rationale and operational implications are in **ADR-015**.
++
++**Rationale:** Duplicating the long ADR-015 narrative would drift; a short pointer keeps one source of truth while satisfying the delta doc’s decision list.
++
++**Implication:** When proposing shortcuts (e.g. combining backfill and drop), cite **ADR-015** and reject unless risk is explicitly accepted.
++
++---
++
++## ADR-022: No batch compare endpoint — parallel `GET /api/systems/:id` (and organisations)
++
++**Decision:** There is **no** dedicated “compare many systems in one request” API. The compare UI loads **one resource at a time** via existing detail endpoints (e.g. parallel **`GET /api/systems/:id`** calls).
++
++**Rationale:** Keeps read contracts simple, leverages HTTP caching patterns the browser already uses, and avoids N+1 payload design debates for an internal MVP.
++
++**Implication:** If compare latency becomes an issue, prefer a measured move to a batch read **after** profiling — not by default.
++
++---
++
++## ADR-023: Split selection context — organisations vs systems
++
++**Decision:** Compare selection state for **organisations** and **systems** is held in **separate** React context providers (`OrganisationSelectionProvider` and `SystemSelectionProvider` in `frontend/src/context/`), not a single shared bag of mixed entity types.
++
++**Rationale:** Prevents ID collisions and ambiguous UI when both catalogues are in use; each compare flow has its own selection bar and URL shape.
++
++**Implication:** Features that span both entity types must not reuse the wrong context; cross-linking from org detail to system compare should pass explicit ids, not “whatever was selected elsewhere”.
++
++---
++
++## ADR-024: Compare paths `/compare/systems` and `/compare/organisations`
++
++**Decision:** First-class compare URLs are **`/compare/systems`** and **`/compare/organisations`** (with `?ids=` comma-separated UUIDs as implemented). Legacy **`/compare?ids=...`** bookmarks from v1 **may break** or are served only via a **legacy route** shim; that is acceptable for an internal MVP.
++
++**Rationale:** Explicit paths align with the split catalogues and routing structure; cleaning old bookmarks is lower cost than perpetuating a single ambiguous compare entry.
++
++**Implication:** Documentation and new links must use the prefixed paths. Support tickets for old bookmarks should point users to the new URLs.
++
++---
++
++## ADR-025: Per-field source provenance via `field_sources` JSON column on System and Organisation
++
++**Decision:** Material data points on `System` and `Organisation` carry their own source URL via a `field_sources Json?` column on each entity. Shape: `{ "<fieldName>": "<url>" }` with field-name keys validated against a per-entity allow-list (`SYSTEM_FIELD_SOURCE_KEYS`, `ORGANISATION_FIELD_SOURCE_KEYS`) co-located with the DTOs in `backend/src/lib/field-source-keys.js` and mirrored in `frontend/src/lib/field-source-keys.js`. The row-level `source_reference` field is preserved as a general fallback but **does not** auto-substitute into per-field claims at any UI surface.
++
++**Rationale:** The original brief specified per-data-point provenance; v2 reduced this to one row-level source per record, which proved insufficient — a comparison row's specific claim (pricing model, deployment) is not defended by a vendor's marketing root URL. Three implementation paths were considered:
++
++- **Companion column per attribute** (`pricing_model_source`, `deployment_model_source`, ...) — rejected: schema sprawls; every new attribute needs a migration.
++- **Side table `FieldSource(entity, entity_id, field_name, source_reference)`** — rejected: extra join on every read, more migration ceremony, no concrete query need yet that benefits from relational shape.
++- **JSON column on the entity row** — chosen. Same reasoning as ADR-019 for `custom_attributes`: scales free with new fields, sources travel with the row, no join, render is trivial.
++
++The strict no-fallback rule (showing ⓘ only when `field_sources[fieldName]` exists) is deliberate: substituting the row-level source as a fallback would mislead readers into thinking the marketing root URL backs a specific claim it doesn't.
++
++**Implication:** When a new sourceable field is added to either DTO, both the backend and frontend allow-list constants must be updated in the same commit (dual maintenance, mirroring the ADR-008 / ADR-016 pattern). If a "find broken sources" feature is ever required, the JSON column trades cheaply for a normalised side table at that time — re-evaluate then.
++
++---
++
++## ADR-026: Organisation composite uniqueness `(name, city, country)` plus async warning UX
++
++**Decision:** Add a composite unique constraint `@@unique([name, city, country])` to the `Organisation` model. On `POST` and `PUT`, Prisma `P2002` errors targeting `name_city_country_key` map to a `409 Conflict` with a message naming the conflicting `(name, city, country)`. In addition, the create form (only — not edit) runs a `300ms`-debounced fuzzy match against `GET /api/organisations/check-similar` on the name field's blur and surfaces a non-blocking warning panel listing similar existing organisations, with **Continue** / **Cancel and amend** actions.
++
++**Rationale:** Hard `UNIQUE(name)` would block legitimate name reuse — there are several "Theatre Royal" venues across the UK (Bath, Newcastle, Plymouth, Drury Lane). A composite of `(name, city, country)` catches accidental duplicates without forcing valid data through workarounds. The fuzzy-match warning catches typo'd near-duplicates that the constraint cannot see (e.g. "Royal Opera House" vs "Royal Opera Hse"). Together they give a soft + hard guard:
++
++- Hard guard at the DB layer for exact-collision rejection.
++- Soft guard at the UI layer for similar-but-not-exact names, deliberately non-blocking because the user may have legitimate reasons to proceed.
++
++PostgreSQL treats NULL as distinct in unique constraints, so two `(X, NULL, UK)` rows do not collide. This is intentionally accepted — the warning UX catches it, and forcing a city sentinel value would be more harmful than helpful for an internal MVP.
++
++Systems do **not** need this guard. `system.name` is already hard-unique via ADR-020 because system names are vendor product names protected by IP — there is no legitimate same-name-different-city case for products.
++
++**Implication:** Pre-flight collision check is mandatory before applying the migration in any non-throwaway environment. The fuzzy-match endpoint reuses the existing `pg_trgm` GIN index — no new indexes. Threshold (`0.4` similarity) is empirical; tune if too noisy or too strict.
++
++---
++
++## ADR-027: System capability column set — five new flags, custom attributes for the rest
++
++**Decision:** Five sector-relevant capability flags added to `System` as first-class columns: `season_subscriptions_capability`, `dynamic_pricing_capability`, `multi_venue_support_capability`, `marketing_automation_capability`, `accessibility_features_capability`. All reuse the existing `CapabilityState` enum and integrate with `field_sources` (ADR-025). The remaining capabilities mentioned in the original brief (general admission, mobile wallet, API access, SSO, email marketing, audience segmentation, reporting analytics, CRM database, ticketing) are **not** added as columns — they belong in `custom_attributes` on a per-system basis when actually needed for a procurement decision.
++
++**Rationale:** The bar for promoting a capability to a column is *defensibly fillable on at least 8 of 11 seeded Systems with a publicly verifiable source URL*. Capabilities that fail this bar produce mostly-`UNKNOWN` columns that add noise without signal. Categories of disqualification:
++
++- **Redundant with `category`:** `ticketing` is implied by `TICKETING|INTEGRATED`; `crm_database` by `AUDIENCE_MANAGEMENT|INTEGRATED`. Adding them duplicates information.
++- **Universal among modern platforms:** `api_access`, `reporting_analytics`, `email_marketing`, `mobile_wallet`. A row of 11 `YES` values differentiates nothing.
++- **Genuinely sector-relevant differentiators:** the five chosen — these are the ones procurement-relevant decisions actually turn on (`Tessitura YES vs PatronBase NO` on dynamic pricing, etc.).
++
++The five chosen carry intentional asymmetry: a `YES` or `NO` on these flags must be backed by a per-flag source URL via `field_sources` (strict source-required policy in seed data). `UNKNOWN` is the honest default and is not treated as a failure mode.
++
++**Implication:** If a future use-case shows that one of the rejected capabilities does discriminate procurement decisions across the catalogue, promote it to a column then — additive migration, low cost. Don't pre-emptively add columns "in case they're useful". The custom-attribute carrier handles long-tail capabilities without schema churn.
++
++---
++
++## ADR-028: List sort query-param contract — `?sort` + `?order` with per-entity allow-list
++
++**Decision:** Both `GET /api/organisations` and `GET /api/systems` accept `sort=<field>&order=<asc|desc>`. Each entity has a fixed allow-list (`ORGANISATION_SORT_KEYS`, `SYSTEM_SORT_KEYS`) of valid sort fields, defined in `backend/src/lib/sort-allowlists.js`. Default sort: `name asc` for both entities. Invalid `sort` or `order` returns 400 with the standard validation envelope. Multi-column sort (`?sort=country,name`) is **not** supported in v3 — single-column only.
++
++**Rationale:** The query-param contract reads consistently with the rest of the API surface (already uses query params for filter, search, pagination). A fixed allow-list per entity prevents arbitrary user-controlled `orderBy` from reaching Prisma — both a security posture (no injection of related fields) and a maintenance posture (the API contract is documented by the constants). Default `name asc` is the most intuitive starting point and matches how operators read alphabetised lists.
++
++Multi-column sort was rejected for v3 because the use case (tiebreaking when sorting by `country` for multi-page consistency) is theoretical at MVP scale. If pagination jitter on tied rows becomes visible, add a stable tiebreaker `[{ country: order }, { name: 'asc' }]` rather than exposing a multi-column param.
++
++**Implication:** Frontend mirror in `frontend/src/lib/sort-options.js` with human-friendly labels ("A→Z", "newest first") must stay aligned with the backend allow-list. New sortable fields require updating both files in the same commit.
++
++---
++
++## ADR-029: Custom-attribute editor reuses the existing JSON column — no schema change
++
++**Decision:** The v3 custom-attribute editor on `SystemFormPage` writes to the existing `system.custom_attributes Json?` column (introduced in ADR-019). No new table, no new column, no schema migration. The API extends `POST` and `PUT /api/systems` to accept a `customAttributes` array with strict per-element shape validation.
++
++**Rationale:** ADR-019 already chose JSON over a side table for read-only display; v3's promotion of the editor to MVP doesn't change the storage trade-offs. Adding a `SystemCustomAttribute` table now would be over-engineering — the editor only exercises previously dormant write paths on the same column.
++
++**Implication:** The custom-attribute shape (`{ label, value, sourceReference }`) is now load-bearing for both seed and user input. Validation lives at the API boundary (200-char caps on `label` and `value`, 500-char cap on `sourceReference`, `^https?://` scheme on `sourceReference`). Empty rows (label and value both blank) are stripped on submit; an empty post-strip array clears the column to `null`. No filter/query semantics on custom-attribute keys — same posture as before.
++
++---
++
++## ADR-030: Prisma `--create-only` migration drift repair (hand-edit allowed)
++
++**Decision:** After `npx prisma migrate dev --name <name> --create-only`, if the generated `migration.sql` contains statements that **do not belong** to the intentional schema change for the story—typically **`DROP INDEX`** (or similar) emitted because indexes were created in earlier **raw-SQL** migrations and are **not** represented on Prisma models—it is **permitted** to **hand-edit that migration file** and remove **only** those unintended statements **before** applying the migration. The remaining SQL must still satisfy the story’s migration discipline (e.g. **ADR-015** / **ADR-021**: additive vs backfill vs destructive phases; Story 11.1-style additive migrations must contain only the intended DDL such as `ALTER TABLE … ADD COLUMN`).
++
++**Rationale:** The project rule “never edit migration SQL manually” is aimed at **defining schema by editing SQL** instead of `schema.prisma`. Drift repair is different: applying Prisma’s emitted **drops** could remove production search indexes; modelling every historic raw-SQL index in `schema.prisma` is not always practical mid-stream. A narrow, reviewed edit is safer than blind apply.
++
++**Implication:** Every drift repair is reviewed line-by-line in PR; record it in the story **Dev Agent Record**. Prefer longer-term alignment (model indexes in Prisma or dedicated index migrations) so future `--create-only` runs stop emitting spurious drops.
++
++---
++
+ New decisions are appended to this file as they are made; see the index at the top for common audit topics.
+diff --git a/backend/src/prisma/migrations/20260505120000_organisation_composite_unique/migration.sql b/backend/src/prisma/migrations/20260505120000_organisation_composite_unique/migration.sql
+new file mode 100644
+index 0000000..f1be1e6
+--- /dev/null
++++ b/backend/src/prisma/migrations/20260505120000_organisation_composite_unique/migration.sql
+@@ -0,0 +1 @@
++CREATE UNIQUE INDEX "organisation_name_city_country_key" ON "organisation"("name", "city", "country");
+diff --git a/backend/src/__tests__/organisation-composite-unique.integration.test.js b/backend/src/__tests__/organisation-composite-unique.integration.test.js
+new file mode 100644
+index 0000000..f833317
+--- /dev/null
++++ b/backend/src/__tests__/organisation-composite-unique.integration.test.js
+@@ -0,0 +1,59 @@
++/**
++ * Integration: real DB enforces composite unique on (name, city, country).
++ * Loads backend/.env for DATABASE_URL. Skips entire suite when DATABASE_URL is unset.
++ */
++const path = require('path');
++
++const envPath = path.join(__dirname, '../../.env');
++require('dotenv').config({ path: envPath });
++
++const hasDb = Boolean(process.env.DATABASE_URL?.trim());
++const describeIntegration = hasDb ? describe : describe.skip;
++
++describeIntegration('Organisation composite unique (integration)', () => {
++  const request = require('supertest');
++  const app = require('../app');
++  const prisma = require('../lib/prisma');
++
++  let organisationTypeId;
++  const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
++  const uniqueName = `Composite-unique integration ${runId}`;
++  const city = 'Manchester';
++  const country = 'United Kingdom';
++
++  beforeAll(async () => {
++    const t = await prisma.organisationType.findFirst();
++    if (!t) {
++      throw new Error('No organisation_type row — seed the database before integration tests');
++    }
++    organisationTypeId = t.id;
++  });
++
++  afterAll(async () => {
++    await prisma.organisation.deleteMany({ where: { name: uniqueName } });
++    await prisma.$disconnect();
++  });
++
++  it('returns 409 on second create with same name, city, country', async () => {
++    const body = {
++      name: uniqueName,
++      city,
++      country,
++      organisationTypeId,
++      membershipCapability: 'UNKNOWN',
++      donationCapability: 'UNKNOWN',
++      reservedSeatingCapability: 'UNKNOWN',
++    };
++
++    const first = await request(app).post('/api/organisations').send(body);
++    expect(first.status).toBe(201);
++
++    const second = await request(app).post('/api/organisations').send(body);
++    expect(second.status).toBe(409);
++    expect(second.body.data).toBeNull();
++    expect(second.body.meta).toBeNull();
++    expect(second.body.error.message).toContain(city);
++    expect(second.body.error.message).toContain(country);
++    expect(second.body.error.fields[0].field).toBe('name');
++  });
++});
+diff --git a/backend/src/__tests__/migration-organisation-composite-unique-sanity.test.js b/backend/src/__tests__/migration-organisation-composite-unique-sanity.test.js
+new file mode 100644
+index 0000000..6459904
+--- /dev/null
++++ b/backend/src/__tests__/migration-organisation-composite-unique-sanity.test.js
+@@ -0,0 +1,28 @@
++'use strict';
++
++const fs = require('fs');
++const path = require('path');
++
++const migrationPath = path.join(
++  __dirname,
++  '../prisma/migrations/20260505120000_organisation_composite_unique/migration.sql',
++);
++
++describe('Migration organisation_composite_unique (structural sanity)', () => {
++  let sql;
++
++  beforeAll(() => {
++    sql = fs.readFileSync(migrationPath, 'utf8');
++  });
++
++  it('contains exactly one CREATE UNIQUE INDEX on organisation (name, city, country)', () => {
++    const lines = sql
++      .split(/\r?\n/)
++      .map((l) => l.trim())
++      .filter((l) => l.length > 0 && !l.startsWith('--'));
++    expect(lines).toHaveLength(1);
++    expect(lines[0]).toBe(
++      'CREATE UNIQUE INDEX "organisation_name_city_country_key" ON "organisation"("name", "city", "country");',
++    );
++  });
++});

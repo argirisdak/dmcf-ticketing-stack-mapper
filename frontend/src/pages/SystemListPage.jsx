@@ -6,7 +6,10 @@ import {
   SYSTEM_CATEGORY_LABELS,
   DEPLOYMENT_MODEL_LABELS,
   PRICING_MODEL_LABELS,
+  SYSTEM_MORE_CAPABILITY_FILTER_ROWS,
   clearAllSystemListFiltersInSearchParams,
+  countActiveExtendedCapabilityFilters,
+  hasActiveExtendedCapabilityFilters,
   hasActiveSystemListFilters,
   parseSystemListInputsFromSearchParams,
 } from '../lib/system-list-filter-params.js'
@@ -16,6 +19,8 @@ import { CompareSelectionBar } from '../components/CompareSelectionBar.jsx'
 import { Button } from '../components/ui/button.jsx'
 import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
 import { useSystemSelection } from '../hooks/useSystemSelection.js'
+import SortDropdown from '../components/SortDropdown.jsx'
+import { SYSTEM_SORT_OPTIONS, normaliseSystemSortFromUrl } from '../lib/sort-options.js'
 
 const LIMIT = 20
 
@@ -136,8 +141,26 @@ function TableSkeleton() {
 
 function SystemListFilterSection() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { sort, order } = normaliseSystemSortFromUrl(
+    searchParams.get('sort'),
+    searchParams.get('order'),
+  )
+  const [moreCapabilitiesOpen, setMoreCapabilitiesOpen] = useState(() =>
+    hasActiveExtendedCapabilityFilters(searchParams)
+  )
+  const activeExtendedFilterCount = countActiveExtendedCapabilityFilters(searchParams)
 
   const activeCategories = searchParams.getAll('category')
+
+  const handleSortChange = (next) => {
+    setSearchParams((prev) => {
+      const nextParams = new URLSearchParams(prev)
+      nextParams.set('sort', next.sort)
+      nextParams.set('order', next.order)
+      nextParams.set('page', '1')
+      return nextParams
+    })
+  }
 
   const [searchInput, setSearchInput] = useState(() => searchParams.get('q') ?? '')
   const debouncedSearch = useDebouncedValue(searchInput, 300)
@@ -203,18 +226,35 @@ function SystemListFilterSection() {
   return (
     <>
       <div className="flex flex-wrap gap-3">
-        <div className="flex min-w-[200px] flex-1 flex-col gap-1">
-          <label htmlFor="filter-search" className="text-sm font-medium text-slate-700">
-            Search
-          </label>
-          <input
-            id="filter-search"
-            type="search"
-            placeholder="Search systems…"
-            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
+        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
+          <div className="flex min-w-[200px] flex-1 flex-col gap-1">
+            <label htmlFor="filter-search" className="text-sm font-medium text-slate-700">
+              Search
+            </label>
+            <input
+              id="filter-search"
+              type="search"
+              placeholder="Search systems…"
+              className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+          </div>
+          <div className="inline-flex w-full min-w-0 flex-wrap items-center gap-2 sm:w-auto">
+            <label
+              htmlFor="system-list-sort"
+              className="whitespace-nowrap text-sm font-medium text-slate-700"
+            >
+              Sort by
+            </label>
+            <SortDropdown
+              id="system-list-sort"
+              options={[...SYSTEM_SORT_OPTIONS]}
+              sort={sort}
+              order={order}
+              onChange={handleSortChange}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -349,6 +389,46 @@ function SystemListFilterSection() {
           </select>
         </div>
       </div>
+
+      <details
+        className="group mt-3 w-full max-w-full"
+        open={moreCapabilitiesOpen}
+        onToggle={(e) => setMoreCapabilitiesOpen(e.currentTarget.open)}
+      >
+        <summary className="flex cursor-pointer list-none items-baseline gap-2 text-xs font-medium text-slate-600 [&::-webkit-details-marker]:hidden">
+          <span aria-hidden className="select-none text-slate-400 group-open:rotate-90 transition-transform">
+            ▸
+          </span>
+          <span>
+            More capabilities ({SYSTEM_MORE_CAPABILITY_FILTER_ROWS.length})
+            {!moreCapabilitiesOpen && activeExtendedFilterCount > 0 ? (
+              <span className="ml-1.5 font-normal text-slate-500">
+                · {activeExtendedFilterCount} active
+              </span>
+            ) : null}
+          </span>
+        </summary>
+        <div className="mt-2 space-y-3 pl-5 sm:pl-6">
+          {SYSTEM_MORE_CAPABILITY_FILTER_ROWS.map(({ key, label }) => (
+            <div key={key} className="flex min-w-[140px] max-w-[220px] flex-col gap-1">
+              <label htmlFor={`filter-${key}`} className="text-xs font-medium text-slate-600">
+                {label}
+              </label>
+              <select
+                id={`filter-${key}`}
+                className={selectClass}
+                value={searchParams.get(key) ?? ''}
+                onChange={(e) => updateParam(key, e.target.value)}
+              >
+                <option value="">Any</option>
+                <option value="YES">Yes</option>
+                <option value="NO">No</option>
+                <option value="UNKNOWN">Unknown</option>
+              </select>
+            </div>
+          ))}
+        </div>
+      </details>
 
       <SystemActiveFilterChips searchParams={searchParams} setSearchParams={setSearchParams} />
     </>

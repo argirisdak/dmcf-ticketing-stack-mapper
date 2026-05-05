@@ -5,20 +5,24 @@ stepsCompleted:
   - step-03-create-stories
   - step-04-final-validation
   - v2-delta-appended
+  - v3-delta-appended
 inputDocuments:
   - _bmad-output/planning-artifacts/prd.md
   - _bmad-output/planning-artifacts/architecture.md
   - _bmad-output/planning-artifacts/ux-design-specification.md
   - _bmad-output/planning-artifacts/prd-v2-delta.md
   - _bmad-output/planning-artifacts/architecture-v2-delta.md
+  - _bmad-output/planning-artifacts/prd-v3-delta.md
+  - _bmad-output/planning-artifacts/architecture-v3-delta.md
 v2DeltaAppendedDate: 2026-04-29
+v3DeltaAppendedDate: 2026-05-03
 ---
 
-# dmcf-app - Epic Breakdown
+# dmcf-ticketing-stack-mapper — Epic Breakdown
 
 ## Overview
 
-This document provides the complete epic and story breakdown for dmcf-app, decomposing the requirements from the PRD, UX Design Specification, and Architecture Decision Document into implementable stories.
+This document provides the complete epic and story breakdown for **dmcf-ticketing-stack-mapper**, decomposing the requirements from the PRD, UX Design Specification, and Architecture Decision Document into implementable stories.
 
 ## Requirements Inventory
 
@@ -1906,3 +1910,736 @@ So that I can run the full app, smoke-test both catalogues, and understand the b
 **Given** the v2 plan is now complete
 **When** an implementation-readiness re-run is needed (per prd-v2-delta §7)
 **Then** the README's "After v2 changes ship" handoff section instructs: re-run the readiness check via the `bmad-check-implementation-readiness` skill against this updated [epics.md](epics.md), [prd-v2-delta.md](prd-v2-delta.md), [architecture-v2-delta.md](architecture-v2-delta.md), and the v2-extended [ux-design-specification.md](ux-design-specification.md) — the resulting report supersedes the v1 readiness report from 2026-04-02
+
+---
+
+## Requirements Inventory — v3 Delta
+
+### Modified Functional Requirements
+
+- **FR17′** *(extends v1 FR17)*: A staff member can view a per-field source reference for any data point that has one, distinct from the record-level source.
+- **FR18′** *(extends v1 FR18)*: A staff member can attach a source URL alongside any data-point input on the System or Organisation form. URLs are validated as `http(s)://` schemes.
+- **FR-S9′** *(replaces v2 FR-S9)*: A staff member can view, add, edit, and remove a System's custom attributes as `{ label, value, sourceReference }` triples through the System form. Attributes display read-only on the System detail and Compare pages.
+
+### New System Capability Functional Requirements
+
+```
+FR-S11: A staff member can record a System's season subscriptions capability using YES/NO/UNKNOWN.
+FR-S12: A staff member can record a System's dynamic pricing capability using YES/NO/UNKNOWN.
+FR-S13: A staff member can record a System's multi-venue support capability using YES/NO/UNKNOWN.
+FR-S14: A staff member can record a System's marketing automation capability using YES/NO/UNKNOWN.
+FR-S15: A staff member can record a System's accessibility features capability using YES/NO/UNKNOWN.
+FR-S16: A staff member can filter Systems by any of the five new capability flags.
+```
+
+### New List Sorting Functional Requirements
+
+```
+FR-32:  A staff member can sort the Organisation list by name, country, lastUpdated, capacity,
+        or organisationType — ascending or descending. The sort persists in the URL.
+FR-S17: A staff member can sort the System list by name, vendor, category, lastUpdated, or
+        geographicFocus — ascending or descending. The sort persists in the URL.
+```
+
+### New Duplicate Prevention Functional Requirements
+
+```
+FR-33:  The system rejects an Organisation create or update that would result in two rows
+        sharing the same (name, city, country). The error response is 409 Conflict with a
+        clear message naming the conflicting record.
+FR-34:  When a staff member types an Organisation name on the create form, the form runs
+        an asynchronous fuzzy-match lookup and surfaces a non-blocking warning panel listing
+        similar existing organisations (name + city). The user can dismiss the warning and
+        continue, or cancel and amend.
+```
+
+### Additional Requirements (Architecture v3)
+
+- **`field_sources` JSON column** on both `System` and `Organisation`. Shape: `{ "<fieldName>": "<url>" }`. Keys validated against per-entity allow-list; values validated as `^https?://`. Rejected at controller with 400 on shape failure.
+- **Per-entity field source allow-lists** in `backend/src/lib/field-source-keys.js` (camelCase keys matching DTO output). System: 13 keys (category, vendor, deploymentModel, pricingModel, geographicFocus, plus eight capability flags). Organisation: 7 keys (country, city, organisationType, three v1 capabilities, capacity).
+- **Five new System capability columns** of type `CapabilityState` defaulting to `UNKNOWN` (`season_subscriptions_capability`, `dynamic_pricing_capability`, `multi_venue_support_capability`, `marketing_automation_capability`, `accessibility_features_capability`).
+- **Composite unique constraint `@@unique([name, city, country])`** on `Organisation`. PostgreSQL treats `NULL city` as distinct — accepted (looser semantics, warning UX catches the rest).
+- **Three independent additive Prisma migrations** (`add_field_sources`, `add_system_capabilities_v3`, `organisation_composite_unique`). None requires backfill. Migration C requires a pre-flight collision check against existing data before applying.
+- **List sort allow-lists** in `backend/src/lib/sort-allowlists.js`. Organisation: name (default), country, lastUpdated, capacity, organisationType. System: name (default), vendor, category, lastUpdated, geographicFocus. Service translates to Prisma `orderBy`. Default order: `asc`. Invalid `sort` or `order` returns 400.
+- **New endpoint `GET /api/organisations/check-similar`** with `name` (required, min 2 chars) and `excludeId?` query params; returns up to 5 minimal `{ id, name, city, country }` matches. Reuses existing `pg_trgm` GIN index on `organisation.name`.
+- **Custom attributes editable** via `POST` and `PUT /api/systems/:id` body field `customAttributes`. Validation: array of `{ label: non-empty string ≤200, value: non-empty string ≤200, sourceReference?: ^https?:// ≤500 }`. Empty rows stripped on submit (label and value both blank).
+
+### UX Design Requirements (v3 Delta — UX-DR43–UX-DR50)
+
+```
+UX-DR43: Implement FieldSourceIcon component — Lucide Info icon at text-slate-400 hover:text-blue-600
+         size-3.5 inline next to a field value when the record has a source URL for that field; click
+         opens URL in new tab; tooltip shows URL; renders null when no source — no fallback to row-
+         level source.
+UX-DR44: Implement FieldWithSource form wrapper — wraps an existing field input child and exposes a
+         paired half-width "Source URL (optional)" input below; updates parent fieldSources state
+         keyed by camelCase fieldName; client-side validation accepts http(s):// or empty.
+UX-DR45: Implement CustomAttributeEditor on SystemFormPage — repeating row component with three
+         text inputs (Label max 200, Value max 200, Source URL max 500) plus ghost Remove button per
+         row; "+ Add custom attribute" button below; rows where label and value are both blank are
+         stripped on submit; row order preserved across edits.
+UX-DR46: Implement SortDropdown — single select aligned to the right of the search input on
+         OrganisationListPage and SystemListPage; options drawn from per-entity allow-list; selection
+         updates URL params (?sort=&order=); changing sort writes ?page=1 explicitly.
+UX-DR47: Implement five new System capability rows on SystemFormPage / SystemDetailPage / SystemCard
+         / SystemListPage filter sidebar — rendered identically to existing capability rows
+         (CapabilityBadge); list filter sidebar groups capability filters under a collapsible "More
+         capabilities" disclosure to avoid sidebar overflow.
+UX-DR48: Implement SimilarOrganisationsWarning panel on OrganisationFormPage create mode — async
+         fuzzy lookup on name blur (≥3 chars, debounced 300ms); panel renders aria-live="polite"
+         between fields and submit; lists up to 5 matches as "<name> — <city>, <country>"; Continue
+         button sets userAcknowledgedDuplicates flag; Cancel and amend button clears name and
+         refocuses; warning re-runs on next blur.
+UX-DR49: Implement 409-conflict inline error on OrganisationFormPage — server response from
+         Organisation composite-unique violation surfaces as inline error below name field with
+         conflict message ("Conflicts with existing organisation in <city>, <country>"); distinct
+         from the soft warning panel above.
+UX-DR50: Implement field source icons in compare views (SystemComparePage and ComparePage) — column-
+         local rendering: a record's ⓘ icon appears only on rows where that record has a source for
+         that field, never inherited from row-level reference.
+```
+
+### v3 FR Coverage Map
+
+```
+FR17′:  Epic 11 — view per-field source reference (detail and compare ⓘ icons)
+FR18′:  Epic 11 — attach per-field source URL on form
+FR-S9′: Epic 13 — full custom-attribute CRUD via System form
+FR-S11–FR-S15: Epic 12 — five new System capability flags
+FR-S16: Epic 12 — filter Systems by new capabilities
+FR-32:  Epic 14 — sort Organisation list
+FR-S17: Epic 14 — sort System list
+FR-33:  Epic 15 — composite-unique Organisation rows
+FR-34:  Epic 15 — fuzzy-match warning on create
+```
+
+---
+
+## Epic List — v3 Additions
+
+### Epic 11: Source per Data Point
+Material data points on Systems and Organisations carry their own source URL via a `field_sources` JSON column. Detail and compare pages render a small ⓘ icon next to each sourced field; forms expose an inline "Source URL" input next to each main input. Seed data is researched and populated for the 11 Systems and the sample Organisations.
+**FRs covered:** FR17′, FR18′
+**Includes:** Migration A (add `field_sources Json?` to System and Organisation), per-entity allow-list constants, controller validation (allow-list keys, URL scheme), DTO updates (System and Organisation list/detail expose `fieldSources`), `FieldSourceIcon` component, `FieldWithSource` form wrapper applied across SystemFormPage and OrganisationFormPage, ⓘ icon rendering on SystemDetailPage / OrganisationDetailPage / SystemComparePage / ComparePage, seed-data research pass populating field_sources for 11 systems and sample organisations.
+
+### Epic 12: System Capability Expansion
+Five sector-relevant capability flags added to System: `season_subscriptions`, `dynamic_pricing`, `multi_venue_support`, `marketing_automation`, `accessibility_features`. All reuse `CapabilityState` and integrate with Epic 11's `field_sources` so each new flag carries its own source.
+**FRs covered:** FR-S11, FR-S12, FR-S13, FR-S14, FR-S15, FR-S16
+**Includes:** Migration B (5 new `CapabilityState` columns on System), DTO + API filter extensions, SystemFormPage / SystemDetailPage / SystemCard / SystemListPage filter sidebar UI updates with collapsible "More capabilities" group, seed catalogue research populating values + field sources.
+
+### Epic 13: Custom Attribute Editor
+The dormant `system.custom_attributes Json?` column gains a CRUD path through the System form. No schema change. Users add, edit, and remove `{ label, value, source URL }` triples directly in the form; the existing detail and compare rendering is unchanged.
+**FRs covered:** FR-S9′
+**Includes:** API contract extension on `POST` and `PUT /api/systems[/:id]` accepting `customAttributes` array with shape validation, `CustomAttributeEditor` component, SystemFormPage integration, empty-row stripping on submit.
+
+### Epic 14: List Sorting
+Both Organisation and System list endpoints accept `?sort=<field>&order=<asc|desc>` against per-entity allow-lists. UI dropdowns expose the sort selection; URL persistence keeps deep-links shareable. Pagination resets to page 1 when sort changes.
+**FRs covered:** FR-32, FR-S17
+**Includes:** Sort allow-list constants, organisation-service / system-service `orderBy` translation including relation sorts (organisationType / vendor), `SortDropdown` component, hook updates (`useOrganisations` / `useSystems`) to pass sort params and reset page on change, OrganisationListPage and SystemListPage UI integration.
+
+### Epic 15: Organisation Duplicate Guard
+Organisation create gains a soft + hard duplicate guard: an asynchronous fuzzy-match warning panel surfaces similar existing organisations before submit, and a composite unique DB constraint `(name, city, country)` rejects exact duplicates with a 409. Systems already have unique-on-name from ADR-020 — no changes to Systems.
+**FRs covered:** FR-33, FR-34
+**Includes:** Migration C (`@@unique([name, city, country])` on Organisation) with pre-flight collision check task, controller mapping of Prisma P2002 to 409 with explicit conflict message, `GET /api/organisations/check-similar` endpoint reusing `pg_trgm`, `useSimilarOrganisations` hook with 300ms debounce, `SimilarOrganisationsWarning` panel on OrganisationFormPage create mode, inline 409 error mapping on submit.
+
+---
+
+## Epic 11: Source per Data Point
+
+Material data points on Systems and Organisations carry their own source URL via a `field_sources` JSON column. The row-level `source_reference` stays as a general fallback but no longer auto-applies to specific claims.
+
+**FRs covered:** FR17′, FR18′
+
+### Story 11.1: Migration A — Add `field_sources` Column to System and Organisation
+
+As a backend developer,
+I want a nullable `field_sources Json?` column on both `System` and `Organisation`,
+so that per-data-point provenance can be persisted without a schema sprawl.
+
+**Acceptance Criteria:**
+
+**Given** `backend/src/prisma/schema.prisma` is edited to add `field_sources Json?` on both `System` and `Organisation`
+**When** `npx prisma migrate dev --name add_field_sources --create-only` runs
+**Then** the generated migration SQL contains exactly two `ALTER TABLE … ADD COLUMN "field_sources" JSONB;` statements (one per table) and nothing else
+**And** no other column is altered, no enum is created, no index is changed
+
+**Given** the migration is applied with `npx prisma migrate dev`
+**When** the schema is inspected
+**Then** both `system.field_sources` and `organisation.field_sources` exist and accept `NULL`
+**And** every existing row has `field_sources = NULL`
+**And** all other columns and indexes on both tables are unchanged
+
+**Given** the existing test suite runs after the migration
+**When** `cd backend && npm test` completes
+**Then** every existing test passes — the additive migration must not change runtime behaviour for any current code path
+
+**Given** Prisma client is regenerated
+**When** services attempt to read or write the new field on either model
+**Then** the type system surfaces it as `Prisma.JsonValue | null` — confirming the column is wired through the generated client
+
+### Story 11.2: API Contract — Accept and Return `fieldSources`
+
+As a backend developer,
+I want `POST` and `PUT` endpoints on both Systems and Organisations to accept a `fieldSources` object validated against a per-entity allow-list, and detail/list responses to include `fieldSources`,
+so that the frontend can read and write per-field provenance through the same DTOs it already uses.
+
+**Acceptance Criteria:**
+
+**Given** `backend/src/lib/field-source-keys.js` is created
+**When** the file is inspected
+**Then** it exports `SYSTEM_FIELD_SOURCE_KEYS` (a frozen array of exactly 13 camelCase strings) and `ORGANISATION_FIELD_SOURCE_KEYS` (a frozen array of exactly 7 camelCase strings) per architecture-v3-delta §2.4
+**And** both arrays contain only camelCase keys that match the corresponding DTO output field names
+
+**Given** a `POST /api/systems` request with body containing `fieldSources: { "pricingModel": "https://example.com/page" }`
+**When** the controller processes it
+**Then** the request is accepted (201)
+**And** the response body's `fieldSources` field equals the input object exactly
+**And** the row in `system.field_sources` matches the input
+
+**Given** a `POST /api/systems` request with `fieldSources: { "unknownField": "https://x" }`
+**When** the controller validates
+**Then** the response is 400 with envelope `{ data: null, error: { message: "Validation failed", fields: [{ field: "fieldSources.unknownField", message: "Unknown field source key. Allowed: ..." }] }, meta: null }`
+
+**Given** a `POST` request with `fieldSources: { "pricingModel": "javascript:alert(1)" }` or any non-`http(s)` scheme
+**When** the controller validates
+**Then** the response is 400 with `fields: [{ field: "fieldSources.pricingModel", message: "Source URL must start with http:// or https://" }]`
+
+**Given** a `PUT /api/systems/:id` request with `fieldSources: {}` (empty object)
+**When** processed
+**Then** the row's `field_sources` is set to an empty object — clearing all sources without setting NULL
+
+**Given** the system list-DTO and organisation list-DTO modules
+**When** mapping Prisma rows to API responses
+**Then** every list and detail response includes a `fieldSources` field — `null` if the column is null, otherwise the JSON object verbatim
+
+**Given** the same validation applies to `POST` and `PUT /api/organisations[/:id]`
+**When** an Organisation is created or updated with `fieldSources` containing keys from `ORGANISATION_FIELD_SOURCE_KEYS`
+**Then** the contract behaves identically — accepted shape, allow-list rejection, URL validation, empty-object semantics
+
+### Story 11.3: Detail and Compare — `FieldSourceIcon` Rendering
+
+As a staff member,
+I want a small ⓘ icon next to each field on the System and Organisation detail pages, and on both compare pages, when that record has a per-field source URL,
+so that I can verify a specific claim by clicking through to the URL that backs it.
+
+**Acceptance Criteria:**
+
+**Given** `frontend/src/components/FieldSourceIcon.jsx` is created per UX-DR43
+**When** the component receives `{ url: null }`
+**Then** it renders nothing (`return null`)
+
+**Given** the component receives `{ url: "https://example.com/page" }`
+**When** rendered
+**Then** it renders a Lucide `Info` icon at `size-3.5 text-slate-400 hover:text-blue-600`
+**And** the icon is wrapped in `<a target="_blank" rel="noopener noreferrer" href={url}>` so clicks open the URL in a new tab
+**And** the anchor has `aria-label="View source for {fieldName}"` and a tooltip showing the URL
+
+**Given** SystemDetailPage renders the System facts grid
+**When** any field in `SYSTEM_FIELD_SOURCE_KEYS` has a corresponding non-empty entry in `system.fieldSources`
+**Then** a `FieldSourceIcon` appears immediately to the right of that field's value cell
+**And** if the entry is missing for that field, no icon is rendered — there is no fallback to the row-level `sourceReference`
+
+**Given** OrganisationDetailPage renders the Organisation facts grid
+**When** any field in `ORGANISATION_FIELD_SOURCE_KEYS` has a corresponding non-empty entry in `organisation.fieldSources`
+**Then** the icon renders identically per the rule above
+
+**Given** SystemComparePage renders the compare grid
+**When** a row corresponds to a field with a per-field source for a specific column's System
+**Then** a `FieldSourceIcon` appears in that column's cell only — not inherited from neighbouring columns; column-local rendering per UX-DR50
+
+**Given** ComparePage (organisations) renders the compare grid
+**When** a row corresponds to a field with a per-field source for a specific column's Organisation
+**Then** the icon renders per the same column-local rule
+
+### Story 11.4: Forms — `FieldWithSource` Wrapper and Source URL Inputs
+
+As a staff member,
+I want an inline "Source URL (optional)" input next to each major field on the System and Organisation forms,
+so that I can record where a fact came from at the moment I'm entering it.
+
+**Acceptance Criteria:**
+
+**Given** `frontend/src/components/FieldWithSource.jsx` is created per UX-DR44
+**When** the component receives `{ fieldName, label, children, sourceValue, onSourceChange }`
+**Then** it renders the `children` (the existing field input) on its first line
+**And** below it, a half-width text input with placeholder "Source URL (optional)", aria-label "Source URL for {label}"
+**And** on input change, calls `onSourceChange(fieldName, newValue)` so the parent form can update its `fieldSources` state object
+
+**Given** SystemFormPage is updated
+**When** rendered
+**Then** every field whose name appears in `SYSTEM_FIELD_SOURCE_KEYS` (category, vendor, deploymentModel, pricingModel, geographicFocus, all eight capability fields) is wrapped in `FieldWithSource`
+**And** the form maintains a single `fieldSources` state object keyed by the camelCase fieldName
+
+**Given** SystemFormPage is submitted
+**When** the form payload is constructed
+**Then** the `fieldSources` object is sent in the POST/PUT body, with empty-string values stripped (so unfilled source inputs don't pollute the JSON)
+
+**Given** OrganisationFormPage is updated
+**When** rendered
+**Then** every field in `ORGANISATION_FIELD_SOURCE_KEYS` (country, city, organisationType, three v1 capabilities, capacity) is wrapped in `FieldWithSource`
+**And** form payload construction follows the same empty-strip rule
+
+**Given** the user enters a source URL with a missing scheme (e.g. `example.com/page`)
+**When** the form is submitted
+**Then** the client-side validator surfaces an inline error "Source URL must start with http:// or https://" — and the request is not sent
+**And** if the user bypasses the client check, the server's 400 response is also surfaced inline on the offending source input
+
+### Story 11.5: Seed Data Research — Populate `field_sources`
+
+As a maintainer of the catalogue,
+I want each of the 11 seeded Systems and the sample Organisations to carry per-field source URLs that defensibly back the recorded values,
+so that the catalogue's claims can be verified by anyone reading the app.
+
+**Acceptance Criteria:**
+
+**Given** [system-seed-catalog.js](../../backend/src/prisma/system-seed-catalog.js) is updated
+**When** each of the 11 System definitions is reviewed
+**Then** every System has a `fieldSources` object populated with at least one entry for each defensibly-sourceable field (category, vendor, deploymentModel, pricingModel, geographicFocus, and the existing three capability flags) — with strict source-required policy: if no defensible URL exists for a field, that key is *omitted* (not filled with the marketing root)
+**And** at minimum 80% of the 13 source-bearing fields across the 11 Systems carry a populated entry — measured as `(populated_keys_total) / (11 × 13)` ≥ 0.80
+**And** the `source_reference` row-level field is preserved unchanged
+
+**Given** [sample-organisations-seed-data.js](../../backend/src/prisma/sample-organisations-seed-data.js) is updated
+**When** each sample Organisation is reviewed
+**Then** every Organisation has a `fieldSources` object populated where defensible URLs exist — at minimum 60% of the 7 source-bearing fields across all sample organisations carry a populated entry
+**And** Organisations where no defensible URLs exist (e.g. private records) keep `fieldSources: null`
+
+**Given** the seed runs
+**When** `npx prisma db seed` completes
+**Then** `system.field_sources` is populated on each System per the catalogue file
+**And** `organisation.field_sources` is populated on each sample Organisation per the data file
+**And** every URL in the seeded objects matches `^https?://`
+
+**Given** the resulting seed is exercised against the running app
+**When** a developer opens any seeded System or Organisation detail page
+**Then** ⓘ icons render next to fields that have sources, and clicking a sample of them opens working URLs in a new tab
+**And** the compare pages also render the icons per column-local rule
+
+**Given** [docs/system-catalogue-rationale.md](../../docs/system-catalogue-rationale.md) §4 lists per-system "Better URL for verification" recommendations
+**When** the seed catalogue file is finalised
+**Then** the populated URLs reflect those recommendations where they were specific (e.g. Eventbrite pricing page rather than `eventbrite.com` root)
+
+---
+
+## Epic 12: System Capability Expansion
+
+Five sector-relevant capability flags added to System: `season_subscriptions`, `dynamic_pricing`, `multi_venue_support`, `marketing_automation`, `accessibility_features`. All reuse `CapabilityState`. Each integrates with Epic 11's `field_sources` so per-flag provenance is supported.
+
+**FRs covered:** FR-S11, FR-S12, FR-S13, FR-S14, FR-S15, FR-S16
+
+### Story 12.1: Migration B — Add Five Capability Columns to System
+
+As a backend developer,
+I want five new `CapabilityState` columns on `System` defaulting to `UNKNOWN`,
+so that richer comparisons are possible without changing existing capability semantics.
+
+**Acceptance Criteria:**
+
+**Given** `schema.prisma` is edited
+**When** the `System` model is inspected
+**Then** five new fields exist: `season_subscriptions_capability`, `dynamic_pricing_capability`, `multi_venue_support_capability`, `marketing_automation_capability`, `accessibility_features_capability` — all of type `CapabilityState` with `@default(UNKNOWN)`
+
+**Given** `npx prisma migrate dev --name add_system_capabilities_v3 --create-only` runs
+**When** the generated SQL is inspected
+**Then** it contains five `ALTER TABLE "system" ADD COLUMN ... "CapabilityState" NOT NULL DEFAULT 'UNKNOWN'` statements and nothing else
+
+**Given** the migration is applied
+**When** existing System rows are queried
+**Then** every row has all five new columns set to `UNKNOWN`
+**And** no other column is changed
+**And** the existing test suite passes (`cd backend && npm test`)
+
+**Given** the system list-DTO module is updated
+**When** any `GET /api/systems` or `GET /api/systems/:id` response is inspected
+**Then** the response includes the five new capability fields camelCased: `seasonSubscriptionsCapability`, `dynamicPricingCapability`, `multiVenueSupportCapability`, `marketingAutomationCapability`, `accessibilityFeaturesCapability`
+
+### Story 12.2: API — Accept and Filter Five New Capabilities
+
+As a backend developer,
+I want `POST` and `PUT /api/systems` to accept the five new capability fields, and `GET /api/systems` to filter on them,
+so that the frontend can persist and query the new flags through familiar contracts.
+
+**Acceptance Criteria:**
+
+**Given** a `POST /api/systems` request with one or more of the five new capability fields set to `YES`, `NO`, or `UNKNOWN`
+**When** processed
+**Then** the request is accepted (201) and the response reflects the values
+**And** any of the five fields with an invalid value (anything other than the three enum members) returns 400 with the envelope's `fields` listing the offending capability key
+
+**Given** controller validation for capabilities
+**When** lowercase input is received (e.g. `"yes"`)
+**Then** it is normalised to `YES` before passing to the service — matching existing capability handling
+
+**Given** `GET /api/systems` is called with `?seasonSubscriptionsCapability=YES`
+**When** the service builds the Prisma query
+**Then** results include only Systems with `season_subscriptions_capability = YES`
+**And** the same behaviour applies to each of the other four new capability filter params
+**And** multiple capability filters compose with AND
+
+**Given** `GET /api/systems` is called with a known new capability filter param set to an invalid value (e.g. `?seasonSubscriptionsCapability=MAYBE`)
+**When** the controller validates query params
+**Then** the response is 400 with `fields` listing that param and message `Select a valid option` — matching the three v1 capability filters (`membership`, `donation`, `seating`)
+
+**Given** an unknown query param key is supplied (e.g. `?foo=YES`)
+**When** the request is processed
+**Then** the unknown key is ignored — it is not a declared capability filter
+
+### Story 12.3: Form, Detail, Compare — Render Five New Capabilities
+
+As a staff member,
+I want SystemFormPage, SystemDetailPage, SystemCard (compare), and SystemComparePage to render the five new capability flags,
+so that I can edit, view, and compare them through the same UI patterns as the existing capabilities.
+
+**Acceptance Criteria:**
+
+**Given** SystemFormPage is updated
+**When** rendered
+**Then** the form has eight capability dropdowns total (3 v1 + 5 v3), each rendering YES/NO/UNKNOWN options with default UNKNOWN, each wrapped in `FieldWithSource` per Story 11.4
+**And** the layout groups them under the existing "Capabilities" section heading
+
+**Given** SystemDetailPage is updated
+**When** rendered
+**Then** the facts panel includes eight capability rows using `CapabilityBadge` labelled variant
+**And** each row renders a `FieldSourceIcon` when the corresponding `fieldSources` entry exists
+
+**Given** SystemCard (compare column) is updated
+**When** rendered
+**Then** all eight capability rows align under the Capabilities section per the union compare layout
+**And** missing values render `—` per the never-blank rule
+
+**Given** SystemComparePage's left attribute label column
+**When** rendered
+**Then** the Capabilities section lists all eight capability labels in a stable order: Membership, Donation, Reserved seating, Season subscriptions, Dynamic pricing, Multi-venue support, Marketing automation, Accessibility features
+
+### Story 12.4: SystemListPage — Filter Sidebar with Collapsible "More Capabilities" Group
+
+As a staff member,
+I want the System list filter sidebar to expose the five new capability filters under a collapsible "More capabilities" group,
+so that I can filter by them without overwhelming the sidebar layout.
+
+**Acceptance Criteria:**
+
+**Given** SystemListPage's filter sidebar is updated
+**When** rendered
+**Then** the three v1 capability filters (Membership, Donation, Reserved seating) remain visible by default
+**And** a collapsible disclosure labelled "More capabilities (5)" appears below them, collapsed by default
+
+**Given** the user clicks "More capabilities (5)" to expand
+**When** the disclosure opens
+**Then** five additional capability dropdowns appear (Season subscriptions, Dynamic pricing, Multi-venue support, Marketing automation, Accessibility features) — each with the same YES/NO/UNKNOWN/Any selector contract as the v1 filters
+**And** each filter wires through to the `useSystems` hook with the corresponding query param
+
+**Given** any of the five new capability filters has a non-default value
+**When** the page renders the active-filter chip strip (`SystemActiveFilterChips`)
+**Then** a chip is rendered per active filter using existing chip styles
+**And** the disclosure auto-expands when any of its contained filters is active (so the user sees what's filtering)
+
+### Story 12.5: Seed — Populate Five New Capabilities and Field Sources
+
+As a maintainer of the catalogue,
+I want each of the 11 seeded Systems to carry honest values for the five new capability flags with corresponding `field_sources` entries where defensible URLs exist,
+so that the compare page demonstrates real differentiation across the new flags.
+
+**Acceptance Criteria:**
+
+**Given** [system-seed-catalog.js](../../backend/src/prisma/system-seed-catalog.js) is updated
+**When** each System is reviewed
+**Then** all five new capability fields are populated for every System using YES/NO/UNKNOWN with strict source-required policy: a value other than UNKNOWN must be backed by a corresponding entry in `fieldSources` for that key
+**And** systems where no public evidence exists default the flag to `UNKNOWN` and omit the `fieldSources` entry — `UNKNOWN` is not a failure mode
+
+**Given** the seed runs
+**When** `npx prisma db seed` completes
+**Then** all 11 Systems have all five new capability columns populated per the catalogue file
+**And** the resulting compare page (selecting any 2–4 Systems) renders meaningful differentiation across the new capability rows — at least three of the five new rows show different values across at least three pairings
+
+**Given** [docs/system-catalogue-rationale.md](../../docs/system-catalogue-rationale.md) is updated
+**When** the per-system sections are reviewed
+**Then** each system's section reflects the new capability values and any URLs used, so the rationale document continues to function as the explanation of *why* each value was chosen
+
+---
+
+## Epic 13: Custom Attribute Editor
+
+The dormant `system.custom_attributes Json?` column gains a CRUD path through the System form. No schema change.
+
+**FRs covered:** FR-S9′
+
+### Story 13.1: API — Accept `customAttributes` on System Create and Update
+
+As a backend developer,
+I want `POST /api/systems` and `PUT /api/systems/:id` to accept a `customAttributes` array with strict shape validation,
+so that the frontend can persist editable custom attributes through the existing JSON column.
+
+**Acceptance Criteria:**
+
+**Given** a `POST /api/systems` request with body field `customAttributes: [{ label: "B Corp certified", value: "Yes (since 2024)", sourceReference: "https://..." }]`
+**When** processed
+**Then** the request is accepted (201)
+**And** the response body includes the array verbatim
+**And** the row's `custom_attributes` JSON column matches the input
+
+**Given** a request with `customAttributes` containing an entry with empty `label` OR empty `value` (after trim)
+**When** validated
+**Then** the entry is dropped silently before persistence — empty rows are not stored
+**And** the response reflects the cleaned array
+
+**Given** a request with `customAttributes` containing an entry where `label` or `value` exceeds 200 characters
+**When** validated
+**Then** the response is 400 with `fields: [{ field: "customAttributes[N].label" | "customAttributes[N].value", message: "Must be 200 characters or fewer." }]`
+
+**Given** a request with `customAttributes` containing an entry where `sourceReference` is non-empty and does not match `^https?://`
+**When** validated
+**Then** the response is 400 with `fields: [{ field: "customAttributes[N].sourceReference", message: "Source URL must start with http:// or https://" }]`
+
+**Given** a request with `customAttributes` containing an entry with an unknown property (e.g. `category`)
+**When** validated
+**Then** the unknown property is stripped before persistence — known keys (`label`, `value`, `sourceReference`) are preserved, unknowns are dropped silently
+
+**Given** a request with `customAttributes: []` (empty array)
+**When** processed
+**Then** the row's `custom_attributes` is set to `null` (not `[]`) — clearing the column rather than storing an empty array; the existing read DTO continues to render an empty/missing section the same way
+
+### Story 13.2: SystemFormPage — `CustomAttributeEditor` Component
+
+As a staff member,
+I want to add, edit, and remove custom attributes directly on the System form through a repeating row component,
+so that I can record vendor-specific traits without touching seed files.
+
+**Acceptance Criteria:**
+
+**Given** `frontend/src/components/CustomAttributeEditor.jsx` is created per UX-DR45
+**When** the component receives `{ value: CustomAttribute[], onChange }`
+**Then** it renders one row per array entry, each with three text inputs (Label / Value / Source URL) and a ghost Remove button
+**And** below the rows, a "+ Add custom attribute" button appends an empty row to the array
+
+**Given** the user clicks "Remove" on a row
+**When** the array updates via `onChange`
+**Then** the row is removed; sibling rows preserve their input focus and value via stable React keys (each row carries a local UUID `_key`)
+
+**Given** input character counts
+**When** Label or Value exceeds 200 characters or Source URL exceeds 500 characters
+**Then** an inline character counter shows the limit and the field is `border-red-500` until the user trims
+**And** the form Submit button is `disabled` while any custom attribute exceeds its limit
+
+**Given** SystemFormPage is updated
+**When** rendered in create mode
+**Then** the form includes a "Custom attributes" section below the universal-core fields with the `CustomAttributeEditor` mounted to a `customAttributes` state slice
+**And** the section is initially empty (no rows)
+
+**Given** SystemFormPage is rendered in edit mode for a System with existing `customAttributes`
+**When** the form loads
+**Then** the editor is pre-populated with one row per existing entry
+**And** the `_key` for each pre-existing row is derived deterministically from index + content hash so re-renders don't blow away input state
+
+**Given** the form is submitted
+**When** the payload is constructed
+**Then** rows where label and value are both blank (after trim) are stripped from the array before sending
+**And** an empty post-strip array is sent as `[]` (the API converts this to `null` per Story 13.1)
+**And** `_key` is stripped from each entry — only `label`, `value`, `sourceReference` are sent
+
+**Given** the form save succeeds
+**When** the user is redirected to the System detail page
+**Then** the existing detail-page custom-attribute table renders the updated list immediately (no compatibility shim needed — read path is unchanged)
+
+---
+
+## Epic 14: List Sorting
+
+Both Organisation and System list endpoints accept `?sort=` and `?order=`. UI dropdowns expose the sort selection; URL persistence keeps deep-links shareable.
+
+**FRs covered:** FR-32, FR-S17
+
+### Story 14.1: API — `?sort` and `?order` on Both List Endpoints
+
+As a backend developer,
+I want `GET /api/organisations` and `GET /api/systems` to accept sort and order query params validated against per-entity allow-lists,
+so that the frontend can drive sorting through familiar query-param contracts.
+
+**Acceptance Criteria:**
+
+**Given** `backend/src/lib/sort-allowlists.js` is created
+**When** the file is inspected
+**Then** it exports `ORGANISATION_SORT_KEYS = ['name', 'country', 'lastUpdated', 'capacity', 'organisationType']` and `SYSTEM_SORT_KEYS = ['name', 'vendor', 'category', 'lastUpdated', 'geographicFocus']` as frozen arrays
+
+**Given** a `GET /api/organisations?sort=name&order=asc` request
+**When** the controller validates
+**Then** the request is accepted and the service builds `orderBy: { name: 'asc' }`
+**And** results are returned in alphabetical order
+
+**Given** a `GET /api/organisations?sort=organisationType&order=desc` request
+**When** the service builds the Prisma query
+**Then** `orderBy: { organisation_type: { name: 'desc' } }` — using the related table's name for sort
+
+**Given** a request with `sort=foo` (not in allow-list)
+**When** validated
+**Then** the response is 400 with `fields: [{ field: "sort", message: "Sort field must be one of: name, country, lastUpdated, capacity, organisationType" }]`
+
+**Given** a request with `order=sideways` (not asc/desc)
+**When** validated
+**Then** the response is 400 with `fields: [{ field: "order", message: "Order must be asc or desc" }]`
+
+**Given** a request without `sort` or `order`
+**When** processed
+**Then** the default is `sort=name&order=asc` for both entities
+
+**Given** a `GET /api/systems?sort=vendor&order=asc&page=1` request
+**When** processed
+**Then** results are alphabetised by vendor; pagination metadata is unchanged (no behavioural change to page/limit/total/totalPages)
+
+**Given** sort + filter + search composition
+**When** a request like `GET /api/organisations?q=opera&country=UK&sort=lastUpdated&order=desc&page=1` runs
+**Then** all three apply together with the correct precedence (filter before sort before pagination)
+
+### Story 14.2: List Pages — `SortDropdown` Component and URL Persistence
+
+As a staff member,
+I want a sort dropdown on the Organisation and System list pages with a small set of practical sort keys, persisted in the URL,
+so that I can deep-link to a specific sorted view and switch sorts without losing my filters.
+
+**Acceptance Criteria:**
+
+**Given** `frontend/src/components/SortDropdown.jsx` is created per UX-DR46
+**When** the component receives `{ options, sort, order, onChange }`
+**Then** it renders a single select that combines field and direction (e.g. "Name (A→Z)", "Last updated (newest first)") to keep the UI compact
+**And** options are derived from the per-entity allow-list with a sensible label per direction
+
+**Given** OrganisationListPage is updated
+**When** rendered
+**Then** a `SortDropdown` appears to the right of the search input
+**And** the dropdown reads from URL params `sort` and `order` (defaults: `name`, `asc`)
+**And** changing the selection updates the URL via `setSearchParams` and resets `page=1`
+
+**Given** SystemListPage is updated
+**When** rendered
+**Then** the `SortDropdown` is mounted analogously with the System sort allow-list
+**And** the same URL contract applies
+
+**Given** `useOrganisations` and `useSystems` hooks
+**When** they read `sort` and `order` from URL params
+**Then** they pass them through to the API call and the React Query cache key includes them
+**And** changing sort triggers a refetch; changing back to a previously-cached sort serves from cache
+
+**Given** the user's browser back/forward navigation
+**When** they navigate between sort states
+**Then** the sort dropdown reflects the URL state on each navigation — URL is the source of truth
+
+**Given** the user has filters applied and changes sort
+**When** the URL updates
+**Then** all existing filter params are preserved unchanged — only `sort`, `order`, and `page` change
+
+---
+
+## Epic 15: Organisation Duplicate Guard
+
+Soft + hard duplicate guard on Organisation create. Composite unique constraint at the DB level; async fuzzy-match warning on the form.
+
+**FRs covered:** FR-33, FR-34
+
+### Story 15.1: Migration C — Composite Unique on Organisation `(name, city, country)`
+
+As a backend developer,
+I want a composite unique index on `organisation(name, city, country)` and a pre-flight check that surfaces existing collisions,
+so that duplicate organisations are blocked at the data layer without forcing legitimate name reuse across cities.
+
+**Acceptance Criteria:**
+
+**Given** the pre-flight check task
+**When** the developer runs the diagnostic SQL `SELECT name, city, country, count(*) AS c FROM organisation GROUP BY name, city, country HAVING count(*) > 1;` against the target environment
+**Then** the result is recorded in the story's Dev Agent Record
+**And** if any rows return, the migration is blocked until the operator manually deduplicates
+
+**Given** the schema is edited to add `@@unique([name, city, country])` to `Organisation`
+**When** `npx prisma migrate dev --name organisation_composite_unique --create-only` runs
+**Then** the generated SQL contains exactly one statement: `CREATE UNIQUE INDEX "organisation_name_city_country_key" ON "organisation"("name", "city", "country");`
+
+**Given** the migration is applied with no existing collisions
+**When** the schema is inspected
+**Then** the unique index exists and Prisma's introspection matches the schema
+**And** all existing rows are preserved
+**And** the test suite passes
+
+**Given** the migration is applied with existing collisions (developer ignored the pre-flight)
+**When** Prisma attempts to create the unique index
+**Then** the migration fails with a clear PostgreSQL error
+**And** no other schema change is applied — the migration is atomic per Postgres DDL semantics
+
+**Given** the controller for `POST /api/organisations` and `PUT /api/organisations/:id`
+**When** Prisma raises `P2002` with `target` containing `name_city_country_key`
+**Then** the controller maps it to a `409 Conflict` with envelope `{ data: null, error: { message: "An organisation called \"<name>\" already exists in <city>, <country>.", fields: [{ field: "name", message: "Conflicts with existing organisation in this city and country." }] }, meta: null }`
+**And** any other `P2002` (different unique constraint) maps to a generic 409 without crashing
+
+### Story 15.2: New Endpoint — `GET /api/organisations/check-similar`
+
+As a backend developer,
+I want a focused endpoint that returns up to 5 minimal similar-organisation matches for a given name,
+so that the form's fuzzy-match warning has a fast, narrow query path.
+
+**Acceptance Criteria:**
+
+**Given** the route `GET /api/organisations/check-similar` is registered
+**When** called with `?name=Royal%20Opera`
+**Then** the response shape is `{ data: [{ id, name, city, country }], error: null, meta: null }`
+**And** `data` contains up to 5 entries
+**And** results are ordered by trigram similarity descending, matching the SQL pattern in architecture-v3-delta §3.5
+
+**Given** `?name=` is missing or shorter than 2 characters
+**When** validated
+**Then** the response is 400 with `fields: [{ field: "name", message: "Name must be at least 2 characters." }]`
+
+**Given** `?excludeId=<uuid>` is provided
+**When** the query runs
+**Then** the row with that id is excluded from results — used by the edit form so a record doesn't flag itself
+
+**Given** `excludeId` is not a valid UUID
+**When** validated
+**Then** the response is 400 with a clear error
+
+**Given** the endpoint runs against the seed data
+**When** called with `?name=Theatre`
+**Then** any seeded Organisations whose names contain "Theatre" are returned (up to 5), ordered by similarity
+**And** the response time is well under 100ms (the trigram index makes this comparable to the existing search endpoint)
+
+### Story 15.3: OrganisationFormPage — `SimilarOrganisationsWarning` and 409 Inline Error
+
+As a staff member,
+I want the create form to show a warning when I'm about to create an organisation with a name similar to an existing one, and a clear error if I bypass the warning and the server rejects the duplicate,
+so that I avoid accidental duplicates without being blocked when the duplicate is legitimate (different city).
+
+**Acceptance Criteria:**
+
+**Given** `frontend/src/hooks/useSimilarOrganisations.js` is created
+**When** invoked with a name string
+**Then** it debounces input by 300ms and calls `GET /api/organisations/check-similar?name=...&excludeId=...?` (excludeId only in edit mode, but warning is create-only so excludeId is omitted)
+**And** the hook returns `{ matches, isLoading, error }` with React Query caching on `['similarOrganisations', name]`
+
+**Given** OrganisationFormPage in create mode
+**When** the user enters a name and blurs the field with ≥3 characters
+**Then** the hook is invoked
+**And** if any matches return, a `SimilarOrganisationsWarning` panel renders between the form fields and the submit button per UX-DR48
+**And** the panel renders `aria-live="polite"` so it announces without stealing focus
+
+**Given** the warning panel is shown with matches
+**When** the user clicks "Continue"
+**Then** a local `userAcknowledgedDuplicates` flag is set to true and the panel hides
+**And** subsequent submits proceed normally
+
+**Given** the user clicks "Cancel and amend" on the warning panel
+**When** the action fires
+**Then** the name field is cleared and refocused
+**And** `userAcknowledgedDuplicates` resets to false
+
+**Given** the user changes the name after acknowledging duplicates
+**When** the field blurs again
+**Then** the lookup re-runs against the new name
+**And** if new matches return, the warning re-displays — the acknowledgement does not persist across name changes
+
+**Given** OrganisationFormPage in edit mode
+**When** the page renders
+**Then** the warning UX is **not** mounted — only the soft warning is create-only per UX-DR48
+**And** the 409 inline error path still applies in edit mode (server can still reject if user changes name to collide)
+
+**Given** the form submits and the server returns 409 with the composite-unique conflict message
+**When** the response is processed
+**Then** an inline error renders below the name field with the conflict message ("Conflicts with existing organisation in <city>, <country>") per UX-DR49
+**And** the error summary at page top includes a link to the name field
+**And** the error is distinct from the soft warning panel — both can render on the same page if the user keeps editing after a 409
+

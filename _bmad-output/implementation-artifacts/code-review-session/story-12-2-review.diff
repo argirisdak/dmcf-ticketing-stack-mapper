@@ -1,0 +1,642 @@
+diff --git a/backend/src/__tests__/system-controller.test.js b/backend/src/__tests__/system-controller.test.js
+index 1bee2ae..a598e13 100644
+--- a/backend/src/__tests__/system-controller.test.js
++++ b/backend/src/__tests__/system-controller.test.js
+@@ -36,7 +36,13 @@ const SYSTEM_STUB = {
+   membershipCapability: 'YES',
+   donationCapability: 'YES',
+   reservedSeatingCapability: 'YES',
++  seasonSubscriptionsCapability: 'UNKNOWN',
++  dynamicPricingCapability: 'UNKNOWN',
++  multiVenueSupportCapability: 'UNKNOWN',
++  marketingAutomationCapability: 'UNKNOWN',
++  accessibilityFeaturesCapability: 'UNKNOWN',
+   sourceReference: 'https://www.spektrix.com',
++  fieldSources: null,
+   customAttributes: null,
+   lastUpdated: '2026-04-01T00:00:00.000Z',
+   createdAt: '2026-01-01T00:00:00.000Z',
+@@ -172,6 +178,35 @@ describe('GET /api/systems', () => {
+     );
+   });
+ 
++  it('accepts seasonSubscriptionsCapability filter and passes to service', async () => {
++    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++
++    await request(app).get('/api/systems?seasonSubscriptionsCapability=YES');
++    expect(mockListSystems).toHaveBeenCalledWith(
++      expect.objectContaining({ seasonSubscriptionsCapability: 'YES' })
++    );
++  });
++
++  it('composes extended capability filters with AND via service args', async () => {
++    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
++
++    await request(app).get(
++      '/api/systems?seasonSubscriptionsCapability=YES&dynamicPricingCapability=NO'
++    );
++    expect(mockListSystems).toHaveBeenCalledWith(
++      expect.objectContaining({
++        seasonSubscriptionsCapability: 'YES',
++        dynamicPricingCapability: 'NO',
++      })
++    );
++  });
++
++  it('returns 400 for invalid seasonSubscriptionsCapability query value', async () => {
++    const res = await request(app).get('/api/systems?seasonSubscriptionsCapability=MAYBE');
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('seasonSubscriptionsCapability');
++  });
++
+   it('returns 400 for invalid page param', async () => {
+     const res = await request(app).get('/api/systems?page=abc');
+     expect(res.status).toBe(400);
+@@ -385,6 +420,117 @@ describe('POST /api/systems', () => {
+   });
+ });
+ 
++const MINIMAL_CREATE_BODY = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++const EXTENDED_CAPABILITY_KEYS = [
++  'seasonSubscriptionsCapability',
++  'dynamicPricingCapability',
++  'multiVenueSupportCapability',
++  'marketingAutomationCapability',
++  'accessibilityFeaturesCapability',
++];
++
++describe('POST /api/systems — extended capabilities', () => {
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it.each(EXTENDED_CAPABILITY_KEYS)('POST normalises lowercase yes for %s (201 + service payload)', async (key) => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, [key]: 'YES' });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, [key]: 'yes' });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data[key]).toBe('YES');
++    expect(mockCreateSystem).toHaveBeenCalledWith(expect.objectContaining({ [key]: 'YES' }));
++  });
++
++  it('accepts season_subscriptions_capability snake_case alias on create', async () => {
++    mockCreateSystem.mockResolvedValue({ ...SYSTEM_STUB, seasonSubscriptionsCapability: 'YES' });
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, season_subscriptions_capability: 'YES' });
++
++    expect(res.status).toBe(201);
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ seasonSubscriptionsCapability: 'YES' })
++    );
++  });
++
++  it('returns 400 when seasonSubscriptionsCapability is MAYBE', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...MINIMAL_CREATE_BODY, seasonSubscriptionsCapability: 'MAYBE' });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some(
++      (f) => f.field === 'seasonSubscriptionsCapability' && f.message === 'Must be YES, NO, or UNKNOWN'
++    )).toBe(true);
++  });
++});
++
++describe('POST /api/systems — fieldSources', () => {
++  const minimalBody = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
++    const stub = { ...SYSTEM_STUB, fieldSources: { vendor: 'https://example.com/doc' } };
++    mockCreateSystem.mockResolvedValue(stub);
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'https://example.com/doc' } });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.fieldSources).toEqual({ vendor: 'https://example.com/doc' });
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ fieldSources: { vendor: 'https://example.com/doc' } }),
++    );
++  });
++
++  it('returns 400 for unknown fieldSources key', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { notARealKey: 'https://x.com' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.notARealKey')).toBe(true);
++  });
++
++  it('returns 400 when fieldSources URL does not start with http:// or https://', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'ftp://example.com/x' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('fieldSources.vendor');
++    expect(res.body.error.fields[0].message).toBe('Source URL must start with http:// or https://');
++  });
++
++  it('returns 400 when fieldSources is not a plain object', async () => {
++    const res = await request(app).post('/api/systems').send({ ...minimalBody, fieldSources: [] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0]).toEqual(
++      expect.objectContaining({ field: 'fieldSources', message: 'Must be an object.' }),
++    );
++  });
++});
++
+ describe('PUT /api/systems/:id', () => {
+   beforeEach(() => {
+     mockUpdateSystem.mockReset();
+@@ -495,6 +641,29 @@ describe('PUT /api/systems/:id', () => {
+     expect(res.status).toBe(500);
+     expect(res.body.error.message).toBe('An unexpected error occurred');
+   });
++
++  it('passes fieldSources: {} to clear stored sources', async () => {
++    mockUpdateSystem.mockResolvedValue({ ...SYSTEM_STUB, fieldSources: {} });
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ fieldSources: {} });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ fieldSources: {} }),
++    );
++  });
++
++  it('omits fieldSources from update payload when key not in body', async () => {
++    mockUpdateSystem.mockResolvedValue(SYSTEM_STUB);
++
++    await request(app).put(`/api/systems/${VALID_UUID}`).send({ name: 'Only Name' });
++
++    const payload = mockUpdateSystem.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('fieldSources');
++  });
+ });
+ 
+ describe('DELETE /api/systems/:id', () => {
+diff --git a/backend/src/__tests__/system-http-stack.test.js b/backend/src/__tests__/system-http-stack.test.js
+index 3972e1d..c5a66ab 100644
+--- a/backend/src/__tests__/system-http-stack.test.js
++++ b/backend/src/__tests__/system-http-stack.test.js
+@@ -29,6 +29,11 @@ const prismaRows = SYSTEM_SEED_DEFINITIONS.map((def, i) => ({
+   membership_capability: def.membership_capability,
+   donation_capability: def.donation_capability,
+   reserved_seating_capability: def.reserved_seating_capability,
++  season_subscriptions_capability: 'UNKNOWN',
++  dynamic_pricing_capability: 'UNKNOWN',
++  multi_venue_support_capability: 'UNKNOWN',
++  marketing_automation_capability: 'UNKNOWN',
++  accessibility_features_capability: 'UNKNOWN',
+   source_reference: def.source_reference,
+   custom_attributes: def.custom_attributes,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+@@ -66,6 +71,21 @@ function matchesWhere(row, where) {
+   if (where.reserved_seating_capability !== undefined) {
+     return row.reserved_seating_capability === where.reserved_seating_capability;
+   }
++  if (where.season_subscriptions_capability !== undefined) {
++    return row.season_subscriptions_capability === where.season_subscriptions_capability;
++  }
++  if (where.dynamic_pricing_capability !== undefined) {
++    return row.dynamic_pricing_capability === where.dynamic_pricing_capability;
++  }
++  if (where.multi_venue_support_capability !== undefined) {
++    return row.multi_venue_support_capability === where.multi_venue_support_capability;
++  }
++  if (where.marketing_automation_capability !== undefined) {
++    return row.marketing_automation_capability === where.marketing_automation_capability;
++  }
++  if (where.accessibility_features_capability !== undefined) {
++    return row.accessibility_features_capability === where.accessibility_features_capability;
++  }
+   return true;
+ }
+ 
+diff --git a/backend/src/__tests__/system-service.test.js b/backend/src/__tests__/system-service.test.js
+index 9f58142..79d21f4 100644
+--- a/backend/src/__tests__/system-service.test.js
++++ b/backend/src/__tests__/system-service.test.js
+@@ -32,7 +32,13 @@ describe('toSystemDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://spektrix.com',
++    field_sources: null,
+     custom_attributes: [{ label: 'Size', value: 'Mid', source_reference: null }],
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -51,7 +57,13 @@ describe('toSystemDto', () => {
+     expect(dto.membershipCapability).toBe('YES');
+     expect(dto.donationCapability).toBe('NO');
+     expect(dto.reservedSeatingCapability).toBe('UNKNOWN');
++    expect(dto.seasonSubscriptionsCapability).toBe('NO');
++    expect(dto.dynamicPricingCapability).toBe('YES');
++    expect(dto.multiVenueSupportCapability).toBe('UNKNOWN');
++    expect(dto.marketingAutomationCapability).toBe('NO');
++    expect(dto.accessibilityFeaturesCapability).toBe('YES');
+     expect(dto.sourceReference).toBe('https://spektrix.com');
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toEqual([{ label: 'Size', value: 'Mid', source_reference: null }]);
+     expect(dto.lastUpdated).toBe('2026-04-01T00:00:00.000Z');
+     expect(dto.createdAt).toBe('2026-01-01T00:00:00.000Z');
+@@ -63,20 +75,36 @@ describe('toSystemDto', () => {
+     expect(dto).not.toHaveProperty('pricing_model');
+     expect(dto).not.toHaveProperty('geographic_focus');
+     expect(dto).not.toHaveProperty('membership_capability');
++    expect(dto).not.toHaveProperty('season_subscriptions_capability');
++    expect(dto).not.toHaveProperty('dynamic_pricing_capability');
++    expect(dto).not.toHaveProperty('multi_venue_support_capability');
++    expect(dto).not.toHaveProperty('marketing_automation_capability');
++    expect(dto).not.toHaveProperty('accessibility_features_capability');
+     expect(dto).not.toHaveProperty('source_reference');
++    expect(dto).not.toHaveProperty('field_sources');
+     expect(dto).not.toHaveProperty('custom_attributes');
+     expect(dto).not.toHaveProperty('last_updated');
+     expect(dto).not.toHaveProperty('created_at');
+   });
+ 
+   it('nulls nullable fields when absent', () => {
+-    const row = { ...baseRow, deployment_model: null, pricing_model: null, geographic_focus: null, description: null, source_reference: null, custom_attributes: null };
++    const row = {
++      ...baseRow,
++      deployment_model: null,
++      pricing_model: null,
++      geographic_focus: null,
++      description: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
++    };
+     const dto = toSystemDto(row);
+     expect(dto.deploymentModel).toBeNull();
+     expect(dto.pricingModel).toBeNull();
+     expect(dto.geographicFocus).toBeNull();
+     expect(dto.description).toBeNull();
+     expect(dto.sourceReference).toBeNull();
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toBeNull();
+   });
+ 
+@@ -99,7 +127,13 @@ describe('toSystemDetailDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'UNKNOWN',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'UNKNOWN',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: null,
++    field_sources: null,
+     custom_attributes: null,
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -231,6 +265,36 @@ describe('buildSystemListWhere', () => {
+     ]));
+   });
+ 
++  it('builds extended v3 capability clauses', () => {
++    const where = buildSystemListWhere({
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++      multiVenueSupportCapability: 'UNKNOWN',
++      marketingAutomationCapability: 'YES',
++      accessibilityFeaturesCapability: 'NO',
++    });
++    expect(where.AND).toEqual(expect.arrayContaining([
++      { season_subscriptions_capability: 'YES' },
++      { dynamic_pricing_capability: 'NO' },
++      { multi_venue_support_capability: 'UNKNOWN' },
++      { marketing_automation_capability: 'YES' },
++      { accessibility_features_capability: 'NO' },
++    ]));
++  });
++
++  it('combines legacy and extended capability filters with AND', () => {
++    const where = buildSystemListWhere({
++      membership: 'YES',
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++    });
++    expect(where.AND).toEqual(expect.arrayContaining([
++      { membership_capability: 'YES' },
++      { season_subscriptions_capability: 'YES' },
++      { dynamic_pricing_capability: 'NO' },
++    ]));
++  });
++
+   it('combines multiple filters with AND', () => {
+     const where = buildSystemListWhere({
+       categories: ['INTEGRATED'],
+@@ -331,7 +395,9 @@ describe('getSystemById', () => {
+       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
+       deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
+       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
+-      source_reference: null, custom_attributes: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
+       last_updated: new Date('2026-04-01T00:00:00.000Z'),
+       created_at: new Date('2026-01-01T00:00:00.000Z'),
+       organisation_systems: [],
+@@ -359,7 +425,13 @@ const BASE_ROW = {
+   membership_capability: 'UNKNOWN',
+   donation_capability: 'UNKNOWN',
+   reserved_seating_capability: 'UNKNOWN',
++  season_subscriptions_capability: 'UNKNOWN',
++  dynamic_pricing_capability: 'UNKNOWN',
++  multi_venue_support_capability: 'UNKNOWN',
++  marketing_automation_capability: 'UNKNOWN',
++  accessibility_features_capability: 'UNKNOWN',
+   source_reference: null,
++  field_sources: null,
+   custom_attributes: null,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+   created_at: new Date('2026-04-01T00:00:00.000Z'),
+@@ -389,6 +461,24 @@ describe('createSystem', () => {
+     expect(callData.membership_capability).toBe('YES');
+   });
+ 
++  it('maps extended capability fields to snake_case on create', async () => {
++    prisma.system.create.mockResolvedValue(BASE_ROW);
++
++    await createSystem({
++      name: 'Spektrix',
++      vendor: 'Spektrix Ltd',
++      category: 'INTEGRATED',
++      seasonSubscriptionsCapability: 'YES',
++      dynamicPricingCapability: 'NO',
++      marketingAutomationCapability: 'UNKNOWN',
++    });
++
++    const callData = prisma.system.create.mock.calls[0][0].data;
++    expect(callData.season_subscriptions_capability).toBe('YES');
++    expect(callData.dynamic_pricing_capability).toBe('NO');
++    expect(callData.marketing_automation_capability).toBe('UNKNOWN');
++  });
++
+   it('returns toSystemDto-shaped result (camelCase, no organisation_systems)', async () => {
+     prisma.system.create.mockResolvedValue(BASE_ROW);
+ 
+@@ -410,6 +500,20 @@ describe('createSystem', () => {
+     expect(callData).not.toHaveProperty('custom_attributes');
+   });
+ 
++  it('maps fieldSources to field_sources on create', async () => {
++    prisma.system.create.mockResolvedValue(BASE_ROW);
++
++    await createSystem({
++      name: 'Spektrix',
++      vendor: 'Spektrix Ltd',
++      category: 'INTEGRATED',
++      fieldSources: { vendor: 'https://docs.example.com' },
++    });
++
++    const callData = prisma.system.create.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({ vendor: 'https://docs.example.com' });
++  });
++
+   it('propagates unexpected Prisma errors (e.g. P2002)', async () => {
+     const p2002 = Object.assign(new Error('Unique constraint'), { code: 'P2002' });
+     prisma.system.create.mockRejectedValue(p2002);
+@@ -497,6 +601,28 @@ describe('updateSystem', () => {
+     expect(callData.pricing_model).toBe('SUBSCRIPTION');
+     expect(callData.membership_capability).toBe('YES');
+   });
++
++  it('maps extended capability fields on partial update', async () => {
++    prisma.system.update.mockResolvedValue(BASE_ROW);
++
++    await updateSystem('sys-id', {
++      accessibilityFeaturesCapability: 'YES',
++      multiVenueSupportCapability: 'NO',
++    });
++
++    const callData = prisma.system.update.mock.calls[0][0].data;
++    expect(callData.accessibility_features_capability).toBe('YES');
++    expect(callData.multi_venue_support_capability).toBe('NO');
++  });
++
++  it('maps fieldSources to field_sources on update', async () => {
++    prisma.system.update.mockResolvedValue(BASE_ROW);
++
++    await updateSystem('sys-id', { fieldSources: {} });
++
++    const callData = prisma.system.update.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({});
++  });
+ });
+ 
+ // ─── deleteSystem Service Tests ───────────────────────────────────────────────
+diff --git a/backend/src/controllers/system-controller.js b/backend/src/controllers/system-controller.js
+index 720ae81..3f9114c 100644
+--- a/backend/src/controllers/system-controller.js
++++ b/backend/src/controllers/system-controller.js
+@@ -1,6 +1,8 @@
+ const systemService = require('../services/system-service');
+ const { SYSTEM_GEOGRAPHIC_FOCUS } = require('../lib/system-geographic-focus');
+ const { stripClientControlledSystemWriteKeys } = require('../lib/strip-client-controlled-write-keys');
++const { SYSTEM_FIELD_SOURCE_KEYS } = require('../lib/field-source-keys');
++const { validateFieldSources } = require('../lib/validate-field-sources');
+ 
+ const MAX_LIMIT = 100;
+ const DEFAULT_LIMIT = 20;
+@@ -18,6 +20,15 @@ const PRICING_MODEL_SET = new Set(['SUBSCRIPTION', 'TRANSACTION_FEE', 'LICENCE',
+ const CAPABILITY_SET = new Set(['YES', 'NO', 'UNKNOWN']);
+ const GEOGRAPHIC_FOCUS_SET = new Set(SYSTEM_GEOGRAPHIC_FOCUS);
+ 
++/** Five v3 system capabilities: API camelCase, optional snake_case body alias, Prisma column (for service filters). */
++const SYSTEM_EXTENDED_CAPABILITY_FIELDS = [
++  { apiField: 'seasonSubscriptionsCapability', camelKey: 'seasonSubscriptionsCapability', snakeKey: 'season_subscriptions_capability' },
++  { apiField: 'dynamicPricingCapability', camelKey: 'dynamicPricingCapability', snakeKey: 'dynamic_pricing_capability' },
++  { apiField: 'multiVenueSupportCapability', camelKey: 'multiVenueSupportCapability', snakeKey: 'multi_venue_support_capability' },
++  { apiField: 'marketingAutomationCapability', camelKey: 'marketingAutomationCapability', snakeKey: 'marketing_automation_capability' },
++  { apiField: 'accessibilityFeaturesCapability', camelKey: 'accessibilityFeaturesCapability', snakeKey: 'accessibility_features_capability' },
++];
++
+ /** Normalise Express query param to a single string or undefined. */
+ function asQueryString(param) {
+   if (param === undefined || param === null || param === '') return undefined;
+@@ -162,6 +173,18 @@ const listSystems = async (req, res) => {
+     }
+   }
+ 
++  const extendedCapabilityFilters = {};
++  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
++    const rawCap = asQueryString(req.query[def.apiField]);
++    if (rawCap === undefined) continue;
++    const v = rawCap.trim().toUpperCase();
++    if (!CAPABILITY_SET.has(v)) {
++      fields.push({ field: def.apiField, message: 'Select a valid option' });
++    } else {
++      extendedCapabilityFilters[def.camelKey] = v;
++    }
++  }
++
+   if (fields.length > 0) {
+     return res.status(400).json({
+       data: null,
+@@ -182,6 +205,7 @@ const listSystems = async (req, res) => {
+       membership,
+       donation,
+       seating,
++      ...extendedCapabilityFilters,
+     });
+ 
+     return res.json({
+@@ -318,10 +342,34 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
+     else reservedSeatingCapability = v === null ? 'UNKNOWN' : v;
+   }
+ 
++  const extCapabilityPayload = {};
++  for (const def of SYSTEM_EXTENDED_CAPABILITY_FIELDS) {
++    if (!(def.snakeKey in raw || def.camelKey in raw)) continue;
++    const rawCap = def.snakeKey in raw ? raw[def.snakeKey] : raw[def.camelKey];
++    const v = normaliseOptionalEnum(rawCap, CAPABILITY_SET);
++    if (v === '__invalid__') {
++      fields.push({ field: def.apiField, message: 'Must be YES, NO, or UNKNOWN' });
++    } else {
++      extCapabilityPayload[def.camelKey] = v === null ? 'UNKNOWN' : v;
++    }
++  }
++
+   const description = 'description' in raw ? normaliseOptionalString(raw.description) : undefined;
+   const sourceReferenceRaw = 'source_reference' in raw ? raw.source_reference : ('sourceReference' in raw ? raw.sourceReference : undefined);
+   const sourceReference = sourceReferenceRaw !== undefined ? normaliseOptionalString(sourceReferenceRaw) : undefined;
+ 
++  const fieldSourcesRaw =
++    'fieldSources' in raw ? raw.fieldSources : 'field_sources' in raw ? raw.field_sources : undefined;
++  let fieldSources;
++  if (fieldSourcesRaw !== undefined) {
++    const vr = validateFieldSources(fieldSourcesRaw, SYSTEM_FIELD_SOURCE_KEYS);
++    if (!vr.ok) {
++      fields.push(...vr.errors);
++    } else {
++      fieldSources = vr.value;
++    }
++  }
++
+   if (fields.length > 0) return { fields, payload: null };
+ 
+   return {
+@@ -337,7 +385,9 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
+       membershipCapability,
+       donationCapability,
+       reservedSeatingCapability,
++      ...extCapabilityPayload,
+       sourceReference,
++      ...(fieldSourcesRaw !== undefined ? { fieldSources } : {}),
+     },
+   };
+ }
+diff --git a/backend/src/services/system-service.js b/backend/src/services/system-service.js
+index 7e4e6e9..a29a087 100644
+--- a/backend/src/services/system-service.js
++++ b/backend/src/services/system-service.js
+@@ -24,6 +24,11 @@ function buildSystemListWhere({
+   membership,
+   donation,
+   seating,
++  seasonSubscriptionsCapability,
++  dynamicPricingCapability,
++  multiVenueSupportCapability,
++  marketingAutomationCapability,
++  accessibilityFeaturesCapability,
+ } = {}) {
+   const parts = [];
+ 
+@@ -45,6 +50,11 @@ function buildSystemListWhere({
+   if (membership)         parts.push({ membership_capability: membership });
+   if (donation)           parts.push({ donation_capability: donation });
+   if (seating)            parts.push({ reserved_seating_capability: seating });
++  if (seasonSubscriptionsCapability) parts.push({ season_subscriptions_capability: seasonSubscriptionsCapability });
++  if (dynamicPricingCapability)       parts.push({ dynamic_pricing_capability: dynamicPricingCapability });
++  if (multiVenueSupportCapability)    parts.push({ multi_venue_support_capability: multiVenueSupportCapability });
++  if (marketingAutomationCapability)  parts.push({ marketing_automation_capability: marketingAutomationCapability });
++  if (accessibilityFeaturesCapability) parts.push({ accessibility_features_capability: accessibilityFeaturesCapability });
+ 
+   if (parts.length === 0) return {};
+   if (parts.length === 1) return parts[0];
+@@ -60,6 +70,11 @@ async function listSystems({
+   membership,
+   donation,
+   seating,
++  seasonSubscriptionsCapability,
++  dynamicPricingCapability,
++  multiVenueSupportCapability,
++  marketingAutomationCapability,
++  accessibilityFeaturesCapability,
+   page,
+   limit,
+ }) {
+@@ -72,6 +87,11 @@ async function listSystems({
+     membership,
+     donation,
+     seating,
++    seasonSubscriptionsCapability,
++    dynamicPricingCapability,
++    multiVenueSupportCapability,
++    marketingAutomationCapability,
++    accessibilityFeaturesCapability,
+   });
+ 
+   const [rows, total] = await Promise.all([
+@@ -113,7 +133,13 @@ async function createSystem(payload) {
+       membership_capability: payload.membershipCapability ?? undefined,
+       donation_capability: payload.donationCapability ?? undefined,
+       reserved_seating_capability: payload.reservedSeatingCapability ?? undefined,
++      season_subscriptions_capability: payload.seasonSubscriptionsCapability ?? undefined,
++      dynamic_pricing_capability: payload.dynamicPricingCapability ?? undefined,
++      multi_venue_support_capability: payload.multiVenueSupportCapability ?? undefined,
++      marketing_automation_capability: payload.marketingAutomationCapability ?? undefined,
++      accessibility_features_capability: payload.accessibilityFeaturesCapability ?? undefined,
+       source_reference: payload.sourceReference ?? undefined,
++      ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
+     },
+   });
+   return toSystemDto(row);
+@@ -131,7 +157,13 @@ async function updateSystem(id, payload) {
+   if (payload.membershipCapability !== undefined) data.membership_capability = payload.membershipCapability;
+   if (payload.donationCapability !== undefined) data.donation_capability = payload.donationCapability;
+   if (payload.reservedSeatingCapability !== undefined) data.reserved_seating_capability = payload.reservedSeatingCapability;
++  if (payload.seasonSubscriptionsCapability !== undefined) data.season_subscriptions_capability = payload.seasonSubscriptionsCapability;
++  if (payload.dynamicPricingCapability !== undefined) data.dynamic_pricing_capability = payload.dynamicPricingCapability;
++  if (payload.multiVenueSupportCapability !== undefined) data.multi_venue_support_capability = payload.multiVenueSupportCapability;
++  if (payload.marketingAutomationCapability !== undefined) data.marketing_automation_capability = payload.marketingAutomationCapability;
++  if (payload.accessibilityFeaturesCapability !== undefined) data.accessibility_features_capability = payload.accessibilityFeaturesCapability;
+   if (payload.sourceReference !== undefined) data.source_reference = payload.sourceReference;
++  if (payload.fieldSources !== undefined) data.field_sources = payload.fieldSources;
+ 
+   if (Object.keys(data).length === 0) {
+     const row = await prisma.system.findUnique({ where: { id } });

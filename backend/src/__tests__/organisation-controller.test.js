@@ -3,6 +3,7 @@ const mockCreateOrganisation = jest.fn();
 const mockGetOrganisationById = jest.fn();
 const mockUpdateOrganisation = jest.fn();
 const mockDeleteOrganisation = jest.fn();
+const mockFindSimilarOrganisations = jest.fn();
 
 jest.mock('../lib/prisma', () => ({
   organisationType: { findMany: jest.fn(), findUnique: jest.fn() },
@@ -16,6 +17,7 @@ jest.mock('../services/organisation-service', () => ({
   getOrganisationById: (...args) => mockGetOrganisationById(...args),
   updateOrganisation: (...args) => mockUpdateOrganisation(...args),
   deleteOrganisation: (...args) => mockDeleteOrganisation(...args),
+  findSimilarOrganisations: (...args) => mockFindSimilarOrganisations(...args),
 }));
 
 const request = require('supertest');
@@ -53,6 +55,7 @@ describe('GET /api/organisations', () => {
           sourceReference: 'REF-1',
           notes: null,
           capacity: 2000,
+          fieldSources: null,
           lastUpdated: '2026-03-01T12:00:00.000Z',
           createdAt: '2025-06-01T08:00:00.000Z',
           updatedAt: '2026-03-01T12:00:00.000Z',
@@ -85,6 +88,7 @@ describe('GET /api/organisations', () => {
           sourceReference: null,
           notes: null,
           capacity: null,
+          fieldSources: null,
           lastUpdated: '2026-01-01T00:00:00.000Z',
           createdAt: '2026-01-01T00:00:00.000Z',
           updatedAt: '2026-01-01T00:00:00.000Z',
@@ -124,35 +128,35 @@ describe('GET /api/organisations', () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get('/api/organisations');
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
   });
 
   it('uses first value when page or limit query keys are repeated', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get('/api/organisations?page=2&page=99&limit=10&limit=50');
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10 });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 2, limit: 10, sort: 'name', order: 'asc' });
   });
 
   it('forwards trimmed q to the service when provided', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get('/api/organisations?q=  Opera  ');
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera' });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'Opera', sort: 'name', order: 'asc' });
   });
 
   it('omits q when query is absent or whitespace-only', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get('/api/organisations?q=%20%09');
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
   });
 
   it('uses first value when q query key is repeated', async () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
 
     await request(app).get('/api/organisations?q=foo&q=bar');
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo' });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, q: 'foo', sort: 'name', order: 'asc' });
   });
 
   it('returns 400 for invalid page', async () => {
@@ -209,6 +213,8 @@ describe('GET /api/organisations', () => {
       membership: 'YES',
       donation: 'NO',
       seating: 'UNKNOWN',
+      sort: 'name',
+      order: 'asc',
     });
   });
 
@@ -230,7 +236,7 @@ describe('GET /api/organisations', () => {
     mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
     const res = await request(app).get('/api/organisations?membership=%20%20&donation=%09');
     expect(res.status).toBe(200);
-    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20 });
+    expect(mockListOrganisations).toHaveBeenCalledWith({ page: 1, limit: 20, sort: 'name', order: 'asc' });
   });
 
   // v2: reject deprecated provider and crm params
@@ -324,6 +330,41 @@ describe('GET /api/organisations', () => {
     );
     expect(mockListOrganisations).not.toHaveBeenCalled();
   });
+
+  it('returns 400 for invalid sort with fields message listing allow-list', async () => {
+    const res = await request(app).get('/api/organisations?sort=notAField');
+    expect(res.status).toBe(400);
+    expect(res.body.data).toBeNull();
+    expect(res.body.meta).toBeNull();
+    const sortErr = res.body.error.fields.find((f) => f.field === 'sort');
+    expect(sortErr).toBeDefined();
+    expect(sortErr.message).toMatch(/^Sort field must be one of: /);
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for invalid order', async () => {
+    const res = await request(app).get('/api/organisations?order=upward');
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual(
+      expect.arrayContaining([expect.objectContaining({ field: 'order', message: 'Order must be asc or desc' })]),
+    );
+    expect(mockListOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('forwards validated sort and order to the service', async () => {
+    mockListOrganisations.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+    const res = await request(app).get('/api/organisations?sort=lastUpdated&order=DESC&country=United+Kingdom');
+    expect(res.status).toBe(200);
+    expect(mockListOrganisations).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sort: 'lastUpdated',
+        order: 'desc',
+        country: 'United Kingdom',
+        page: 1,
+        limit: 20,
+      }),
+    );
+  });
 });
 
 const sampleDto = {
@@ -338,6 +379,7 @@ const sampleDto = {
   sourceReference: 'SRC-REF-1',
   notes: 'Stage door on Bow Street',
   capacity: 2256,
+  fieldSources: null,
   lastUpdated: '2026-03-01T12:00:00.000Z',
   createdAt: '2025-06-01T08:00:00.000Z',
   updatedAt: '2026-03-01T12:00:00.000Z',
@@ -389,6 +431,83 @@ describe('GET /api/organisations/:id', () => {
   });
 });
 
+describe('GET /api/organisations/check-similar', () => {
+  beforeEach(() => {
+    mockFindSimilarOrganisations.mockReset();
+    mockGetOrganisationById.mockReset();
+  });
+
+  it('returns 200 with minimal DTO rows and meta null', async () => {
+    mockFindSimilarOrganisations.mockResolvedValue([
+      { id: VALID_UUID, name: 'Royal Opera House', city: 'London', country: 'United Kingdom' },
+    ]);
+    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'Royal Opera' });
+    expect(res.status).toBe(200);
+    expect(res.body.error).toBeNull();
+    expect(res.body.meta).toBeNull();
+    expect(res.body.data).toEqual([
+      { id: VALID_UUID, name: 'Royal Opera House', city: 'London', country: 'United Kingdom' },
+    ]);
+    expect(mockFindSimilarOrganisations).toHaveBeenCalledWith('Royal Opera', null);
+    const row = res.body.data[0];
+    expect(Object.keys(row).sort()).toEqual(['city', 'country', 'id', 'name']);
+  });
+
+  it('returns 400 when name is one character after trim', async () => {
+    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'A' });
+    expect(res.status).toBe(400);
+    expect(res.body.data).toBeNull();
+    expect(res.body.meta).toBeNull();
+    expect(res.body.error.fields).toEqual([{ field: 'name', message: 'Name must be at least 2 characters.' }]);
+    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when name is missing', async () => {
+    const res = await request(app).get('/api/organisations/check-similar');
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields[0]).toEqual({
+      field: 'name',
+      message: 'Name must be at least 2 characters.',
+    });
+    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 when excludeId is not a UUID', async () => {
+    const res = await request(app)
+      .get('/api/organisations/check-similar')
+      .query({ name: 'Royal', excludeId: 'not-uuid' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields).toEqual([{ field: 'excludeId', message: 'Must be a valid UUID.' }]);
+    expect(mockFindSimilarOrganisations).not.toHaveBeenCalled();
+  });
+
+  it('passes excludeId to the service when valid', async () => {
+    mockFindSimilarOrganisations.mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/organisations/check-similar')
+      .query({ name: 'Royal', excludeId: VALID_UUID });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+    expect(mockFindSimilarOrganisations).toHaveBeenCalledWith('Royal', VALID_UUID);
+  });
+
+  it('treats whitespace-only excludeId as omitted', async () => {
+    mockFindSimilarOrganisations.mockResolvedValue([]);
+    const res = await request(app)
+      .get('/api/organisations/check-similar')
+      .query({ name: 'Royal', excludeId: '   \t  ' });
+    expect(res.status).toBe(200);
+    expect(mockFindSimilarOrganisations).toHaveBeenCalledWith('Royal', null);
+  });
+
+  it('does not treat check-similar as organisation id', async () => {
+    mockFindSimilarOrganisations.mockResolvedValue([]);
+    const res = await request(app).get('/api/organisations/check-similar').query({ name: 'Theatre' });
+    expect(res.status).toBe(200);
+    expect(mockGetOrganisationById).not.toHaveBeenCalled();
+  });
+});
+
 describe('POST /api/organisations', () => {
   beforeEach(() => {
     mockCreateOrganisation.mockReset();
@@ -409,6 +528,7 @@ describe('POST /api/organisations', () => {
       sourceReference: null,
       notes: null,
       capacity: null,
+      fieldSources: null,
       lastUpdated: '2026-04-03T10:00:00.000Z',
       createdAt: '2026-04-03T10:00:00.000Z',
       updatedAt: '2026-04-03T10:00:00.000Z',
@@ -492,6 +612,91 @@ describe('POST /api/organisations', () => {
     logSpy.mockRestore();
   });
 
+  it('returns 409 when create hits composite (name, city, country) unique (P2002 meta target columns)', async () => {
+    const body = { ...validCreateBody, city: 'London' };
+    const p2002 = Object.assign(new Error('Unique constraint'), {
+      code: 'P2002',
+      meta: { target: ['name', 'city', 'country'] },
+    });
+    const created = {
+      id: 'first-org-id',
+      name: 'Acme Hall',
+      city: 'London',
+      country: 'United Kingdom',
+      organisationType: { id: 'type-uuid-1', name: 'Venue' },
+      membershipCapability: 'YES',
+      donationCapability: 'NO',
+      reservedSeatingCapability: 'UNKNOWN',
+      sourceReference: null,
+      notes: null,
+      capacity: null,
+      fieldSources: null,
+      lastUpdated: '2026-04-03T10:00:00.000Z',
+      createdAt: '2026-04-03T10:00:00.000Z',
+      updatedAt: '2026-04-03T10:00:00.000Z',
+      systems: [],
+    };
+    mockCreateOrganisation.mockResolvedValueOnce(created).mockRejectedValueOnce(p2002);
+
+    await request(app).post('/api/organisations').send(body);
+    const res = await request(app).post('/api/organisations').send(body);
+
+    expect(res.status).toBe(409);
+    expect(res.body.data).toBeNull();
+    expect(res.body.meta).toBeNull();
+    expect(res.body.error.message).toContain('London');
+    expect(res.body.error.message).toContain('United Kingdom');
+    expect(res.body.error.message).toContain('Acme Hall');
+    expect(res.body.error.fields[0].field).toBe('name');
+    expect(res.body.error.fields[0].message).toBe('Conflicts with existing organisation in this city and country.');
+  });
+
+  it('returns 409 when create hits composite unique (P2002 constraint name in meta.target)', async () => {
+    const body = { ...validCreateBody, city: 'Bath' };
+    const p2002 = Object.assign(new Error('Unique constraint'), {
+      code: 'P2002',
+      meta: { target: 'organisation_name_city_country_key' },
+    });
+    mockCreateOrganisation.mockRejectedValueOnce(p2002);
+
+    const res = await request(app).post('/api/organisations').send(body);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.message).toContain('Bath');
+    expect(res.body.error.message).toContain('United Kingdom');
+    expect(res.body.error.fields[0].field).toBe('name');
+  });
+
+  it('uses (no city) in 409 message when city is omitted and composite unique fails', async () => {
+    const body = { ...validCreateBody };
+    delete body.city;
+    const p2002 = Object.assign(new Error('Unique constraint'), {
+      code: 'P2002',
+      meta: { target: ['name', 'city', 'country'] },
+    });
+    mockCreateOrganisation.mockRejectedValueOnce(p2002);
+
+    const res = await request(app).post('/api/organisations').send(body);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.message).toContain('(no city)');
+    expect(res.body.error.message).toContain('United Kingdom');
+  });
+
+  it('returns generic 409 for other P2002 targets on create', async () => {
+    const p2002 = Object.assign(new Error('Unique constraint'), {
+      code: 'P2002',
+      meta: { target: ['organisation_type_id'] },
+    });
+    mockCreateOrganisation.mockRejectedValueOnce(p2002);
+
+    const res = await request(app).post('/api/organisations').send(validCreateBody);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.message).toBe('A record with this value already exists');
+    expect(res.body.error.fields).toEqual([]);
+  });
+
   // v2: reject legacy body keys
   it('returns 400 when ticketing_provider_id is in POST body', async () => {
     const res = await request(app)
@@ -560,6 +765,83 @@ describe('POST /api/organisations', () => {
       ]),
     );
     expect(mockCreateOrganisation).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /api/organisations — fieldSources', () => {
+  beforeEach(() => {
+    mockCreateOrganisation.mockReset();
+    prisma.organisationType.findUnique.mockReset();
+    prisma.organisationType.findUnique.mockResolvedValue({ id: 'type-uuid-1', name: 'Venue' });
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
+    const returned = {
+      id: 'new-org-id',
+      name: 'Acme Hall',
+      city: null,
+      country: 'United Kingdom',
+      organisationType: { id: 'type-uuid-1', name: 'Venue' },
+      membershipCapability: 'YES',
+      donationCapability: 'NO',
+      reservedSeatingCapability: 'UNKNOWN',
+      sourceReference: null,
+      notes: null,
+      capacity: null,
+      fieldSources: { country: 'https://example.com/source' },
+      lastUpdated: '2026-04-03T10:00:00.000Z',
+      createdAt: '2026-04-03T10:00:00.000Z',
+      updatedAt: '2026-04-03T10:00:00.000Z',
+      systems: [],
+    };
+    mockCreateOrganisation.mockResolvedValue(returned);
+
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({
+        ...validCreateBody,
+        fieldSources: { country: 'https://example.com/source' },
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.fieldSources).toEqual({ country: 'https://example.com/source' });
+    expect(mockCreateOrganisation).toHaveBeenCalledWith(
+      expect.objectContaining({ fieldSources: { country: 'https://example.com/source' } }),
+    );
+  });
+
+  it('returns 400 for unknown fieldSources key', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, fieldSources: { unknownKey: 'https://x.com' } });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.unknownKey')).toBe(true);
+  });
+
+  it('returns 400 when fieldSources URL is invalid', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, fieldSources: { country: '//bad' } });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields[0].field).toBe('fieldSources.country');
+  });
+
+  it('returns 400 when fieldSources is not a plain object', async () => {
+    const res = await request(app)
+      .post('/api/organisations')
+      .send({ ...validCreateBody, fieldSources: [] });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error.fields[0]).toEqual(
+      expect.objectContaining({ field: 'fieldSources', message: 'Must be an object.' }),
+    );
   });
 });
 
@@ -664,6 +946,22 @@ describe('PUT /api/organisations/:id', () => {
     logSpy.mockRestore();
   });
 
+  it('returns 409 when update hits composite (name, city, country) unique (P2002)', async () => {
+    const body = { ...validCreateBody, city: 'York' };
+    const p2002 = Object.assign(new Error('Unique constraint'), {
+      code: 'P2002',
+      meta: { target: ['name', 'city', 'country'] },
+    });
+    mockUpdateOrganisation.mockRejectedValueOnce(p2002);
+
+    const res = await request(app).put(`/api/organisations/${orgId}`).send(body);
+
+    expect(res.status).toBe(409);
+    expect(res.body.error.message).toContain('York');
+    expect(res.body.error.message).toContain('United Kingdom');
+    expect(res.body.error.fields[0].field).toBe('name');
+  });
+
   // v2: reject legacy body keys on PUT
   it('returns 400 when ticketing_provider_id is in PUT body', async () => {
     const res = await request(app)
@@ -715,6 +1013,29 @@ describe('PUT /api/organisations/:id', () => {
       ]),
     );
     expect(mockUpdateOrganisation).not.toHaveBeenCalled();
+  });
+
+  it('passes fieldSources: {} to clear stored sources', async () => {
+    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId, fieldSources: {} });
+
+    const res = await request(app)
+      .put(`/api/organisations/${orgId}`)
+      .send({ ...validCreateBody, fieldSources: {} });
+
+    expect(res.status).toBe(200);
+    expect(mockUpdateOrganisation).toHaveBeenCalledWith(
+      orgId,
+      expect.objectContaining({ fieldSources: {} }),
+    );
+  });
+
+  it('omits fieldSources from update payload when key not in body', async () => {
+    mockUpdateOrganisation.mockResolvedValue({ ...sampleDto, id: orgId });
+
+    await request(app).put(`/api/organisations/${orgId}`).send(validCreateBody);
+
+    const payload = mockUpdateOrganisation.mock.calls[0][1];
+    expect(payload).not.toHaveProperty('fieldSources');
   });
 });
 

@@ -1,6 +1,18 @@
 const prisma = require('../lib/prisma');
 const { toOrganisationDto } = require('./organisation-list-dto');
 
+/**
+ * @param {{ id: string; name: string; city: string | null; country: string }} row
+ */
+function toSimilarOrganisationMatchDto(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    city: row.city,
+    country: row.country,
+  };
+}
+
 const organisationInclude = {
   organisation_type: true,
   systems: {
@@ -70,6 +82,28 @@ function buildOrganisationListCompositeWhere(filters) {
 }
 
 /**
+ * Maps validated API sort key + direction to Prisma `orderBy` for organisation list queries.
+ * @param {string} sortKey
+ * @param {'asc' | 'desc'} orderDir
+ */
+function buildOrganisationListOrderBy(sortKey, orderDir) {
+  switch (sortKey) {
+    case 'name':
+      return { name: orderDir };
+    case 'country':
+      return { country: orderDir };
+    case 'lastUpdated':
+      return { last_updated: orderDir };
+    case 'capacity':
+      return { capacity: orderDir };
+    case 'organisationType':
+      return { organisation_type: { name: orderDir } };
+    default:
+      return { name: 'asc' };
+  }
+}
+
+/**
  * @param {{
  *   page: number
  *   limit: number
@@ -81,10 +115,25 @@ function buildOrganisationListCompositeWhere(filters) {
  *   membership?: string
  *   donation?: string
  *   seating?: string
+ *   sort?: string
+ *   order?: string
  * }} params
  */
 async function listOrganisations(params) {
-  const { page, limit, q, country, type, system, system_role, membership, donation, seating } = params;
+  const {
+    page,
+    limit,
+    q,
+    country,
+    type,
+    system,
+    system_role,
+    membership,
+    donation,
+    seating,
+    sort = 'name',
+    order = 'asc',
+  } = params;
   const skip = (page - 1) * limit;
   const where = buildOrganisationListCompositeWhere({
     q,
@@ -97,12 +146,14 @@ async function listOrganisations(params) {
     seating,
   });
 
+  const orderBy = buildOrganisationListOrderBy(sort, order);
+
   const [rows, total] = await Promise.all([
     prisma.organisation.findMany({
       where,
       skip,
       take: limit,
-      orderBy: { name: 'asc' },
+      orderBy,
       include: organisationInclude,
     }),
     prisma.organisation.count({ where }),
@@ -130,6 +181,7 @@ async function createOrganisation(payload) {
       source_reference: payload.sourceReference,
       notes: payload.notes,
       capacity: payload.capacity,
+      ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
     },
     include: organisationInclude,
   });
@@ -170,6 +222,7 @@ async function updateOrganisation(id, payload) {
         source_reference: payload.sourceReference,
         notes: payload.notes,
         capacity: payload.capacity,
+        ...(payload.fieldSources !== undefined ? { field_sources: payload.fieldSources } : {}),
       },
       include: organisationInclude,
     });
@@ -194,10 +247,47 @@ async function deleteOrganisation(id) {
   }
 }
 
+/**
+ * Escape `\`, `%`, and `_` for Postgres `ILIKE` when using `ESCAPE '\\'`.
+ * @param {string} value
+ */
+function escapeIlikePattern(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
+/**
+ * Similarity / substring matches on organisation name (pg_trgm). Up to 5 rows.
+ * @param {string} name trimmed search term (caller validates length ≥ 2)
+ * @param {string | null} excludeId optional UUID to omit from results
+ * @returns {Promise<{ id: string; name: string; city: string | null; country: string }[]>}
+ */
+async function findSimilarOrganisations(name, excludeId) {
+  const sentinelExcludeId = '00000000-0000-0000-0000-000000000000';
+  const escaped = escapeIlikePattern(name);
+  const ilikePrefix = `${escaped}%`;
+  const ilikeSubstring = `%${escaped}%`;
+  const ilikeEscape = '\\';
+  const rows = await prisma.$queryRaw`
+    SELECT id, name, city, country FROM organisation
+    WHERE id <> COALESCE(${excludeId}, ${sentinelExcludeId})
+      AND (
+        name ILIKE ${ilikePrefix} ESCAPE ${ilikeEscape}
+        OR name ILIKE ${ilikeSubstring} ESCAPE ${ilikeEscape}
+        OR similarity(name, ${name}) > 0.4
+      )
+    ORDER BY similarity(name, ${name}) DESC
+    LIMIT 5
+  `;
+  return rows.map(toSimilarOrganisationMatchDto);
+}
+
 module.exports = {
   listOrganisations,
+  buildOrganisationListOrderBy,
   createOrganisation,
   getOrganisationById,
   updateOrganisation,
   deleteOrganisation,
+  findSimilarOrganisations,
+  escapeIlikePattern,
 };

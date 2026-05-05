@@ -1,14 +1,12 @@
 import { useCallback, useMemo } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { OrganisationCard } from '../components/OrganisationCard.jsx'
-import { deriveCompareOrganisationsSystemUnion } from '../lib/compare-organisations-system-union.js'
-import {
-  encodeCompareIdsForQuery,
-  MAX_SYSTEM_COMPARE_IDS,
-  parseCompareIds,
-} from '../lib/compare-url-params.js'
+import { CompareOrgsSystemsPanel } from '../components/CompareOrgsSystemsPanel.jsx'
+import { deriveCompareOrgsSystemDetails } from '../lib/compare-organisations-system-union.js'
+import { parseCompareIds } from '../lib/compare-url-params.js'
 import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
 
+/** Row order matches `ORGANISATION_COMPARE_ROW_SOURCE_KEYS` in `lib/field-source-keys.js`. */
 const ROW_LABELS = [
   'Country',
   'Type',
@@ -16,7 +14,7 @@ const ROW_LABELS = [
   'Membership Capability',
   'Donation Capability',
   'Reserved Seating Capability',
-  'Source Reference',
+  'General source',
   'Last Updated',
 ]
 
@@ -25,7 +23,7 @@ export default function ComparePage() {
   const idsParam = searchParams.get('ids')
   const ids = useMemo(() => parseCompareIds(idsParam), [idsParam])
   const queries = useCompareOrganisations(ids)
-  const organisationsSystemUnion = deriveCompareOrganisationsSystemUnion(ids, queries)
+  const systemDetails = deriveCompareOrgsSystemDetails(ids, queries)
 
   const removeId = useCallback(
     (idToRemove) => {
@@ -106,32 +104,9 @@ export default function ComparePage() {
         </div>
       </div>
 
-      {organisationsSystemUnion.kind === 'ready' &&
-        (() => {
-          const n = organisationsSystemUnion.orderedSystemIds.length
-          if (n <= 1) return null
-          if (n >= 2 && n <= MAX_SYSTEM_COMPARE_IDS) {
-            return (
-              <div className="mt-6 border-t border-slate-200 pt-4">
-                <Link
-                  to={`/compare/systems?ids=${encodeCompareIdsForQuery(organisationsSystemUnion.orderedSystemIds)}`}
-                  className="text-sm text-blue-600 hover:text-blue-800"
-                >
-                  Compare systems used by these organisations →
-                </Link>
-              </div>
-            )
-          }
-          return (
-            <p className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
-              These organisations use {n} different systems. Open the{' '}
-              <Link to="/systems" className="text-blue-600 hover:text-blue-800">
-                System list →
-              </Link>{' '}
-              to select which to compare.
-            </p>
-          )
-        })()}
+      {systemDetails.kind === 'ready' && systemDetails.systems.length >= 1 && (
+        <CompareOrgsSystemsPanel key={ids.join(',')} systems={systemDetails.systems} />
+      )}
     </div>
   )
 }

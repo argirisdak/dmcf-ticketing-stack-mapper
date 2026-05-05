@@ -52,41 +52,49 @@ model Organisation {
   source_reference            String?
   notes                       String?
   capacity                    Int?
+  field_sources               Json?
   last_updated                DateTime        @default(now()) @updatedAt
   created_at                  DateTime        @default(now())
 
-  organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
-  systems            OrganisationSystem[]
+  organisation_type OrganisationType     @relation(fields: [organisation_type_id], references: [id])
+  systems           OrganisationSystem[]
 
+  @@unique([name, city, country], map: "organisation_name_city_country_key")
   @@map("organisation")
 }
 
 model OrganisationType {
-  id            String @id @default(uuid())
-  name          String @unique
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  id            String         @id @default(uuid())
+  name          String         @unique
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
   organisations Organisation[]
 
   @@map("organisation_type")
 }
 
 model System {
-  id                          String             @id @default(uuid())
-  name                        String             @unique
-  vendor                      String
-  category                    SystemCategory
-  deployment_model            DeploymentModel?
-  pricing_model               PricingModel?
-  geographic_focus            String?
-  description                 String?
-  membership_capability       CapabilityState    @default(UNKNOWN)
-  donation_capability         CapabilityState    @default(UNKNOWN)
-  reserved_seating_capability CapabilityState    @default(UNKNOWN)
-  source_reference            String?
-  custom_attributes           Json?
-  last_updated                DateTime           @default(now()) @updatedAt
-  created_at                  DateTime           @default(now())
+  id                                String           @id @default(uuid())
+  name                              String           @unique
+  vendor                            String
+  category                          SystemCategory
+  deployment_model                  DeploymentModel?
+  pricing_model                     PricingModel?
+  geographic_focus                  String?
+  description                       String?
+  membership_capability             CapabilityState  @default(UNKNOWN)
+  donation_capability               CapabilityState  @default(UNKNOWN)
+  reserved_seating_capability       CapabilityState  @default(UNKNOWN)
+  season_subscriptions_capability   CapabilityState  @default(UNKNOWN)
+  dynamic_pricing_capability        CapabilityState  @default(UNKNOWN)
+  multi_venue_support_capability    CapabilityState  @default(UNKNOWN)
+  marketing_automation_capability   CapabilityState  @default(UNKNOWN)
+  accessibility_features_capability CapabilityState  @default(UNKNOWN)
+  source_reference                  String?
+  custom_attributes                 Json?
+  field_sources                     Json?
+  last_updated                      DateTime         @default(now()) @updatedAt
+  created_at                        DateTime         @default(now())
 
   organisation_systems OrganisationSystem[]
 

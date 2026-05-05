@@ -38,6 +38,8 @@ function assertListResponse(body) {
  *   membership?: string
  *   donation?: string
  *   seating?: string
+ *   sort?: string
+ *   order?: string
  * }} params
  * @returns {Promise<{ data: unknown[]; error: null; meta: { page: number; limit: number; total: number; totalPages: number } }>}
  */
@@ -53,6 +55,8 @@ export async function fetchOrganisations(params = {}) {
     membership,
     donation,
     seating,
+    sort,
+    order,
   } = params
   const qs = new URLSearchParams({ page: String(page), limit: String(limit) })
   const trimmed = typeof q === 'string' ? q.trim() : ''
@@ -64,6 +68,8 @@ export async function fetchOrganisations(params = {}) {
   if (membership) qs.set('membership', membership)
   if (donation) qs.set('donation', donation)
   if (seating) qs.set('seating', seating)
+  if (sort) qs.set('sort', sort)
+  if (order) qs.set('order', order)
   const res = await fetch(`${base}/api/organisations?${qs}`)
   const body = await res.json()
   if (!res.ok) {
@@ -83,7 +89,7 @@ export async function createOrganisation(body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  const envelope = await res.json()
+  const envelope = await res.json().catch(() => ({}))
   if (res.status === 201) {
     if (envelope == null || typeof envelope !== 'object') {
       throw new Error('Invalid response from organisations API')
@@ -102,6 +108,12 @@ export async function createOrganisation(body) {
   if (res.status === 400) {
     const err = new Error(envelope?.error?.message ?? 'Validation failed')
     err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
+    throw err
+  }
+  if (res.status === 409) {
+    const err = new Error(envelope?.error?.message ?? 'Conflict')
+    err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
+    err.statusCode = 409
     throw err
   }
   throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
@@ -149,12 +161,53 @@ export async function updateOrganisation(id, body) {
     err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
     throw err
   }
+  if (res.status === 409) {
+    const err = new Error(envelope?.error?.message ?? 'Conflict')
+    err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
+    err.statusCode = 409
+    throw err
+  }
   if (res.status === 404) {
     throw new OrganisationNotFoundError(
       typeof envelope?.error?.message === 'string' ? envelope.error.message : undefined,
     )
   }
   throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
+}
+
+/**
+ * Similar-name lookup for organisation create/edit guardrails.
+ * @param {string} name
+ * @param {string} [excludeId] UUID of current org when editing (optional)
+ * @returns {Promise<{ data: { id: string; name: string; city: string | null; country: string }[]; error: null; meta: null }>}
+ */
+export async function checkSimilarOrganisations(name, excludeId) {
+  const trimmed = String(name ?? '').trim()
+  const qs = new URLSearchParams({ name: trimmed })
+  if (excludeId) qs.set('excludeId', String(excludeId).trim())
+  const res = await fetch(`${base}/api/organisations/check-similar?${qs}`)
+  const envelope = await res.json().catch(() => ({}))
+  if (res.status === 400) {
+    const err = new Error(envelope?.error?.message ?? 'Validation failed')
+    err.fields = Array.isArray(envelope?.error?.fields) ? envelope.error.fields : []
+    throw err
+  }
+  if (!res.ok) {
+    throw new Error(envelope?.error?.message ?? `Request failed (${res.status})`)
+  }
+  if (envelope == null || typeof envelope !== 'object') {
+    throw new Error('Invalid response from organisations API')
+  }
+  if (!Array.isArray(envelope.data)) {
+    throw new Error('Invalid response from organisations API: data must be an array')
+  }
+  if (envelope.error !== null && envelope.error !== undefined) {
+    throw new Error('Invalid response from organisations API: error must be null on success')
+  }
+  if (envelope.meta !== null && envelope.meta !== undefined) {
+    throw new Error('Invalid response from organisations API: meta must be null')
+  }
+  return envelope
 }
 
 /**

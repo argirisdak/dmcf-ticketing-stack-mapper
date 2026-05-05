@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { SystemNotFoundError } from '../api/systems.js'
@@ -7,13 +7,17 @@ import { CompareColumnShell } from './CompareColumnShell.jsx'
 import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
 import { Button } from './ui/button.jsx'
 import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
+import { pickFieldSourceUrl, systemCompareRowFieldSourceKey } from '../lib/field-source-keys.js'
 import {
+  SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW,
   SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT,
   buildSystemCompareRowLabels,
   findCustomAttributeByLabel,
   systemCompareSectionDividerRowIndexes,
 } from '../lib/system-compare-union-labels.js'
+import FieldSourceIcon from './FieldSourceIcon.jsx'
 import { cn } from '../lib/utils.js'
+import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
 
 const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
 
@@ -338,8 +342,36 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
   const adoptionCount = orgs.length
 
   const attrs = Array.isArray(sys.customAttributes) ? sys.customAttributes : []
+  const capabilityBlockStartRow = SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW
+  const descriptionRowIndex = capabilityBlockStartRow + CAPABILITY_ROWS.length
+  const sourceReferenceRowIndex = descriptionRowIndex + 1
+  const lastUpdatedRowIndex = descriptionRowIndex + 2
   const unionStartRow = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT + 2
   const L = unionCustomAttributeLabels.length
+  const fieldSources = sys.fieldSources
+
+  /**
+   * @param {number} rowIndex
+   * @param {string} fieldLabel
+   * @param {import('react').ReactNode} node
+   */
+  const cellWithFieldSource = (rowIndex, fieldLabel, node) => {
+    const k = systemCompareRowFieldSourceKey(rowIndex, L)
+    const showIcon = compareGridColumn != null && k
+    return (
+      <div className={bodyRowClass(rowIndex)}>
+        <span className="inline-flex min-w-0 items-center gap-1">
+          {node}
+          {showIcon ? (
+            <>
+              {/* Per-field source only; compare grid only — matches OrganisationCard compare variant (Story 11.3). */}
+              <FieldSourceIcon url={pickFieldSourceUrl(fieldSources, k)} fieldLabel={fieldLabel} />
+            </>
+          ) : null}
+        </span>
+      </div>
+    )
+  }
 
   const inner = (
     <>
@@ -379,31 +411,27 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
         </div>
       </div>
 
-      <div className={bodyRowClass(0)}>{scalarCompareCell(sys.name)}</div>
-      <div className={bodyRowClass(1)}>{scalarCompareCell(sys.vendor)}</div>
-      <div className={bodyRowClass(2)}>
-        <SystemCategoryBadge category={sys.category} />
-      </div>
-      <div className={bodyRowClass(3)}>{scalarCompareCell(sys.deploymentModel)}</div>
-      <div className={bodyRowClass(4)}>{scalarCompareCell(sys.pricingModel)}</div>
-      <div className={bodyRowClass(5)}>{scalarCompareCell(sys.geographicFocus)}</div>
-      <div className={bodyRowClass(6)}>
-        <CapabilityBadge variant="labelled" value={sys.membershipCapability} />
-      </div>
-      <div className={bodyRowClass(7)}>
-        <CapabilityBadge variant="labelled" value={sys.donationCapability} />
-      </div>
-      <div className={bodyRowClass(8)}>
-        <CapabilityBadge variant="labelled" value={sys.reservedSeatingCapability} />
-      </div>
-      <div className={bodyRowClass(9)}>
-        <DescriptionCompareCell text={sys.description} />
-      </div>
+      {cellWithFieldSource(0, 'Name', scalarCompareCell(sys.name))}
+      {cellWithFieldSource(1, 'Vendor', scalarCompareCell(sys.vendor))}
+      {cellWithFieldSource(2, 'Category', <SystemCategoryBadge category={sys.category} />)}
+      {cellWithFieldSource(3, 'Deployment model', scalarCompareCell(sys.deploymentModel))}
+      {cellWithFieldSource(4, 'Pricing model', scalarCompareCell(sys.pricingModel))}
+      {cellWithFieldSource(5, 'Geographic focus', scalarCompareCell(sys.geographicFocus))}
+      {CAPABILITY_ROWS.map(({ key: capKey, label }, i) => (
+        <Fragment key={capKey}>
+          {cellWithFieldSource(
+            capabilityBlockStartRow + i,
+            label,
+            <CapabilityBadge variant="labelled" value={sys[capKey]} />,
+          )}
+        </Fragment>
+      ))}
+      {cellWithFieldSource(descriptionRowIndex, 'Description', <DescriptionCompareCell text={sys.description} />)}
 
-      <div className={bodyRowClass(10)}>
+      <div className={bodyRowClass(sourceReferenceRowIndex)}>
         <SourceReferenceDisplay value={sys.sourceReference} emptyLabel="None recorded" />
       </div>
-      <div className={bodyRowClass(11)}>
+      <div className={bodyRowClass(lastUpdatedRowIndex)}>
         <span className="text-xs text-slate-500">{formatLastUpdated(sys.lastUpdated)}</span>
       </div>
 

@@ -1,9 +1,9 @@
-# generated: 2026-04-30T23:00:00Z
-# last_updated: 2026-04-30T23:45:00Z
-# project: dmcf-app
+# generated: 2026-05-03T10:01:12Z
+# last_updated: 2026-05-04T23:59:01Z
+# project: dmcf-ticketing-stack-mapper
 # project_key: NOKEY
 # tracking_system: file-system
-# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
+# story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
 
 # STATUS DEFINITIONS:
 # ==================
@@ -34,22 +34,22 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-04-30T23:00:00Z
-last_updated: 2026-05-02T22:25:00Z
-project: dmcf-app
+generated: 2026-05-03T10:01:12Z
+last_updated: 2026-05-04T23:59:01Z
+project: dmcf-ticketing-stack-mapper
 project_key: NOKEY
 tracking_system: file-system
-story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
+story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
 
 development_status:
-  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
+  # ─── Epic 1: Project Foundation — Runnable Local Stack ───
   epic-1: done
   1-1-backend-scaffold-data-model-and-reference-data-seed: done
   1-2-frontend-scaffold-and-application-shell: done
   1-3-readme-and-project-documentation: done
   epic-1-retrospective: done
 
-  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
+  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ───
   epic-2: done
   2-1-organisation-list-page: done
   2-2-create-organisation: done
@@ -58,33 +58,33 @@ development_status:
   2-5-delete-organisation: done
   epic-2-retrospective: done
 
-  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
+  # ─── Epic 3: Discovery & Filtering ───
   epic-3: done
   3-1-text-search: done
   3-2-filter-bar-and-active-filter-chips: done
   3-3-multi-filter-api-integration-and-url-state: done
   epic-3-retrospective: done
 
-  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
+  # ─── Epic 4: Side-by-Side Comparison ───
   epic-4: done
   4-1-compare-selection-bar: done
   4-2-compare-page: done
   epic-4-retrospective: done
 
-  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
+  # ─── Epic 5: Seed Data & Demo Readiness ───
   epic-5: done
   5-1-sample-organisation-seed-data: done
   5-2-readme-completion-and-demo-smoke-test: done
   epic-5-retrospective: done
 
-  # ─── Epic 6: Foundational Schema Migration to Systems Model ────────────────────
+  # ─── Epic 6: Foundational Schema Migration to Systems Model ───
   epic-6: done
   6-1-migration-a-add-system-and-organisationsystem-schema-additive: done
   6-2-migration-b-backfill-systems-and-organisation-links-custom-sql: done
   6-3-updatedat-on-system-organisationsystem-and-seed-reshape: done
   epic-6-retrospective: done
 
-  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ─────────────────────
+  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ───
   epic-7: done
   7-1-system-rest-api-list-detail-search-filters: done
   7-2-system-rest-api-create-update-delete: done
@@ -94,7 +94,7 @@ development_status:
   7-6-system-create-edit-form: done
   epic-7-retrospective: done
 
-  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
+  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───
   epic-8: done
   8-1-organisation-system-link-api-junction-crud: done
   8-2-organisation-api-filter-and-response-re-shape: done
@@ -104,16 +104,53 @@ development_status:
   8-6-organisationcard-system-chips-and-compare-view-updates: done
   epic-8-retrospective: done
 
-  # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
+  # ─── Epic 9: System-to-System Compare ───
   epic-9: done
   9-1-compare-route-shell-compare-systems-and-compare-organisations: done
   9-2-systemcard-component-compare-column: done
   9-3-compare-union-panel-and-contextual-compare-entry-points: done
   epic-9-retrospective: done
 
-  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
-  epic-10: in-progress
+  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ───
+  epic-10: done
   10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
-  10-3-readme-and-docs-decisions-md-v2-updates: backlog
-  epic-10-retrospective: optional
+  10-3-readme-and-docs-decisions-md-v2-updates: done
+  epic-10-retrospective: done
+
+  # ─── Epic 11: Source per Data Point ───
+  epic-11: done
+  11-1-migration-a-add-field-sources-column: done
+  11-2-api-contract-accept-and-return-field-sources: done
+  11-3-detail-and-compare-field-source-icon-rendering: done
+  11-4-forms-field-with-source-wrapper: done
+  11-5-seed-data-research-populate-field-sources: done
+  epic-11-retrospective: done
+
+  # ─── Epic 12: System Capability Expansion ───
+  epic-12: done
+  12-1-migration-b-add-system-capability-columns: done
+  12-2-api-accept-and-filter-five-new-capabilities: done
+  12-3-form-detail-compare-render-five-new-capabilities: done
+  12-4-system-list-filter-sidebar-collapsible-more-capabilities: done
+  12-5-seed-populate-five-new-capabilities-and-field-sources: done
+  epic-12-retrospective: done
+
+  # ─── Epic 13: Custom Attribute Editor ───
+  epic-13: done
+  13-1-api-accept-custom-attributes-on-system-create-and-update: done
+  13-2-system-form-custom-attribute-editor-component: done
+  epic-13-retrospective: done
+
+  # ─── Epic 14: List Sorting ───
+  epic-14: done
+  14-1-api-sort-and-order-on-list-endpoints: done
+  14-2-list-pages-sort-dropdown-and-url-persistence: done
+  epic-14-retrospective: done
+
+  # ─── Epic 15: Organisation Duplicate Guard ───
+  epic-15: done
+  15-1-migration-c-organisation-composite-unique: done
+  15-2-new-endpoint-check-similar-organisations: done
+  15-3-organisation-form-similar-organisations-warning: done
+  epic-15-retrospective: done

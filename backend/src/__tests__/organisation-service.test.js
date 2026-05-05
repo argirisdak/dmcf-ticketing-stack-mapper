@@ -5,6 +5,7 @@ jest.mock('../lib/prisma', () => ({
     count: jest.fn(),
     update: jest.fn(),
   },
+  $queryRaw: jest.fn(),
 }));
 
 const prisma = require('../lib/prisma');
@@ -13,6 +14,9 @@ const {
   getOrganisationById,
   updateOrganisation,
   listOrganisations,
+  buildOrganisationListOrderBy,
+  findSimilarOrganisations,
+  escapeIlikePattern,
 } = require('../services/organisation-service');
 
 /** Mirrors `organisationInclude` in organisation-service (AC5/AC6 link ordering). */
@@ -40,6 +44,7 @@ describe('toOrganisationListDto', () => {
       source_reference: 'REF-1',
       notes: null,
       capacity: 2000,
+      field_sources: null,
       last_updated: new Date('2026-03-01T12:00:00.000Z'),
       created_at: new Date('2025-06-01T08:00:00.000Z'),
       organisation_type: { id: 't1', name: 'Venue' },
@@ -53,6 +58,7 @@ describe('toOrganisationListDto', () => {
     expect(dto.createdAt).toBe('2025-06-01T08:00:00.000Z');
     expect(dto.updatedAt).toBe('2026-03-01T12:00:00.000Z');
     expect(dto.membershipCapability).toBe('YES');
+    expect(dto.fieldSources).toBeNull();
     expect(dto.systems).toEqual([]);
     expect(dto).not.toHaveProperty('ticketingProvider');
     expect(dto).not.toHaveProperty('crmPlatform');
@@ -123,6 +129,22 @@ describe('toOrganisationListDto', () => {
   });
 });
 
+describe('buildOrganisationListOrderBy', () => {
+  it.each([
+    ['name', 'asc', { name: 'asc' }],
+    ['country', 'desc', { country: 'desc' }],
+    ['lastUpdated', 'asc', { last_updated: 'asc' }],
+    ['capacity', 'desc', { capacity: 'desc' }],
+    ['organisationType', 'asc', { organisation_type: { name: 'asc' } }],
+  ])('maps %s + %s', (sortKey, order, expected) => {
+    expect(buildOrganisationListOrderBy(sortKey, order)).toEqual(expected);
+  });
+
+  it('falls back to name asc for unknown key', () => {
+    expect(buildOrganisationListOrderBy('unknown', 'desc')).toEqual({ name: 'asc' });
+  });
+});
+
 describe('listOrganisations', () => {
   beforeEach(() => {
     prisma.organisation.findMany.mockReset();
@@ -148,6 +170,54 @@ describe('listOrganisations', () => {
       }),
     );
     expect(prisma.organisation.count).toHaveBeenCalledWith({ where: {} });
+  });
+
+  it('applies orderBy from sort and order params', async () => {
+    prisma.organisation.findMany.mockResolvedValue([]);
+    prisma.organisation.count.mockResolvedValue(0);
+
+    await listOrganisations({ page: 1, limit: 20, sort: 'organisationType', order: 'desc' });
+
+    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orderBy: { organisation_type: { name: 'desc' } },
+      }),
+    );
+  });
+
+  it('composes q, country filter, and sort (AC6-style)', async () => {
+    prisma.organisation.findMany.mockResolvedValue([]);
+    prisma.organisation.count.mockResolvedValue(0);
+
+    await listOrganisations({
+      page: 1,
+      limit: 20,
+      q: 'opera',
+      country: 'United Kingdom',
+      sort: 'lastUpdated',
+      order: 'desc',
+    });
+
+    const expectedWhere = {
+      AND: [
+        {
+          OR: [
+            { name: { contains: 'opera', mode: 'insensitive' } },
+            { city: { contains: 'opera', mode: 'insensitive' } },
+            { notes: { contains: 'opera', mode: 'insensitive' } },
+          ],
+        },
+        { country: 'United Kingdom' },
+      ],
+    };
+
+    expect(prisma.organisation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+        orderBy: { last_updated: 'desc' },
+      }),
+    );
+    expect(prisma.organisation.count).toHaveBeenCalledWith({ where: expectedWhere });
   });
 
   it('applies OR filter across name, city, and notes only (ticketing provider removed)', async () => {
@@ -392,5 +462,33 @@ describe('updateOrganisation', () => {
     const dataArg = prisma.organisation.update.mock.calls[0][0].data;
     expect(dataArg).not.toHaveProperty('ticketing_provider_id');
     expect(dataArg).not.toHaveProperty('crm_platform_id');
+  });
+});
+
+describe('escapeIlikePattern', () => {
+  it('escapes backslash, percent, and underscore for ILIKE ESCAPE', () => {
+    expect(escapeIlikePattern('a%b_c')).toBe('a\\%b\\_c');
+    expect(escapeIlikePattern('x\\y')).toBe('x\\\\y');
+  });
+});
+
+describe('findSimilarOrganisations', () => {
+  beforeEach(() => {
+    prisma.$queryRaw.mockReset();
+  });
+
+  it('maps raw rows to minimal camelCase DTOs', async () => {
+    prisma.$queryRaw.mockResolvedValue([
+      { id: 'a', name: 'Royal Opera House', city: 'London', country: 'United Kingdom' },
+    ]);
+    const out = await findSimilarOrganisations('Royal Opera', null);
+    expect(out).toEqual([{ id: 'a', name: 'Royal Opera House', city: 'London', country: 'United Kingdom' }]);
+    expect(prisma.$queryRaw).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns empty array when query returns no rows', async () => {
+    prisma.$queryRaw.mockResolvedValue([]);
+    const out = await findSimilarOrganisations('zzzznonexistent', null);
+    expect(out).toEqual([]);
   });
 });

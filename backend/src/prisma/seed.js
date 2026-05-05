@@ -36,6 +36,7 @@ function buildOrganisationScalars(org, typeByName) {
     source_reference: org.source_reference ?? null,
     notes: org.notes ?? null,
     capacity: org.capacity ?? null,
+    field_sources: org.fieldSources ?? null,
     created_at: new Date(org.created_at),
     last_updated: new Date(org.last_updated),
   };
@@ -68,8 +69,14 @@ async function seedSystems() {
         membership_capability: def.membership_capability,
         donation_capability: def.donation_capability,
         reserved_seating_capability: def.reserved_seating_capability,
+        season_subscriptions_capability: def.season_subscriptions_capability,
+        dynamic_pricing_capability: def.dynamic_pricing_capability,
+        multi_venue_support_capability: def.multi_venue_support_capability,
+        marketing_automation_capability: def.marketing_automation_capability,
+        accessibility_features_capability: def.accessibility_features_capability,
         source_reference: def.source_reference,
         custom_attributes: def.custom_attributes,
+        field_sources: def.fieldSources ?? null,
       },
       create: {
         name: def.name,
@@ -82,8 +89,14 @@ async function seedSystems() {
         membership_capability: def.membership_capability,
         donation_capability: def.donation_capability,
         reserved_seating_capability: def.reserved_seating_capability,
+        season_subscriptions_capability: def.season_subscriptions_capability,
+        dynamic_pricing_capability: def.dynamic_pricing_capability,
+        multi_venue_support_capability: def.multi_venue_support_capability,
+        marketing_automation_capability: def.marketing_automation_capability,
+        accessibility_features_capability: def.accessibility_features_capability,
         source_reference: def.source_reference,
         custom_attributes: def.custom_attributes,
+        field_sources: def.fieldSources ?? null,
       },
     });
   }

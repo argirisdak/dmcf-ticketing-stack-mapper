@@ -1,20 +1,27 @@
 import { buildUnionCustomAttributeLabels } from './system-compare-custom-attributes.js'
+import { CAPABILITY_ROWS } from './system-capabilities.js'
 
-/** Static compare row labels before custom-attribute union rows (Epic 9.3 order). */
-export const SYSTEM_COMPARE_ROW_LABEL_PREFIX = [
+const SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX = [
   'Name',
   'Vendor',
   'Category',
   'Deployment model',
   'Pricing model',
   'Geographic focus',
-  'Membership capability',
-  'Donation capability',
-  'Reserved seating capability',
+]
+
+/** 0-based row index where capability rows begin (after identity rows). Keeps compare math in one place. */
+export const SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW =
+  SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX.length
+
+/** Static compare row labels before custom-attribute union rows (Epic 9.3 + Story 12.3 capabilities). */
+export const SYSTEM_COMPARE_ROW_LABEL_PREFIX = [
+  ...SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX,
+  ...CAPABILITY_ROWS.map((r) => r.label),
   'Description',
 ]
 
-const PROVENANCE_ROW_LABELS = ['Source reference', 'Last updated']
+const PROVENANCE_ROW_LABELS = ['General source', 'Last updated']
 
 const ADOPTED_BY_LABEL = 'Adopted by'
 
@@ -31,7 +38,9 @@ export function systemCompareSectionDividerRowIndexes(unionLabelCount) {
   const provenanceStart = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT
   const unionStart = provenanceStart + PROVENANCE_ROW_LABELS.length
   const adoptedStart = unionStart + L
-  const set = new Set([6, 9])
+  const descriptionRowIndex =
+    SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW + CAPABILITY_ROWS.length
+  const set = new Set([SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW, descriptionRowIndex])
   set.add(provenanceStart)
   if (L > 0) set.add(unionStart)
   set.add(adoptedStart)

@@ -15,7 +15,15 @@ jest.mock('../lib/prisma', () => ({
 
 const prisma = require('../lib/prisma');
 const { toSystemDto, toSystemDetailDto } = require('../services/system-list-dto');
-const { buildSystemListWhere, listSystems, getSystemById, createSystem, updateSystem, deleteSystem } = require('../services/system-service');
+const {
+  buildSystemListWhere,
+  buildSystemListOrderBy,
+  listSystems,
+  getSystemById,
+  createSystem,
+  updateSystem,
+  deleteSystem,
+} = require('../services/system-service');
 
 // ─── DTO Tests ────────────────────────────────────────────────────────────────
 
@@ -32,7 +40,13 @@ describe('toSystemDto', () => {
     membership_capability: 'YES',
     donation_capability: 'NO',
     reserved_seating_capability: 'UNKNOWN',
+    season_subscriptions_capability: 'NO',
+    dynamic_pricing_capability: 'YES',
+    multi_venue_support_capability: 'UNKNOWN',
+    marketing_automation_capability: 'NO',
+    accessibility_features_capability: 'YES',
     source_reference: 'https://spektrix.com',
+    field_sources: null,
     custom_attributes: [{ label: 'Size', value: 'Mid', source_reference: null }],
     last_updated: new Date('2026-04-01T00:00:00.000Z'),
     created_at: new Date('2026-01-01T00:00:00.000Z'),
@@ -51,7 +65,13 @@ describe('toSystemDto', () => {
     expect(dto.membershipCapability).toBe('YES');
     expect(dto.donationCapability).toBe('NO');
     expect(dto.reservedSeatingCapability).toBe('UNKNOWN');
+    expect(dto.seasonSubscriptionsCapability).toBe('NO');
+    expect(dto.dynamicPricingCapability).toBe('YES');
+    expect(dto.multiVenueSupportCapability).toBe('UNKNOWN');
+    expect(dto.marketingAutomationCapability).toBe('NO');
+    expect(dto.accessibilityFeaturesCapability).toBe('YES');
     expect(dto.sourceReference).toBe('https://spektrix.com');
+    expect(dto.fieldSources).toBeNull();
     expect(dto.customAttributes).toEqual([{ label: 'Size', value: 'Mid', source_reference: null }]);
     expect(dto.lastUpdated).toBe('2026-04-01T00:00:00.000Z');
     expect(dto.createdAt).toBe('2026-01-01T00:00:00.000Z');
@@ -63,20 +83,36 @@ describe('toSystemDto', () => {
     expect(dto).not.toHaveProperty('pricing_model');
     expect(dto).not.toHaveProperty('geographic_focus');
     expect(dto).not.toHaveProperty('membership_capability');
+    expect(dto).not.toHaveProperty('season_subscriptions_capability');
+    expect(dto).not.toHaveProperty('dynamic_pricing_capability');
+    expect(dto).not.toHaveProperty('multi_venue_support_capability');
+    expect(dto).not.toHaveProperty('marketing_automation_capability');
+    expect(dto).not.toHaveProperty('accessibility_features_capability');
     expect(dto).not.toHaveProperty('source_reference');
+    expect(dto).not.toHaveProperty('field_sources');
     expect(dto).not.toHaveProperty('custom_attributes');
     expect(dto).not.toHaveProperty('last_updated');
     expect(dto).not.toHaveProperty('created_at');
   });
 
   it('nulls nullable fields when absent', () => {
-    const row = { ...baseRow, deployment_model: null, pricing_model: null, geographic_focus: null, description: null, source_reference: null, custom_attributes: null };
+    const row = {
+      ...baseRow,
+      deployment_model: null,
+      pricing_model: null,
+      geographic_focus: null,
+      description: null,
+      source_reference: null,
+      field_sources: null,
+      custom_attributes: null,
+    };
     const dto = toSystemDto(row);
     expect(dto.deploymentModel).toBeNull();
     expect(dto.pricingModel).toBeNull();
     expect(dto.geographicFocus).toBeNull();
     expect(dto.description).toBeNull();
     expect(dto.sourceReference).toBeNull();
+    expect(dto.fieldSources).toBeNull();
     expect(dto.customAttributes).toBeNull();
   });
 
@@ -99,7 +135,13 @@ describe('toSystemDetailDto', () => {
     membership_capability: 'YES',
     donation_capability: 'YES',
     reserved_seating_capability: 'YES',
+    season_subscriptions_capability: 'UNKNOWN',
+    dynamic_pricing_capability: 'UNKNOWN',
+    multi_venue_support_capability: 'UNKNOWN',
+    marketing_automation_capability: 'UNKNOWN',
+    accessibility_features_capability: 'UNKNOWN',
     source_reference: null,
+    field_sources: null,
     custom_attributes: null,
     last_updated: new Date('2026-04-01T00:00:00.000Z'),
     created_at: new Date('2026-01-01T00:00:00.000Z'),
@@ -231,6 +273,36 @@ describe('buildSystemListWhere', () => {
     ]));
   });
 
+  it('builds extended v3 capability clauses', () => {
+    const where = buildSystemListWhere({
+      seasonSubscriptionsCapability: 'YES',
+      dynamicPricingCapability: 'NO',
+      multiVenueSupportCapability: 'UNKNOWN',
+      marketingAutomationCapability: 'YES',
+      accessibilityFeaturesCapability: 'NO',
+    });
+    expect(where.AND).toEqual(expect.arrayContaining([
+      { season_subscriptions_capability: 'YES' },
+      { dynamic_pricing_capability: 'NO' },
+      { multi_venue_support_capability: 'UNKNOWN' },
+      { marketing_automation_capability: 'YES' },
+      { accessibility_features_capability: 'NO' },
+    ]));
+  });
+
+  it('combines legacy and extended capability filters with AND', () => {
+    const where = buildSystemListWhere({
+      membership: 'YES',
+      seasonSubscriptionsCapability: 'YES',
+      dynamicPricingCapability: 'NO',
+    });
+    expect(where.AND).toEqual(expect.arrayContaining([
+      { membership_capability: 'YES' },
+      { season_subscriptions_capability: 'YES' },
+      { dynamic_pricing_capability: 'NO' },
+    ]));
+  });
+
   it('combines multiple filters with AND', () => {
     const where = buildSystemListWhere({
       categories: ['INTEGRATED'],
@@ -244,6 +316,22 @@ describe('buildSystemListWhere', () => {
     const where = buildSystemListWhere({ deploymentModel: 'HYBRID' });
     expect(where).toEqual({ deployment_model: 'HYBRID' });
     expect(where.AND).toBeUndefined();
+  });
+});
+
+describe('buildSystemListOrderBy', () => {
+  it.each([
+    ['name', 'asc', { name: 'asc' }],
+    ['vendor', 'desc', { vendor: 'desc' }],
+    ['category', 'asc', { category: 'asc' }],
+    ['lastUpdated', 'desc', { last_updated: 'desc' }],
+    ['geographicFocus', 'asc', { geographic_focus: 'asc' }],
+  ])('maps %s + %s', (sortKey, order, expected) => {
+    expect(buildSystemListOrderBy(sortKey, order)).toEqual(expected);
+  });
+
+  it('falls back to name asc for unknown key', () => {
+    expect(buildSystemListOrderBy('nope', 'desc')).toEqual({ name: 'asc' });
   });
 });
 
@@ -262,7 +350,7 @@ describe('listSystems', () => {
     await listSystems({ page: 2, limit: 10 });
 
     expect(prisma.system.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({ skip: 10, take: 10 })
+      expect.objectContaining({ skip: 10, take: 10, orderBy: { name: 'asc' } }),
     );
     expect(prisma.system.count).toHaveBeenCalled();
   });
@@ -302,6 +390,52 @@ describe('listSystems', () => {
     const callArg = prisma.system.findMany.mock.calls[0][0];
     expect(callArg.include).toBeUndefined();
   });
+
+  it('applies orderBy from sort and order params', async () => {
+    prisma.system.findMany.mockResolvedValue([]);
+    prisma.system.count.mockResolvedValue(0);
+
+    await listSystems({ page: 1, limit: 20, sort: 'vendor', order: 'desc' });
+
+    expect(prisma.system.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ orderBy: { vendor: 'desc' } }),
+    );
+  });
+
+  it('composes search q, category filter, and sort', async () => {
+    prisma.system.findMany.mockResolvedValue([]);
+    prisma.system.count.mockResolvedValue(0);
+
+    await listSystems({
+      page: 1,
+      limit: 20,
+      q: 'spek',
+      categories: ['INTEGRATED'],
+      sort: 'lastUpdated',
+      order: 'asc',
+    });
+
+    const expectedWhere = {
+      AND: [
+        {
+          OR: [
+            { name: { contains: 'spek', mode: 'insensitive' } },
+            { vendor: { contains: 'spek', mode: 'insensitive' } },
+            { description: { contains: 'spek', mode: 'insensitive' } },
+          ],
+        },
+        { category: { in: ['INTEGRATED'] } },
+      ],
+    };
+
+    expect(prisma.system.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expectedWhere,
+        orderBy: { last_updated: 'asc' },
+      }),
+    );
+    expect(prisma.system.count).toHaveBeenCalledWith({ where: expectedWhere });
+  });
 });
 
 // ─── getSystemById Service Tests ──────────────────────────────────────────────
@@ -331,7 +465,9 @@ describe('getSystemById', () => {
       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
       deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
-      source_reference: null, custom_attributes: null,
+      source_reference: null,
+      field_sources: null,
+      custom_attributes: null,
       last_updated: new Date('2026-04-01T00:00:00.000Z'),
       created_at: new Date('2026-01-01T00:00:00.000Z'),
       organisation_systems: [],
@@ -359,7 +495,13 @@ const BASE_ROW = {
   membership_capability: 'UNKNOWN',
   donation_capability: 'UNKNOWN',
   reserved_seating_capability: 'UNKNOWN',
+  season_subscriptions_capability: 'UNKNOWN',
+  dynamic_pricing_capability: 'UNKNOWN',
+  multi_venue_support_capability: 'UNKNOWN',
+  marketing_automation_capability: 'UNKNOWN',
+  accessibility_features_capability: 'UNKNOWN',
   source_reference: null,
+  field_sources: null,
   custom_attributes: null,
   last_updated: new Date('2026-04-01T00:00:00.000Z'),
   created_at: new Date('2026-04-01T00:00:00.000Z'),
@@ -389,6 +531,24 @@ describe('createSystem', () => {
     expect(callData.membership_capability).toBe('YES');
   });
 
+  it('maps extended capability fields to snake_case on create', async () => {
+    prisma.system.create.mockResolvedValue(BASE_ROW);
+
+    await createSystem({
+      name: 'Spektrix',
+      vendor: 'Spektrix Ltd',
+      category: 'INTEGRATED',
+      seasonSubscriptionsCapability: 'YES',
+      dynamicPricingCapability: 'NO',
+      marketingAutomationCapability: 'UNKNOWN',
+    });
+
+    const callData = prisma.system.create.mock.calls[0][0].data;
+    expect(callData.season_subscriptions_capability).toBe('YES');
+    expect(callData.dynamic_pricing_capability).toBe('NO');
+    expect(callData.marketing_automation_capability).toBe('UNKNOWN');
+  });
+
   it('returns toSystemDto-shaped result (camelCase, no organisation_systems)', async () => {
     prisma.system.create.mockResolvedValue(BASE_ROW);
 
@@ -408,6 +568,20 @@ describe('createSystem', () => {
     const callData = prisma.system.create.mock.calls[0][0].data;
     expect(callData).not.toHaveProperty('id');
     expect(callData).not.toHaveProperty('custom_attributes');
+  });
+
+  it('maps fieldSources to field_sources on create', async () => {
+    prisma.system.create.mockResolvedValue(BASE_ROW);
+
+    await createSystem({
+      name: 'Spektrix',
+      vendor: 'Spektrix Ltd',
+      category: 'INTEGRATED',
+      fieldSources: { vendor: 'https://docs.example.com' },
+    });
+
+    const callData = prisma.system.create.mock.calls[0][0].data;
+    expect(callData.field_sources).toEqual({ vendor: 'https://docs.example.com' });
   });
 
   it('propagates unexpected Prisma errors (e.g. P2002)', async () => {
@@ -496,6 +670,28 @@ describe('updateSystem', () => {
     expect(callData.deployment_model).toBe('SAAS');
     expect(callData.pricing_model).toBe('SUBSCRIPTION');
     expect(callData.membership_capability).toBe('YES');
+  });
+
+  it('maps extended capability fields on partial update', async () => {
+    prisma.system.update.mockResolvedValue(BASE_ROW);
+
+    await updateSystem('sys-id', {
+      accessibilityFeaturesCapability: 'YES',
+      multiVenueSupportCapability: 'NO',
+    });
+
+    const callData = prisma.system.update.mock.calls[0][0].data;
+    expect(callData.accessibility_features_capability).toBe('YES');
+    expect(callData.multi_venue_support_capability).toBe('NO');
+  });
+
+  it('maps fieldSources to field_sources on update', async () => {
+    prisma.system.update.mockResolvedValue(BASE_ROW);
+
+    await updateSystem('sys-id', { fieldSources: {} });
+
+    const callData = prisma.system.update.mock.calls[0][0].data;
+    expect(callData.field_sources).toEqual({});
   });
 });
 

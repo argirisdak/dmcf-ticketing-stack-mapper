@@ -1,5 +1,101 @@
 # Deferred work
 
+## Deferred from: code review of 15-1-migration-c-organisation-composite-unique.md (2026-05-04)
+
+- **`isOrganisationNameCityCountryUniqueViolation` substring match** — `includes('name_city_country')` on Prisma `meta.target`; rare false positive if a future constraint name embeds that substring. Tighten to `name_city_country_key` / explicit column triple when editing this helper.
+
+- **409 envelope vs persisted tuple** — Conflict message is derived from parsed request body; edge case if normalization differs from what Prisma persisted.
+
+- **Integration suite without `DATABASE_URL`** — `organisation-composite-unique.integration.test.js` uses `describe.skip` when unset; confirm CI always provides DB or document the gap (see also 15-2 deferred).
+
+- **Migration sanity test brittleness** — Exact one-line SQL string match may break on formatting or generator changes.
+
+- **Unbounded `name` on check-similar** — No max length on similarity query param; optional hardening if abuse is a concern.
+
+- **README / runbook accuracy** — Broad README edits in the same change-set; verify claims separately. AC1 pre-flight is operational evidence, not code-verifiable.
+
+## Deferred from: code review of 15-2-new-endpoint-check-similar-organisations.md (2026-05-04)
+
+- **Story-scoped diff noise** — The same change-set updates `sprint-status.yaml` broadly (epics 10–15), organisation list `sort`/`order`, `fieldSources`, and composite-unique `P2002` handling alongside Story 15.2; increases review risk. Prefer narrower commits when practical.
+
+- **AC6 (50 ms) not automated** — Latency NFR is not asserted in Jest; manual smoke remains the check unless a gated perf test is added later.
+
+- **Integration suite optional when `DATABASE_URL` unset** — `organisation-check-similar.integration.test.js` skips the whole describe without DB; confirm CI always supplies `DATABASE_URL` for backend tests or document the gap.
+
+- **Composite-unique `P2002` string target heuristic** — `includes('name_city_country')` on constraint-name `meta.target` may miss renamed constraints; bundled with non–15.2 controller work.
+
+## Deferred from: code review of 14-1-api-sort-and-order-on-list-endpoints.md (2026-05-04)
+
+- **Organisation list pagination vs systems list** — `GET /api/organisations` does not apply `Number.isSafeInteger` / skip overflow validation that `GET /api/systems` uses. Pre-existing asymmetry; align when the organisation list handler is next refactored.
+
+## Deferred from: code review of 13-2-system-form-custom-attribute-editor-component.md (2026-05-04)
+
+- **`SystemFormPage.jsx` size** — The form page is very large after Story 13.2; consider extracting shared create/edit logic or subcomponents when this file is touched next.
+
+## Deferred from: code review of 13-1-api-accept-custom-attributes-on-system-create-and-update.md (2026-05-04)
+
+- **Unbounded `customAttributes` array length** — Very large arrays could increase CPU/memory during validation; cap or limit not in Story 13.1 scope.
+
+- **Story-scoped file noise** — Controller, service, and test diffs mix extended capabilities, `fieldSources`, and Story 13.1 on a dirty branch; prefer narrower commits when practical.
+
+## Deferred from: code review of 12-5-seed-populate-five-new-capabilities-and-field-sources.md (2026-05-03)
+
+- **`sprint-status.yaml` scope noise** — Epic 10/11/12–15 and metadata churn in the same change-set as Story 12.5 seed work increases review noise; prefer narrower commits when practical.
+
+- **Organisation `field_sources` in `seed.js`** — `buildOrganisationScalars` now passes `field_sources: org.fieldSources ?? null`; story file list emphasises system seed. Confirm organisation seed payloads and schema alignment when touching seed next.
+
+- **Automated URL health checks** — Tests assert HTTPS and UNKNOWN omits keys; no 404/allow-list guard for cited URLs. Add if URL rot becomes operational pain.
+
+## Deferred from: code review of 12-3-form-detail-compare-render-five-new-capabilities.md (2026-05-03)
+
+- **`sprint-status.yaml` scope noise** — Absolute `story_location` paths and broad epic status edits in the same change-set as Story 12.3 UI work increase review noise; prefer relative paths / narrower commits when practical.
+
+- **`SystemFormPage` duplicated handlers** — Create and edit branches duplicate field-source state handlers and validation loops; consolidate when touching this file next.
+
+- **`fieldSources` client vs server** — Submit-time validation only walks keys present in client state; confirm behaviour when the server normalises or rejects shapes the client did not send.
+
+- **Vitest depth** — Tests lean on “Not recorded” / ordering; add cases for YES/NO badges and compare column alignment if regressions appear.
+
+## Deferred from: code review of 12-2-api-accept-and-filter-five-new-capabilities.md (2026-05-03)
+
+- **snake_case body aliases** — Extended capabilities accept snake_case keys in the write payload as well as camelCase; not spelled out in AC1; document if this is intentional public contract.
+
+- **`matchesWhere` shim** — Sequential `if` returns in the HTTP stack test helper may not match Prisma `AND` composition for all combined filter shapes.
+
+- **`?? undefined` on create** — Capability fields use nullish coalescing to `undefined` for Prisma; clarify if explicit `null` should ever be distinguished from omitted or `UNKNOWN`.
+
+- **`fieldSources` validation depth** — Optional follow-up for URL length, scheme tricks, and non-string per-key values.
+
+- **HTTP stack seed rows** — All extended capabilities set to `UNKNOWN` in fixtures; mixed values would exercise filters more realistically.
+
+## Deferred from: code review of 11-5-seed-data-research-populate-field-sources.md (2026-05-03)
+
+- **Sprint-status.yaml scope noise** — Large epic block edits in the same change-set as Story 11.5 seed work increase review and bisection cost; prefer narrower commits when practical.
+
+## Deferred from: code review of 11-4-forms-field-with-source-wrapper.md (2026-05-03)
+
+- **Story-scoped diff noise** — `sprint-status.yaml` and large `package-lock.json` churn in the same change-set as Story 11.4 increases merge/review noise; prefer narrower commits when practical.
+
+- **Vitest merges full Vite config** — `vitest.config.js` uses `mergeConfig` with the app Vite config; heavier startup and possible coupling. Revisit if test runs become slow or flaky.
+
+- **Source input `type="text"`** — Optional hardening: `type="url"` or `inputMode="url"` for better mobile keyboards and browser hints.
+
+- **Helper unit tests** — `field-sources-form.js` and `source-url-validation.js` rely on integration via forms; add focused tests if regressions show up.
+
+## Deferred from: code review of 11-3-detail-and-compare-field-source-icon-rendering.md (2026-05-03)
+
+- **Epic 12 + AC2** — `SYSTEM_FIELD_SOURCE_KEYS` already includes five extended capability keys, but `SystemDetailPage` does not render those fields yet. When those FactRows are added, wire `FieldSourceIcon` for each key per Story 11.3 AC2.
+
+## Deferred from: code review of 11-2-api-contract-accept-and-return-field-sources.md (2026-05-03)
+
+- **Story doc vs implementation** — “Technical requirements” still states no service-layer changes beyond DTO mapping, and the file-structure table lists dedicated `system-field-sources.test.js` / `organisation-field-sources.test.js` files. The implementation correctly adds service `field_sources` pass-through and colocated Jest tests; update the story markdown when convenient so planning artifacts match the repo.
+
+## Deferred from: code review of 11-1-migration-a-add-field-sources-column.md (2026-05-03)
+
+- **Multi-artifact diff** — v3 `epics.md` / `decisions.md` / README updates land in the same working tree as the Story 11.1 migration. Not wrong for a feature branch, but it makes an isolated “11.1 only” review harder; prefer separate commits when practical.
+
+- **AC4/AC5 evidence** — Test pass count and `field_sources` on Prisma types are recorded in the story file, not in the git diff. Re-run `cd backend && npm test` and confirm client typings after `npx prisma generate` when you sign off review.
+
 ## Deferred from: code review of 10-2-drop-legacy-meta-endpoints-and-frontend-helpers.md (2026-05-02)
 
 - **Mixed-epic diff and bisection** — Large combined diff complicates rollback and story-isolated review; prefer smaller PRs per epic/story when practical.

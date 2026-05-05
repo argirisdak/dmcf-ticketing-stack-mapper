@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import {
+  SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW,
   buildSystemCompareRowLabels,
   findCustomAttributeByLabel,
   mergeCustomAttributeUnionLabels,
   systemCompareSectionDividerRowIndexes,
 } from './system-compare-union-labels.js'
+import { CAPABILITY_ROWS } from './system-capabilities.js'
 
 function mockSuccessQuery(envelopeData) {
   return {
@@ -79,9 +81,10 @@ describe('buildSystemCompareRowLabels', () => {
     const rows = buildSystemCompareRowLabels(['A', 'B'])
     expect(rows).toContain('Description')
     expect(rows).toContain('Deployment model')
-    expect(rows).toContain('Membership capability')
+    expect(rows).toContain('Membership')
+    expect(rows).toContain('Season subscriptions')
     const descIdx = rows.indexOf('Description')
-    const srcIdx = rows.indexOf('Source reference')
+    const srcIdx = rows.indexOf('General source')
     const lastIdx = rows.indexOf('Last updated')
     const aIdx = rows.indexOf('A')
     const bIdx = rows.indexOf('B')
@@ -98,16 +101,18 @@ describe('buildSystemCompareRowLabels', () => {
 describe('systemCompareSectionDividerRowIndexes', () => {
   it('includes provenance and adopted starts when union is empty', () => {
     const s = systemCompareSectionDividerRowIndexes(0)
-    expect(s.has(6)).toBe(true)
-    expect(s.has(9)).toBe(true)
-    expect(s.has(10)).toBe(true)
-    expect(s.has(12)).toBe(true)
+    const descriptionRowIndex =
+      SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW + CAPABILITY_ROWS.length
+    expect(s.has(SYSTEM_COMPARE_CAPABILITY_BLOCK_START_ROW)).toBe(true)
+    expect(s.has(descriptionRowIndex)).toBe(true)
+    expect(s.has(15)).toBe(true)
+    expect(s.has(17)).toBe(true)
   })
 
   it('includes union start when union is non-empty', () => {
     const s = systemCompareSectionDividerRowIndexes(2)
-    expect(s.has(10)).toBe(true)
-    expect(s.has(12)).toBe(true)
-    expect(s.has(14)).toBe(true)
+    expect(s.has(15)).toBe(true)
+    expect(s.has(17)).toBe(true)
+    expect(s.has(19)).toBe(true)
   })
 })

@@ -1,0 +1,936 @@
+diff --git a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
+index 002a6a7..b8ff9b4 100644
+--- a/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
++++ b/_bmad-output/implementation-artifacts/9-1-compare-route-shell-compare-systems-and-compare-organisations.md
+@@ -1,6 +1,6 @@
+ # Story 9.1: Compare route shell — `/compare/systems` and `/compare/organisations`
+ 
+-Status: ready-for-dev
++Status: done
+ 
+ <!-- Ultimate context engine analysis completed — comprehensive developer guide created. -->
+ 
+@@ -48,27 +48,31 @@ so that bookmarks and shared links are unambiguous and the System list compare f
+ 
+ ## Tasks / Subtasks
+ 
+-- [ ] **Task 1 — Routing cleanup (`App.jsx`)**
+-  - [ ] Remove `<Route path="/compare" element={<ComparePage />} />`.
+-  - [ ] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
+-  - [ ] Replace `/compare/systems` stub route element with new `SystemComparePage`.
+-  - [ ] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
++- [x] **Task 1 — Routing cleanup (`App.jsx`)**
++  - [x] Remove `<Route path="/compare" element={<ComparePage />} />`.
++  - [x] Keep `<Route path="/compare/organisations" element={<ComparePage />} />`.
++  - [x] Replace `/compare/systems` stub route element with new `SystemComparePage`.
++  - [x] Add catch‑all or explicit `/compare` handler that renders the 404/links UI (ensure `/compare/organisations` and `/compare/systems` still match first).
+ 
+-- [ ] **Task 2 — `useCompareSystems` hook**
+-  - [ ] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
++- [x] **Task 2 — `useCompareSystems` hook**
++  - [x] New file `frontend/src/hooks/useCompareSystems.js` — mirror `useCompareOrganisations.js` with `fetchSystem` + `SystemNotFoundError` retry rule.
+ 
+-- [ ] **Task 3 — `SystemComparePage.jsx`**
+-  - [ ] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
+-  - [ ] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
+-  - [ ] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
++- [x] **Task 3 — `SystemComparePage.jsx`**
++  - [x] `parseCompareIds`, `useSearchParams`, layout parity with `ComparePage.jsx` patterns (back link to `/systems`, title **Compare systems**).
++  - [x] Implement empty state, loading skeleton, page-level **< 2 valid** error, and success grid.
++  - [x] Optional: extract shared **`CompareColumnShell`** usage if already imported from organisation compare — reuse for consistency.
+ 
+-- [ ] **Task 4 — Remove / relocate stub**
+-  - [ ] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
++- [x] **Task 4 — Remove / relocate stub**
++  - [x] Delete or trim `SystemCompareStubPage` from `frontend/src/pages/SystemRouteStubs.jsx` if nothing else needs it; update imports.
+ 
+-- [ ] **Task 5 — Regression sweep**
+-  - [ ] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
+-  - [ ] `cd frontend && npm run lint` and `npm run test`.
+-  - [ ] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
++- [x] **Task 5 — Regression sweep**
++  - [x] Grep for `/compare` string usages in `frontend/src` — ensure nothing still navigates to bare `/compare` except the intentional 404 page copy.
++  - [x] `cd frontend && npm run lint` and `npm run test`.
++  - [x] Manual smoke: Organisation list → Compare selected → lands on `/compare/organisations?ids=…`; System list → Compare selected → `/compare/systems?ids=…` renders new page.
++
++## Change Log
++
++- 2026-05-02 — Story 9.1: `/compare/organisations` + `/compare/systems` compare shells, legacy `/compare` → links page, `useCompareSystems`, Vitest for compare phase helper.
+ 
+ ## Dev Notes
+ 
+@@ -121,12 +125,39 @@ so that bookmarks and shared links are unambiguous and the System list compare f
+ 
+ ### Agent Model Used
+ 
+-_(filled by dev agent)_
++Cursor agent
+ 
+ ### Debug Log References
+ 
+ ### Completion Notes List
+ 
++- Routing: specific compare routes before `path="/compare/*"` so `/compare/organisations` and `/compare/systems` stay correct; legacy bookmarks hit `CompareLegacyPathPage` with **← Go to organisations** / **Go to systems**.
++- `useCompareSystems` uses `['systems', id]` + `fetchSystem` (full envelope) and no retry on `SystemNotFoundError`, matching `useCompareOrganisations` / `useSystem` cache shape.
++- `SystemComparePage`: empty state, per-column loading skeletons, page-level error when fewer than 2 successful columns after settle, grid with sticky label column + `CompareColumnShell` columns (exported from `OrganisationCard.jsx`). Placeholder attribute rows filled for successful columns; 9.2 can swap in `SystemCard`.
++- Vitest: `getSystemComparePhase` unit tests in `system-compare-view-state.test.js`.
++
+ ### File List
+ 
+-_(filled by dev agent)_
++- `frontend/src/App.jsx`
++- `frontend/src/components/OrganisationCard.jsx`
++- `frontend/src/hooks/useCompareSystems.js`
++- `frontend/src/lib/system-compare-view-state.js`
++- `frontend/src/lib/system-compare-view-state.test.js`
++- `frontend/src/pages/CompareLegacyPathPage.jsx`
++- `frontend/src/pages/SystemComparePage.jsx`
++- `frontend/src/pages/SystemRouteStubs.jsx`
++- `_bmad-output/implementation-artifacts/sprint-status.yaml`
++
++### Review Findings
++
++- [x] [Review][Patch] Cap compare `ids` to the intended 2–4 column maximum before `useQueries` — [`frontend/src/hooks/useCompareSystems.js`] — fixed (`MAX_SYSTEM_COMPARE_IDS`, slice in hook + page)
++- [x] [Review][Patch] Guard `formatCompareDateTime` when `Date` parses to NaN (avoid displaying “Invalid Date”) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Replace `null` return in `SystemCompareColumn` when envelope/`data` is missing with visible column-level error UI — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Add a page-level `<h1>` (e.g. **Compare systems**) to the empty-`ids` branch for consistent document outline — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Patch] Normalise unknown `category` values in `SystemCategoryBadge` (avoid leaking raw enum tokens) — [`frontend/src/pages/SystemComparePage.jsx`] — fixed
++- [x] [Review][Defer] Soften or clarify legacy compare `CompareLegacyPathPage` H1 (“Page not found” vs explanatory body) — [`frontend/src/pages/CompareLegacyPathPage.jsx`] — deferred, follow-up copy
++- [x] [Review][Defer] `SystemComparePage` imports layout shell from `OrganisationCard.jsx` — consider a shared presentational module — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, structural follow-up
++- [x] [Review][Defer] Loading/compare skeleton a11y (`aria-hidden`, status for in-flight compare) — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
++- [x] [Review][Defer] `useMemo(..., [queries])` depends on `useQueries` array identity — verify stability or derive phase from primitive signals — [`frontend/src/pages/SystemComparePage.jsx`] — deferred, follow-up
++- [x] [Review][Defer] Broaden tests beyond `getSystemComparePhase` (routing, legacy page, page branches) — deferred, follow-up
++- [x] [Review][Defer] Unknown `/compare/...` segments share the same legacy page as bare `/compare` — [`frontend/src/App.jsx`] — deferred, optional UX distinction
+diff --git a/_bmad-output/implementation-artifacts/deferred-work.md b/_bmad-output/implementation-artifacts/deferred-work.md
+index e3ef608..01b1036 100644
+--- a/_bmad-output/implementation-artifacts/deferred-work.md
++++ b/_bmad-output/implementation-artifacts/deferred-work.md
+@@ -1,5 +1,28 @@
+ # Deferred work
+ 
++## Deferred from: code review of 9-3-compare-union-panel-and-contextual-compare-entry-points.md (2026-05-02)
++
++- **Manual AC smoke and 5+ contextual-compare E2E** — Task 6 manual checks were not run in-session; the public `buildOrganisationContextualSystemCompare` path for five or more linked systems is not covered end-to-end in tests.
++
++- **Optional UX for single-id system compare URL** — When `ids` resolves to a single column, there is no in-page guidance; acceptable gap unless product wants explicit copy.
++
++- **Tie-break when all junction `lastUpdated` values are equal or unparseable** — `topFourSystemIdsByJunctionLastUpdated` relies on id ordering as fallback; document or adjust if stakeholders need a different deterministic rule.
++
++## Deferred from: code review of 9-2-systemcard-component-compare-column.md (2026-05-02)
++
++- **Organisation detail system compare CTA** — “Compare these systems →” still links to `/compare/organisations`; Epic 9.3 AC §5 expects `/compare/systems` with distinct system ids. Not changed in the Story 9.2 diff; track under 9.3 / `OrganisationDetailPage.jsx`.
++
++- **Org compare → system compare strip** — Epic 9.3 AC §6 (union of systems across compared orgs, 2–4 vs 5+ copy) not implemented in `ComparePage.jsx` in this diff; track under 9.3.
++
++## Deferred from: code review of 9-1-compare-route-shell-compare-systems-and-compare-organisations.md (2026-05-02)
++
++- **Legacy compare page title vs copy** — `CompareLegacyPathPage` uses “Page not found” while the body explains dedicated URLs; revisit wording if users confuse app-wide failure with deprecated `/compare` only.
++- **`CompareColumnShell` imported from `OrganisationCard.jsx`** — Works but couples system compare to an organisation-named module; extract a shared shell when convenient.
++- **Loading / skeleton accessibility** — Column skeletons use `aria-hidden`; consider a page-level busy/status pattern for screen readers during compare load.
++- **`useMemo` phase keyed on `queries` array** — If `useQueries` returns a new array reference each render, phase recalculates every time; confirm TanStack behaviour or narrow dependencies.
++- **Test coverage** — Story adds `getSystemComparePhase` tests only; routing (`/compare/*`), legacy page, and `SystemComparePage` branches remain manual or untested.
++- **`/compare/foo` vs bare `/compare`** — Catch-all renders the same legacy helper page; optional improvement to hint invalid path segments.
++
+ ## Deferred from: code review of 8-5-organisation-form-linked-systems-editor.md (2026-05-01)
+ 
+ - **`fetchOrganisations` param rename (`provider`/`crm` → `system`/`system_role`)** — All callers must use the new query keys; verify list/filter hooks and URL sync outside the reviewed chunk.
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index e382186..a5666c2 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -35,7 +35,7 @@
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+ generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T00:00:00Z
++last_updated: 2026-05-02T21:45:00Z
+ project: dmcf-app
+ project_key: NOKEY
+ tracking_system: file-system
+@@ -105,15 +105,15 @@ development_status:
+   epic-8-retrospective: done
+ 
+   # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
+-  epic-9: in-progress
+-  9-1-compare-route-shell-compare-systems-and-compare-organisations: ready-for-dev
+-  9-2-systemcard-component-compare-column: backlog
+-  9-3-compare-union-panel-and-contextual-compare-entry-points: backlog
+-  epic-9-retrospective: optional
++  epic-9: done
++  9-1-compare-route-shell-compare-systems-and-compare-organisations: done
++  9-2-systemcard-component-compare-column: done
++  9-3-compare-union-panel-and-contextual-compare-entry-points: done
++  epic-9-retrospective: done
+ 
+   # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+-  epic-10: backlog
+-  10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: backlog
++  epic-10: in-progress
++  10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: review
+   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: backlog
+   10-3-readme-and-docs-decisions-md-v2-updates: backlog
+   epic-10-retrospective: optional
+diff --git a/backend/src/__tests__/health.test.js b/backend/src/__tests__/health.test.js
+index 8da921c..d7389fc 100644
+--- a/backend/src/__tests__/health.test.js
++++ b/backend/src/__tests__/health.test.js
+@@ -1,6 +1,4 @@
+ jest.mock('../lib/prisma', () => ({
+-  ticketingProvider: { findMany: jest.fn() },
+-  crmPlatform: { findMany: jest.fn() },
+   organisationType: { findMany: jest.fn() },
+   $disconnect: jest.fn(),
+ }));
+diff --git a/backend/src/__tests__/meta-controller.test.js b/backend/src/__tests__/meta-controller.test.js
+index d634d1c..bfe8cfd 100644
+--- a/backend/src/__tests__/meta-controller.test.js
++++ b/backend/src/__tests__/meta-controller.test.js
+@@ -1,6 +1,4 @@
+ const mockPrisma = {
+-  ticketingProvider: { findMany: jest.fn() },
+-  crmPlatform: { findMany: jest.fn() },
+   organisationType: { findMany: jest.fn() },
+   $disconnect: jest.fn(),
+ };
+@@ -10,25 +8,6 @@ jest.mock('../lib/prisma', () => mockPrisma);
+ const request = require('supertest');
+ const app = require('../app');
+ 
+-const TICKETING_PROVIDERS = [
+-  { id: '1', name: 'AudienceView' },
+-  { id: '2', name: 'Eventbrite' },
+-  { id: '3', name: 'PatronBase' },
+-  { id: '4', name: 'Spektrix' },
+-  { id: '5', name: 'Tessitura' },
+-  { id: '6', name: 'Ticketmaster' },
+-  { id: '7', name: 'TicketSolve' },
+-  { id: '8', name: 'Universe' },
+-];
+-
+-const CRM_PLATFORMS = [
+-  { id: '1', name: 'Donorfy' },
+-  { id: '2', name: 'HubSpot' },
+-  { id: '3', name: 'Salesforce' },
+-  { id: '4', name: 'Spektrix' },
+-  { id: '5', name: 'Tessitura CRM' },
+-];
+-
+ const ORGANISATION_TYPES = [
+   { id: '1', name: 'Cultural Organisation' },
+   { id: '2', name: 'Festival' },
+@@ -36,82 +15,6 @@ const ORGANISATION_TYPES = [
+   { id: '4', name: 'Venue' },
+ ];
+ 
+-describe('GET /api/meta/ticketing-providers', () => {
+-  beforeEach(() => mockPrisma.ticketingProvider.findMany.mockResolvedValue(TICKETING_PROVIDERS));
+-
+-  it('returns HTTP 200', async () => {
+-    const res = await request(app).get('/api/meta/ticketing-providers');
+-    expect(res.status).toBe(200);
+-  });
+-
+-  it('returns the correct envelope shape', async () => {
+-    const res = await request(app).get('/api/meta/ticketing-providers');
+-    expect(res.body.error).toBeNull();
+-    expect(res.body.meta).toBeNull();
+-    expect(Array.isArray(res.body.data)).toBe(true);
+-  });
+-
+-  it('returns at least 8 ticketing providers', async () => {
+-    const res = await request(app).get('/api/meta/ticketing-providers');
+-    expect(res.body.data.length).toBeGreaterThanOrEqual(8);
+-  });
+-
+-  it('includes the required providers', async () => {
+-    const res = await request(app).get('/api/meta/ticketing-providers');
+-    const names = res.body.data.map((p) => p.name);
+-    ['Tessitura', 'Spektrix', 'Ticketmaster', 'PatronBase', 'Eventbrite', 'AudienceView', 'TicketSolve', 'Universe'].forEach(
+-      (required) => expect(names).toContain(required)
+-    );
+-  });
+-
+-  it('returns 500 envelope on DB error', async () => {
+-    mockPrisma.ticketingProvider.findMany.mockRejectedValue(new Error('DB down'));
+-    const res = await request(app).get('/api/meta/ticketing-providers');
+-    expect(res.status).toBe(500);
+-    expect(res.body).toEqual({
+-      data: null,
+-      error: { message: 'An unexpected error occurred', fields: [] },
+-      meta: null,
+-    });
+-  });
+-});
+-
+-describe('GET /api/meta/crm-platforms', () => {
+-  beforeEach(() => mockPrisma.crmPlatform.findMany.mockResolvedValue(CRM_PLATFORMS));
+-
+-  it('returns HTTP 200', async () => {
+-    const res = await request(app).get('/api/meta/crm-platforms');
+-    expect(res.status).toBe(200);
+-  });
+-
+-  it('returns the correct envelope shape', async () => {
+-    const res = await request(app).get('/api/meta/crm-platforms');
+-    expect(res.body.error).toBeNull();
+-    expect(res.body.meta).toBeNull();
+-    expect(Array.isArray(res.body.data)).toBe(true);
+-  });
+-
+-  it('returns at least 5 CRM platforms', async () => {
+-    const res = await request(app).get('/api/meta/crm-platforms');
+-    expect(res.body.data.length).toBeGreaterThanOrEqual(5);
+-  });
+-
+-  it('includes the required CRM platforms', async () => {
+-    const res = await request(app).get('/api/meta/crm-platforms');
+-    const names = res.body.data.map((p) => p.name);
+-    ['Salesforce', 'HubSpot', 'Spektrix', 'Tessitura CRM', 'Donorfy'].forEach(
+-      (required) => expect(names).toContain(required)
+-    );
+-  });
+-
+-  it('returns 500 envelope on DB error', async () => {
+-    mockPrisma.crmPlatform.findMany.mockRejectedValue(new Error('DB down'));
+-    const res = await request(app).get('/api/meta/crm-platforms');
+-    expect(res.status).toBe(500);
+-    expect(res.body.error.message).toBe('An unexpected error occurred');
+-  });
+-});
+-
+ describe('GET /api/meta/organisation-types', () => {
+   beforeEach(() => mockPrisma.organisationType.findMany.mockResolvedValue(ORGANISATION_TYPES));
+ 
+diff --git a/backend/src/controllers/meta-controller.js b/backend/src/controllers/meta-controller.js
+index 0d11311..50c3cdb 100644
+--- a/backend/src/controllers/meta-controller.js
++++ b/backend/src/controllers/meta-controller.js
+@@ -1,23 +1,5 @@
+ const prisma = require('../lib/prisma');
+ 
+-const getTicketingProviders = async (req, res) => {
+-  try {
+-    const providers = await prisma.ticketingProvider.findMany({ orderBy: { name: 'asc' } });
+-    res.json({ data: providers, error: null, meta: null });
+-  } catch {
+-    res.status(500).json({ data: null, error: { message: 'An unexpected error occurred', fields: [] }, meta: null });
+-  }
+-};
+-
+-const getCrmPlatforms = async (req, res) => {
+-  try {
+-    const platforms = await prisma.crmPlatform.findMany({ orderBy: { name: 'asc' } });
+-    res.json({ data: platforms, error: null, meta: null });
+-  } catch {
+-    res.status(500).json({ data: null, error: { message: 'An unexpected error occurred', fields: [] }, meta: null });
+-  }
+-};
+-
+ const getOrganisationTypes = async (req, res) => {
+   try {
+     const types = await prisma.organisationType.findMany({ orderBy: { name: 'asc' } });
+@@ -27,4 +9,4 @@ const getOrganisationTypes = async (req, res) => {
+   }
+ };
+ 
+-module.exports = { getTicketingProviders, getCrmPlatforms, getOrganisationTypes };
++module.exports = { getOrganisationTypes };
+diff --git a/backend/src/prisma/schema.prisma b/backend/src/prisma/schema.prisma
+index e6b2441..1044ab8 100644
+--- a/backend/src/prisma/schema.prisma
++++ b/backend/src/prisma/schema.prisma
+@@ -46,8 +46,6 @@ model Organisation {
+   city                        String?
+   country                     String
+   organisation_type_id        String
+-  ticketing_provider_id       String?
+-  crm_platform_id             String?
+   membership_capability       CapabilityState @default(UNKNOWN)
+   donation_capability         CapabilityState @default(UNKNOWN)
+   reserved_seating_capability CapabilityState @default(UNKNOWN)
+@@ -58,33 +56,11 @@ model Organisation {
+   created_at                  DateTime        @default(now())
+ 
+   organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
+-  ticketing_provider TicketingProvider? @relation(fields: [ticketing_provider_id], references: [id])
+-  crm_platform       CrmPlatform?       @relation(fields: [crm_platform_id], references: [id])
+   systems            OrganisationSystem[]
+ 
+   @@map("organisation")
+ }
+ 
+-model TicketingProvider {
+-  id            String @id @default(uuid())
+-  name          String @unique
+-  created_at    DateTime @default(now())
+-  updated_at    DateTime @updatedAt
+-  organisations Organisation[]
+-
+-  @@map("ticketing_provider")
+-}
+-
+-model CrmPlatform {
+-  id            String @id @default(uuid())
+-  name          String @unique
+-  created_at    DateTime @default(now())
+-  updated_at    DateTime @updatedAt
+-  organisations Organisation[]
+-
+-  @@map("crm_platform")
+-}
+-
+ model OrganisationType {
+   id            String @id @default(uuid())
+   name          String @unique
+diff --git a/backend/src/prisma/seed.js b/backend/src/prisma/seed.js
+index fe86145..91e9b2e 100644
+--- a/backend/src/prisma/seed.js
++++ b/backend/src/prisma/seed.js
+@@ -1,10 +1,7 @@
+ const prisma = require('../lib/prisma');
+ const { COUNTRIES } = require('../lib/countries');
+ const { SAMPLE_ORGANISATIONS } = require('./sample-organisations-seed-data');
+-const {
+-  SYSTEM_SEED_DEFINITIONS,
+-  systemCategoryByName,
+-} = require('./system-seed-catalog');
++const { SYSTEM_SEED_DEFINITIONS } = require('./system-seed-catalog');
+ 
+ /** Re-export for callers that previously imported `COUNTRIES` from seed. */
+ module.exports = { COUNTRIES };
+@@ -25,77 +22,14 @@ function requireLookup(map, name, kind) {
+   return id;
+ }
+ 
+-function legacyTicketingLookupName(systemName, category) {
+-  if (category === 'AUDIENCE_MANAGEMENT') return null;
+-  return systemName === 'Ticketsolve' ? 'TicketSolve' : systemName;
+-}
+-
+-function legacyCrmLookupName(systemName, category) {
+-  if (category === 'TICKETING') return null;
+-  if (systemName === 'Tessitura') return 'Tessitura CRM';
+-  return systemName;
+-}
+-
+-function deriveLegacyFkLookupNames(links, categoryByName) {
+-  let tpName = null;
+-  let crmName = null;
+-
+-  for (const link of links) {
+-    const cat = categoryByName[link.systemName];
+-    if (!cat) {
+-      throw new Error(`Seed: unknown system "${link.systemName}" in organisation links`);
+-    }
+-    if (link.role === 'PRIMARY_TICKETING') {
+-      const n = legacyTicketingLookupName(link.systemName, cat);
+-      if (n && !tpName) tpName = n;
+-    }
+-  }
+-  for (const link of links) {
+-    const cat = categoryByName[link.systemName];
+-    if (link.role === 'INTEGRATED_SUITE' && (cat === 'INTEGRATED' || cat === 'TICKETING')) {
+-      const n = legacyTicketingLookupName(link.systemName, cat);
+-      if (n && !tpName) tpName = n;
+-    }
+-  }
+-  for (const link of links) {
+-    const cat = categoryByName[link.systemName];
+-    if (link.role === 'SECONDARY') {
+-      const n = legacyTicketingLookupName(link.systemName, cat);
+-      if (n && !tpName) tpName = n;
+-    }
+-  }
+-
+-  for (const link of links) {
+-    const cat = categoryByName[link.systemName];
+-    if (link.role === 'PRIMARY_CRM') {
+-      const n = legacyCrmLookupName(link.systemName, cat);
+-      if (n && !crmName) crmName = n;
+-    }
+-  }
+-  for (const link of links) {
+-    const cat = categoryByName[link.systemName];
+-    if (link.role === 'INTEGRATED_SUITE' && cat === 'INTEGRATED') {
+-      const n = legacyCrmLookupName(link.systemName, cat);
+-      if (n && !crmName) crmName = n;
+-    }
+-  }
+-
+-  return { tpName, crmName };
+-}
+-
+-function buildOrganisationScalars(org, typeByName, providerByName, crmByName, categoryByName) {
++function buildOrganisationScalars(org, typeByName) {
+   const organisation_type_id = requireLookup(typeByName, org.organisationTypeName, 'organisation type');
+-  const { tpName, crmName } = deriveLegacyFkLookupNames(org.links, categoryByName);
+-  const ticketing_provider_id = tpName == null ? null : requireLookup(providerByName, tpName, 'ticketing provider');
+-  const crm_platform_id = crmName == null ? null : requireLookup(crmByName, crmName, 'CRM platform');
+ 
+   return {
+     name: org.name,
+     city: org.city ?? null,
+     country: org.country,
+     organisation_type_id,
+-    ticketing_provider_id,
+-    crm_platform_id,
+     membership_capability: org.membership_capability,
+     donation_capability: org.donation_capability,
+     reserved_seating_capability: org.reserved_seating_capability,
+@@ -107,30 +41,7 @@ function buildOrganisationScalars(org, typeByName, providerByName, crmByName, ca
+   };
+ }
+ 
+-async function seedReferenceLookups() {
+-  const ticketingProviders = [
+-    'Tessitura', 'Spektrix', 'Ticketmaster', 'PatronBase',
+-    'Eventbrite', 'AudienceView', 'TicketSolve', 'Universe',
+-  ];
+-  for (const name of ticketingProviders) {
+-    await prisma.ticketingProvider.upsert({
+-      where: { name },
+-      update: {},
+-      create: { name },
+-    });
+-  }
+-
+-  const crmPlatforms = [
+-    'Salesforce', 'HubSpot', 'Spektrix', 'Tessitura CRM', 'Donorfy',
+-  ];
+-  for (const name of crmPlatforms) {
+-    await prisma.crmPlatform.upsert({
+-      where: { name },
+-      update: {},
+-      create: { name },
+-    });
+-  }
+-
++async function seedOrganisationTypes() {
+   const organisationTypes = [
+     'Venue', 'Festival', 'Promoter', 'Cultural Organisation',
+   ];
+@@ -178,17 +89,13 @@ async function seedSystems() {
+   }
+ }
+ 
+-async function seedSampleOrganisationsAndLinks(categoryByName) {
+-  const [types, providers, crms, systems] = await Promise.all([
++async function seedSampleOrganisationsAndLinks() {
++  const [types, systems] = await Promise.all([
+     prisma.organisationType.findMany(),
+-    prisma.ticketingProvider.findMany(),
+-    prisma.crmPlatform.findMany(),
+     prisma.system.findMany(),
+   ]);
+ 
+   const typeByName = mapByName(types);
+-  const providerByName = mapByName(providers);
+-  const crmByName = mapByName(crms);
+   const systemByName = mapByName(systems);
+ 
+   const seedIds = SAMPLE_ORGANISATIONS.map((o) => o.id);
+@@ -199,7 +106,7 @@ async function seedSampleOrganisationsAndLinks(categoryByName) {
+   const preCount = preexisting.length;
+ 
+   for (const org of SAMPLE_ORGANISATIONS) {
+-    const data = buildOrganisationScalars(org, typeByName, providerByName, crmByName, categoryByName);
++    const data = buildOrganisationScalars(org, typeByName);
+     await prisma.organisation.upsert({
+       where: { id: org.id },
+       create: { id: org.id, ...data },
+@@ -299,14 +206,13 @@ async function seedSampleOrganisationsAndLinks(categoryByName) {
+ }
+ 
+ async function main() {
+-  await seedReferenceLookups();
++  await seedOrganisationTypes();
+   console.log('Reference data seeded.');
+ 
+   await seedSystems();
+   console.log(`Systems: ${SYSTEM_SEED_DEFINITIONS.length} upserted.`);
+ 
+-  const categoryByName = systemCategoryByName();
+-  await seedSampleOrganisationsAndLinks(categoryByName);
++  await seedSampleOrganisationsAndLinks();
+ }
+ 
+ if (require.main === module) {
+diff --git a/backend/src/routes/meta.js b/backend/src/routes/meta.js
+index 2fd4150..4235ab8 100644
+--- a/backend/src/routes/meta.js
++++ b/backend/src/routes/meta.js
+@@ -2,8 +2,6 @@ const express = require('express');
+ const router = express.Router();
+ const metaController = require('../controllers/meta-controller');
+ 
+-router.get('/ticketing-providers', metaController.getTicketingProviders);
+-router.get('/crm-platforms', metaController.getCrmPlatforms);
+ router.get('/organisation-types', metaController.getOrganisationTypes);
+ 
+ module.exports = router;
+diff --git a/frontend/src/App.jsx b/frontend/src/App.jsx
+index 0e483fb..577e474 100644
+--- a/frontend/src/App.jsx
++++ b/frontend/src/App.jsx
+@@ -8,7 +8,8 @@ import ComparePage from './pages/ComparePage.jsx'
+ import SystemListPage from './pages/SystemListPage.jsx'
+ import SystemDetailPage from './pages/SystemDetailPage.jsx'
+ import SystemFormPage from './pages/SystemFormPage.jsx'
+-import { SystemCompareStubPage } from './pages/SystemRouteStubs.jsx'
++import SystemComparePage from './pages/SystemComparePage.jsx'
++import CompareLegacyPathPage from './pages/CompareLegacyPathPage.jsx'
+ 
+ function NavLinks() {
+   const { pathname } = useLocation()
+@@ -62,9 +63,9 @@ export default function App() {
+                 <Route path="/systems/new" element={<SystemFormPage />} />
+                 <Route path="/systems/:id" element={<SystemDetailPage />} />
+                 <Route path="/systems/:id/edit" element={<SystemFormPage />} />
+-                <Route path="/compare/systems" element={<SystemCompareStubPage />} />
+                 <Route path="/compare/organisations" element={<ComparePage />} />
+-                <Route path="/compare" element={<ComparePage />} />
++                <Route path="/compare/systems" element={<SystemComparePage />} />
++                <Route path="/compare/*" element={<CompareLegacyPathPage />} />
+               </Routes>
+             </SystemSelectionProvider>
+           </OrganisationSelectionProvider>
+diff --git a/frontend/src/components/OrganisationCard.jsx b/frontend/src/components/OrganisationCard.jsx
+index e5d30af..27308a6 100644
+--- a/frontend/src/components/OrganisationCard.jsx
++++ b/frontend/src/components/OrganisationCard.jsx
+@@ -5,7 +5,7 @@ import { Button } from './ui/button.jsx'
+ import { CapabilityBadge } from './CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
+ import { OrganisationNotFoundError } from '../api/organisations.js'
+-import { cn } from '../lib/utils.js'
++import { CompareColumnShell } from './CompareColumnShell.jsx'
+ 
+ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+ 
+@@ -101,22 +101,6 @@ function SystemsCompareList({ systems }) {
+   )
+ }
+ 
+-/** @param {{ gridColumn: number, className?: string, children: import('react').ReactNode } & import('react').ComponentProps<'div'>} props */
+-function CompareColumnShell({ gridColumn, className, children, ...rest }) {
+-  return (
+-    <div
+-      className={cn(
+-        'row-span-full grid min-w-0 grid-rows-subgrid overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm',
+-        className,
+-      )}
+-      style={{ gridColumn }}
+-      {...rest}
+-    >
+-      {children}
+-    </div>
+-  )
+-}
+-
+ function formatCompareDateTime(iso) {
+   if (iso == null || iso === '') return 'Not recorded'
+   try {
+diff --git a/frontend/src/lib/compare-url-params.js b/frontend/src/lib/compare-url-params.js
+index 2e73399..e8587d1 100644
+--- a/frontend/src/lib/compare-url-params.js
++++ b/frontend/src/lib/compare-url-params.js
+@@ -1,3 +1,12 @@
++/** Maximum parallel compare columns for system compare (Story 9.1 — selection bar targets 2–4). */
++export const MAX_SYSTEM_COMPARE_IDS = 4
++
++/** Comma-separated ids for `/compare/systems?ids=` (each segment encoded). */
++export function encodeCompareIdsForQuery(ids) {
++  if (!Array.isArray(ids)) return ''
++  return ids.map((id) => encodeURIComponent(String(id))).join(',')
++}
++
+ /**
+  * Parse comma-separated compare `ids` from the URL (trim, drop empties, dedupe for stable order).
+  * @param {string | null} raw
+diff --git a/frontend/src/pages/ComparePage.jsx b/frontend/src/pages/ComparePage.jsx
+index b9a1675..43548e3 100644
+--- a/frontend/src/pages/ComparePage.jsx
++++ b/frontend/src/pages/ComparePage.jsx
+@@ -1,7 +1,12 @@
+ import { useCallback, useMemo } from 'react'
+ import { Link, useSearchParams } from 'react-router-dom'
+ import { OrganisationCard } from '../components/OrganisationCard.jsx'
+-import { parseCompareIds } from '../lib/compare-url-params.js'
++import { deriveCompareOrganisationsSystemUnion } from '../lib/compare-organisations-system-union.js'
++import {
++  encodeCompareIdsForQuery,
++  MAX_SYSTEM_COMPARE_IDS,
++  parseCompareIds,
++} from '../lib/compare-url-params.js'
+ import { useCompareOrganisations } from '../hooks/useCompareOrganisations.js'
+ 
+ const ROW_LABELS = [
+@@ -20,6 +25,7 @@ export default function ComparePage() {
+   const idsParam = searchParams.get('ids')
+   const ids = useMemo(() => parseCompareIds(idsParam), [idsParam])
+   const queries = useCompareOrganisations(ids)
++  const organisationsSystemUnion = deriveCompareOrganisationsSystemUnion(ids, queries)
+ 
+   const removeId = useCallback(
+     (idToRemove) => {
+@@ -99,6 +105,33 @@ export default function ComparePage() {
+           ))}
+         </div>
+       </div>
++
++      {organisationsSystemUnion.kind === 'ready' &&
++        (() => {
++          const n = organisationsSystemUnion.orderedSystemIds.length
++          if (n <= 1) return null
++          if (n >= 2 && n <= MAX_SYSTEM_COMPARE_IDS) {
++            return (
++              <div className="mt-6 border-t border-slate-200 pt-4">
++                <Link
++                  to={`/compare/systems?ids=${encodeCompareIdsForQuery(organisationsSystemUnion.orderedSystemIds)}`}
++                  className="text-sm text-blue-600 hover:text-blue-800"
++                >
++                  Compare systems used by these organisations →
++                </Link>
++              </div>
++            )
++          }
++          return (
++            <p className="mt-6 border-t border-slate-200 pt-4 text-sm text-slate-600">
++              These organisations use {n} different systems. Open the{' '}
++              <Link to="/systems" className="text-blue-600 hover:text-blue-800">
++                System list →
++              </Link>{' '}
++              to select which to compare.
++            </p>
++          )
++        })()}
+     </div>
+   )
+ }
+diff --git a/frontend/src/pages/OrganisationDetailPage.jsx b/frontend/src/pages/OrganisationDetailPage.jsx
+index 052a398..3eeb241 100644
+--- a/frontend/src/pages/OrganisationDetailPage.jsx
++++ b/frontend/src/pages/OrganisationDetailPage.jsx
+@@ -1,4 +1,4 @@
+-import { useCallback, useEffect, useState } from 'react'
++import { useCallback, useEffect, useMemo, useState } from 'react'
+ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+ import { useQueryClient } from '@tanstack/react-query'
+ import { useOrganisation } from '../hooks/useOrganisation.js'
+@@ -20,6 +20,7 @@ import {
+ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
+ import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
+ import { SystemCombobox } from '../components/SystemCombobox.jsx'
++import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -31,6 +32,7 @@ const ROLE_LABELS = {
+   SECONDARY: 'Secondary',
+ }
+ const KNOWN_ROLES = Object.keys(ROLE_LABELS)
++const NO_LINKED_SYSTEMS = []
+ 
+ function formatDateTime(iso) {
+   if (!iso) return '—'
+@@ -192,12 +194,18 @@ export default function OrganisationDetailPage() {
+   const missingId = !id
+ 
+   // Group systems by role in display order
+-  const systems = (isSuccess && data?.systems) ? data.systems : []
++  const systems =
++    isSuccess && Array.isArray(data?.systems) ? data.systems : NO_LINKED_SYSTEMS
+   const grouped = ROLE_ORDER.reduce((acc, role) => {
+     acc[role] = systems.filter((l) => l.role === role)
+     return acc
+   }, {})
+ 
++  const contextualSystemCompare = useMemo(
++    () => buildOrganisationContextualSystemCompare(systems, ROLE_ORDER),
++    [systems],
++  )
++
+   const handleSaveEdit = () => {
+     if (!editLink?.system?.id || !id) return
+     const body = {}
+@@ -597,7 +605,7 @@ export default function OrganisationDetailPage() {
+                   ))}
+                 </div>
+ 
+-                <div className="mt-4 flex flex-wrap items-center gap-3">
++                <div className="mt-4 space-y-3">
+                   <Button
+                     type="button"
+                     variant="secondary"
+@@ -605,13 +613,15 @@ export default function OrganisationDetailPage() {
+                   >
+                     Add system
+                   </Button>
+-                  {systems.length >= 2 && (
+-                    <Link
+-                      to="/compare/organisations"
+-                      className="text-sm text-slate-500 hover:text-slate-700"
+-                    >
+-                      Compare these systems →
+-                    </Link>
++                  {contextualSystemCompare != null && (
++                    <div>
++                      <Link
++                        to={contextualSystemCompare.to}
++                        className="text-sm text-blue-600 hover:text-blue-800"
++                      >
++                        {contextualSystemCompare.label}
++                      </Link>
++                    </div>
+                   )}
+                 </div>
+               </>
+diff --git a/frontend/src/pages/SystemDetailPage.jsx b/frontend/src/pages/SystemDetailPage.jsx
+index 88449da..713060a 100644
+--- a/frontend/src/pages/SystemDetailPage.jsx
++++ b/frontend/src/pages/SystemDetailPage.jsx
+@@ -15,6 +15,7 @@ import {
+   DialogTitle,
+   DialogTrigger,
+ } from '../components/ui/dialog.jsx'
++import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -53,12 +54,6 @@ function displayText(value) {
+   return String(value)
+ }
+ 
+-/** True if the string is an http(s) URL (same rule as SourceReferenceDisplay). */
+-function isHttpOrHttpsUrl(value) {
+-  if (typeof value !== 'string') return false
+-  return value.startsWith('http://') || value.startsWith('https://')
+-}
+-
+ function displayNullable(value) {
+   if (value == null || value === '') {
+     return <span className="text-slate-400">Not recorded</span>
+@@ -66,28 +61,6 @@ function displayNullable(value) {
+   return String(value)
+ }
+ 
+-function formatLastUpdated(iso) {
+-  if (!iso) return '—'
+-  try {
+-    const date = new Date(iso)
+-    const diffMs = date.getTime() - Date.now()
+-    const diffSec = Math.round(diffMs / 1000)
+-    const rtf = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' })
+-    const abs = Math.abs(diffSec)
+-    let relative
+-    if (abs < 60) relative = rtf.format(diffSec, 'second')
+-    else if (abs < 3600) relative = rtf.format(Math.round(diffSec / 60), 'minute')
+-    else if (abs < 86400) relative = rtf.format(Math.round(diffSec / 3600), 'hour')
+-    else if (abs < 2592000) relative = rtf.format(Math.round(diffSec / 86400), 'day')
+-    else if (abs < 31536000) relative = rtf.format(Math.round(diffSec / 2592000), 'month')
+-    else relative = rtf.format(Math.round(diffSec / 31536000), 'year')
+-    const absolute = date.toLocaleDateString(undefined, { dateStyle: 'medium' })
+-    return `${absolute} (${relative})`
+-  } catch {
+-    return '—'
+-  }
+-}
+-
+ function FactRow({ label, children }) {
+   return (
+     <div className="grid grid-cols-[max-content_1fr] gap-x-6 gap-y-1 items-baseline">
+diff --git a/frontend/src/pages/SystemRouteStubs.jsx b/frontend/src/pages/SystemRouteStubs.jsx
+index 866f0d2..f31e216 100644
+--- a/frontend/src/pages/SystemRouteStubs.jsx
++++ b/frontend/src/pages/SystemRouteStubs.jsx
+@@ -1,24 +1,5 @@
+ import { Link, useParams } from 'react-router-dom'
+ 
+-/** Placeholder until Epic 9 ships system-vs-system compare. */
+-export function SystemCompareStubPage() {
+-  return (
+-    <div className="rounded-lg border border-slate-200 bg-white px-6 py-12 shadow-sm">
+-      <h1 className="text-xl font-semibold text-slate-800">Compare systems</h1>
+-      <p className="mt-3 text-slate-600">
+-        Side-by-side system comparison will be added in Epic 9. Your selection is preserved —
+-        come back here when that work lands.
+-      </p>
+-      <Link
+-        to="/systems"
+-        className="mt-6 inline-block text-sm font-medium text-blue-600 hover:text-blue-700"
+-      >
+-        ← Back to systems
+-      </Link>
+-    </div>
+-  )
+-}
+-
+ /** Story 7.6 — create-system form replaces this stub. */
+ export function SystemNewStubPage() {
+   return (
+
+# UNTRACKED: backend/src/prisma/migrations/20260502180000_drop_legacy_lookups/migration.sql
+diff --git a/backend/src/prisma/migrations/20260502180000_drop_legacy_lookups/migration.sql b/backend/src/prisma/migrations/20260502180000_drop_legacy_lookups/migration.sql
+new file mode 100644
+index 0000000..5ba7158
+--- /dev/null
++++ b/backend/src/prisma/migrations/20260502180000_drop_legacy_lookups/migration.sql
+@@ -0,0 +1,10 @@
++-- Migration C (destructive only): drop legacy ticketing_provider / crm_platform lookups and organisation FK columns.
++
++ALTER TABLE "organisation" DROP CONSTRAINT IF EXISTS "organisation_ticketing_provider_id_fkey";
++ALTER TABLE "organisation" DROP CONSTRAINT IF EXISTS "organisation_crm_platform_id_fkey";
++
++ALTER TABLE "organisation" DROP COLUMN IF EXISTS "ticketing_provider_id";
++ALTER TABLE "organisation" DROP COLUMN IF EXISTS "crm_platform_id";
++
++DROP TABLE IF EXISTS "ticketing_provider";
++DROP TABLE IF EXISTS "crm_platform";
+
+# UNTRACKED: backend/src/__tests__/migration-drop-legacy-c-sanity.test.js
+diff --git a/backend/src/__tests__/migration-drop-legacy-c-sanity.test.js b/backend/src/__tests__/migration-drop-legacy-c-sanity.test.js
+new file mode 100644
+index 0000000..e2e3c16
+--- /dev/null
++++ b/backend/src/__tests__/migration-drop-legacy-c-sanity.test.js
+@@ -0,0 +1,40 @@
++'use strict';
++
++const fs = require('fs');
++const path = require('path');
++
++const migrationPath = path.join(
++  __dirname,
++  '../prisma/migrations/20260502180000_drop_legacy_lookups/migration.sql',
++);
++
++describe('Migration C: drop_legacy_lookups (structural sanity)', () => {
++  /** @type {string} */
++  let sql;
++
++  beforeAll(() => {
++    sql = fs.readFileSync(migrationPath, 'utf8');
++  });
++
++  it('migration file exists and drops legacy FK constraints and columns', () => {
++    expect(sql.length).toBeGreaterThan(0);
++    const lower = sql.toLowerCase();
++    expect(lower).toMatch(/drop\s+constraint.*organisation_ticketing_provider_id_fkey/);
++    expect(lower).toMatch(/drop\s+constraint.*organisation_crm_platform_id_fkey/);
++    expect(lower).toMatch(/drop\s+column.*ticketing_provider_id/);
++    expect(lower).toMatch(/drop\s+column.*crm_platform_id/);
++  });
++
++  it('drops legacy lookup tables', () => {
++    const lower = sql.toLowerCase();
++    expect(lower).toMatch(/drop\s+table.*ticketing_provider/);
++    expect(lower).toMatch(/drop\s+table.*crm_platform/);
++  });
++
++  it('is destructive-only (no backfill DML)', () => {
++    const lower = sql.toLowerCase();
++    expect(lower).not.toMatch(/\binsert\s+into\b/);
++    expect(lower).not.toMatch(/\bupdate\s+/);
++    expect(lower).not.toMatch(/select\s+.*\s+into\b/);
++  });
++});

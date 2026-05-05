@@ -2,6 +2,7 @@
  * Deterministic sample organisations for demos (Story 5.1 / 6.3).
  * Fixed UUIDs + upsert in seed.js — see docs/decisions.md (ADR-014).
  * Each row uses `links`: adopted systems via `organisation_system` (v2).
+ * Story 11.5: after the array, each row receives `fieldSources` from `org-field-sources-seed.js`.
  */
 
 const SAMPLE_ORGANISATIONS = [
@@ -835,5 +836,11 @@ const SAMPLE_ORGANISATIONS = [
     ]
   }
 ];
+
+const { ORG_FIELD_SOURCES_BY_ID } = require('./org-field-sources-seed');
+
+for (const org of SAMPLE_ORGANISATIONS) {
+  org.fieldSources = ORG_FIELD_SOURCES_BY_ID[org.id] ?? null;
+}
 
 module.exports = { SAMPLE_ORGANISATIONS };

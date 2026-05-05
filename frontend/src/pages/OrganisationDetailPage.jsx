@@ -21,6 +21,8 @@ import { CapabilityBadge } from '../components/CapabilityBadge.jsx'
 import { SourceReferenceDisplay } from '../components/SourceReferenceDisplay.jsx'
 import { SystemCombobox } from '../components/SystemCombobox.jsx'
 import { buildOrganisationContextualSystemCompare } from '../lib/organisation-linked-systems-compare.js'
+import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
+import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
 
 const BANNER_MS = 5000
 
@@ -468,7 +470,7 @@ export default function OrganisationDetailPage() {
             <dl className="mt-3 grid gap-4 sm:grid-cols-2">
               <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-amber-900/80">
-                  Source reference
+                  General source
                 </dt>
                 <dd className="mt-1 text-base font-medium text-amber-950">
                   <SourceReferenceDisplay value={data.sourceReference} inheritPlainTextColor />
@@ -489,14 +491,42 @@ export default function OrganisationDetailPage() {
             <h2 className="mb-4 text-sm font-semibold text-slate-700">Details</h2>
             <dl className="space-y-3">
               <DetailRow label="Name">{data.name}</DetailRow>
-              <DetailRow label="Country">{data.country}</DetailRow>
-              <DetailRow label="City">{displayText(data.city)}</DetailRow>
+              <DetailRow label="Country">
+                <span className="inline-flex items-center gap-1">
+                  {data.country}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'country')}
+                    fieldLabel="Country"
+                  />
+                </span>
+              </DetailRow>
+              <DetailRow label="City">
+                <span className="inline-flex items-center gap-1">
+                  {displayText(data.city)}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'city')}
+                    fieldLabel="City"
+                  />
+                </span>
+              </DetailRow>
               <DetailRow label="Type">
-                {data.organisationType?.name ?? '—'}
+                <span className="inline-flex items-center gap-1">
+                  {data.organisationType?.name ?? '—'}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'organisationType')}
+                    fieldLabel="Type"
+                  />
+                </span>
               </DetailRow>
               <DetailRow label="Notes">{displayText(data.notes)}</DetailRow>
               <DetailRow label="Capacity">
-                {data.capacity != null ? String(data.capacity) : '—'}
+                <span className="inline-flex items-center gap-1">
+                  {data.capacity != null ? String(data.capacity) : '—'}
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'capacity')}
+                    fieldLabel="Capacity"
+                  />
+                </span>
               </DetailRow>
               <DetailRow label="Created at">{formatDateTime(data.createdAt)}</DetailRow>
             </dl>
@@ -957,13 +987,31 @@ export default function OrganisationDetailPage() {
             <h2 className="mb-4 text-sm font-semibold text-slate-700">Capabilities</h2>
             <dl className="space-y-3">
               <DetailRow label="Membership">
-                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
+                <span className="inline-flex items-center gap-1">
+                  <CapabilityBadge value={data.membershipCapability} variant="labelled" />
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'membershipCapability')}
+                    fieldLabel="Membership"
+                  />
+                </span>
               </DetailRow>
               <DetailRow label="Donation">
-                <CapabilityBadge value={data.donationCapability} variant="labelled" />
+                <span className="inline-flex items-center gap-1">
+                  <CapabilityBadge value={data.donationCapability} variant="labelled" />
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'donationCapability')}
+                    fieldLabel="Donation"
+                  />
+                </span>
               </DetailRow>
               <DetailRow label="Reserved seating">
-                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
+                <span className="inline-flex items-center gap-1">
+                  <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
+                  <FieldSourceIcon
+                    url={pickFieldSourceUrl(data.fieldSources, 'reservedSeatingCapability')}
+                    fieldLabel="Reserved seating"
+                  />
+                </span>
               </DetailRow>
             </dl>
           </section>

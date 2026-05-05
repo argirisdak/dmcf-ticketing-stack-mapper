@@ -1,0 +1,1313 @@
+diff --git a/_bmad-output/implementation-artifacts/sprint-status.yaml b/_bmad-output/implementation-artifacts/sprint-status.yaml
+index 735e64f..a65e648 100644
+--- a/_bmad-output/implementation-artifacts/sprint-status.yaml
++++ b/_bmad-output/implementation-artifacts/sprint-status.yaml
+@@ -1,9 +1,9 @@
+-# generated: 2026-04-30T23:00:00Z
+-# last_updated: 2026-04-30T23:45:00Z
+-# project: dmcf-app
++# generated: 2026-05-03T10:01:12Z
++# last_updated: 2026-05-03T15:25:00Z
++# project: dmcf-ticketing-stack-mapper
+ # project_key: NOKEY
+ # tracking_system: file-system
+-# story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++# story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ # STATUS DEFINITIONS:
+ # ==================
+@@ -34,22 +34,22 @@
+ # - SM typically creates next story after previous one is 'done' to incorporate learnings
+ # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+ 
+-generated: 2026-04-30T23:00:00Z
+-last_updated: 2026-05-02T22:25:00Z
+-project: dmcf-app
++generated: 2026-05-03T10:01:12Z
++last_updated: 2026-05-03T15:25:00Z
++project: dmcf-ticketing-stack-mapper
+ project_key: NOKEY
+ tracking_system: file-system
+-story_location: /home/argirisdak/dmcf-app/_bmad-output/implementation-artifacts
++story_location: /home/argirisdak/Apps/dmcf-app/dmcf-ticketing-stack-mapper/_bmad-output/implementation-artifacts
+ 
+ development_status:
+-  # ─── Epic 1: Project Foundation — Runnable Local Stack ───────────────────────
++  # ─── Epic 1: Project Foundation — Runnable Local Stack ───
+   epic-1: done
+   1-1-backend-scaffold-data-model-and-reference-data-seed: done
+   1-2-frontend-scaffold-and-application-shell: done
+   1-3-readme-and-project-documentation: done
+   epic-1-retrospective: done
+ 
+-  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ──────────────
++  # ─── Epic 2: Organisation Catalogue — Full CRUD with Provenance ───
+   epic-2: done
+   2-1-organisation-list-page: done
+   2-2-create-organisation: done
+@@ -58,33 +58,33 @@ development_status:
+   2-5-delete-organisation: done
+   epic-2-retrospective: done
+ 
+-  # ─── Epic 3: Discovery & Filtering ───────────────────────────────────────────
++  # ─── Epic 3: Discovery & Filtering ───
+   epic-3: done
+   3-1-text-search: done
+   3-2-filter-bar-and-active-filter-chips: done
+   3-3-multi-filter-api-integration-and-url-state: done
+   epic-3-retrospective: done
+ 
+-  # ─── Epic 4: Side-by-Side Comparison ─────────────────────────────────────────
++  # ─── Epic 4: Side-by-Side Comparison ───
+   epic-4: done
+   4-1-compare-selection-bar: done
+   4-2-compare-page: done
+   epic-4-retrospective: done
+ 
+-  # ─── Epic 5: Seed Data & Demo Readiness ──────────────────────────────────────
++  # ─── Epic 5: Seed Data & Demo Readiness ───
+   epic-5: done
+   5-1-sample-organisation-seed-data: done
+   5-2-readme-completion-and-demo-smoke-test: done
+   epic-5-retrospective: done
+ 
+-  # ─── Epic 6: Foundational Schema Migration to Systems Model ────────────────────
++  # ─── Epic 6: Foundational Schema Migration to Systems Model ───
+   epic-6: done
+   6-1-migration-a-add-system-and-organisationsystem-schema-additive: done
+   6-2-migration-b-backfill-systems-and-organisation-links-custom-sql: done
+   6-3-updatedat-on-system-organisationsystem-and-seed-reshape: done
+   epic-6-retrospective: done
+ 
+-  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ─────────────────────
++  # ─── Epic 7: System Catalogue — Full CRUD with Provenance ───
+   epic-7: done
+   7-1-system-rest-api-list-detail-search-filters: done
+   7-2-system-rest-api-create-update-delete: done
+@@ -94,7 +94,7 @@ development_status:
+   7-6-system-create-edit-form: done
+   epic-7-retrospective: done
+ 
+-  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───────────────
++  # ─── Epic 8: Organisation–System Linking & Organisation Re-shape ───
+   epic-8: done
+   8-1-organisation-system-link-api-junction-crud: done
+   8-2-organisation-api-filter-and-response-re-shape: done
+@@ -104,16 +104,53 @@ development_status:
+   8-6-organisationcard-system-chips-and-compare-view-updates: done
+   epic-8-retrospective: done
+ 
+-  # ─── Epic 9: System-to-System Compare ──────────────────────────────────────────
++  # ─── Epic 9: System-to-System Compare ───
+   epic-9: done
+   9-1-compare-route-shell-compare-systems-and-compare-organisations: done
+   9-2-systemcard-component-compare-column: done
+   9-3-compare-union-panel-and-contextual-compare-entry-points: done
+   epic-9-retrospective: done
+ 
+-  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ──────────────────
+-  epic-10: in-progress
++  # ─── Epic 10: Legacy Schema Decommission & v2 Documentation ───
++  epic-10: done
+   10-1-migration-c-drop-legacy-lookup-tables-and-fk-columns: done
+   10-2-drop-legacy-meta-endpoints-and-frontend-helpers: done
+-  10-3-readme-and-docs-decisions-md-v2-updates: backlog
+-  epic-10-retrospective: optional
++  10-3-readme-and-docs-decisions-md-v2-updates: done
++  epic-10-retrospective: done
++
++  # ─── Epic 11: Source per Data Point ───
++  epic-11: done
++  11-1-migration-a-add-field-sources-column: done
++  11-2-api-contract-accept-and-return-field-sources: done
++  11-3-detail-and-compare-field-source-icon-rendering: done
++  11-4-forms-field-with-source-wrapper: done
++  11-5-seed-data-research-populate-field-sources: done
++  epic-11-retrospective: optional
++
++  # ─── Epic 12: System Capability Expansion ───
++  epic-12: backlog
++  12-1-migration-b-add-system-capability-columns: done
++  12-2-api-accept-and-filter-five-new-capabilities: done
++  12-3-form-detail-compare-render-five-new-capabilities: review
++  12-4-system-list-filter-sidebar-collapsible-more-capabilities: ready-for-dev
++  12-5-seed-populate-five-new-capabilities-and-field-sources: ready-for-dev
++  epic-12-retrospective: optional
++
++  # ─── Epic 13: Custom Attribute Editor ───
++  epic-13: backlog
++  13-1-api-accept-custom-attributes-on-system-create-and-update: ready-for-dev
++  13-2-system-form-custom-attribute-editor-component: ready-for-dev
++  epic-13-retrospective: optional
++
++  # ─── Epic 14: List Sorting ───
++  epic-14: backlog
++  14-1-api-sort-and-order-on-list-endpoints: ready-for-dev
++  14-2-list-pages-sort-dropdown-and-url-persistence: ready-for-dev
++  epic-14-retrospective: optional
++
++  # ─── Epic 15: Organisation Duplicate Guard ───
++  epic-15: backlog
++  15-1-migration-c-organisation-composite-unique: ready-for-dev
++  15-2-new-endpoint-check-similar-organisations: ready-for-dev
++  15-3-organisation-form-similar-organisations-warning: ready-for-dev
++  epic-15-retrospective: optional
+diff --git a/frontend/src/components/SystemCard.jsx b/frontend/src/components/SystemCard.jsx
+index 69b853b..19c5a16 100644
+--- a/frontend/src/components/SystemCard.jsx
++++ b/frontend/src/components/SystemCard.jsx
+@@ -1,4 +1,4 @@
+-import { useLayoutEffect, useMemo, useRef, useState } from 'react'
++import { Fragment, useLayoutEffect, useMemo, useRef, useState } from 'react'
+ import { X } from 'lucide-react'
+ import { Link } from 'react-router-dom'
+ import { SystemNotFoundError } from '../api/systems.js'
+@@ -7,13 +7,16 @@ import { CompareColumnShell } from './CompareColumnShell.jsx'
+ import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
+ import { Button } from './ui/button.jsx'
+ import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
++import { pickFieldSourceUrl, systemCompareRowFieldSourceKey } from '../lib/field-source-keys.js'
+ import {
+   SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT,
+   buildSystemCompareRowLabels,
+   findCustomAttributeByLabel,
+   systemCompareSectionDividerRowIndexes,
+ } from '../lib/system-compare-union-labels.js'
++import FieldSourceIcon from './FieldSourceIcon.jsx'
+ import { cn } from '../lib/utils.js'
++import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
+ 
+ const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
+ 
+@@ -338,8 +341,36 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
+   const adoptionCount = orgs.length
+ 
+   const attrs = Array.isArray(sys.customAttributes) ? sys.customAttributes : []
++  const capabilityBlockStartRow = 6
++  const descriptionRowIndex = capabilityBlockStartRow + CAPABILITY_ROWS.length
++  const sourceReferenceRowIndex = descriptionRowIndex + 1
++  const lastUpdatedRowIndex = descriptionRowIndex + 2
+   const unionStartRow = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT + 2
+   const L = unionCustomAttributeLabels.length
++  const fieldSources = sys.fieldSources
++
++  /**
++   * @param {number} rowIndex
++   * @param {string} fieldLabel
++   * @param {import('react').ReactNode} node
++   */
++  const cellWithFieldSource = (rowIndex, fieldLabel, node) => {
++    const k = systemCompareRowFieldSourceKey(rowIndex, L)
++    const showIcon = compareGridColumn != null && k
++    return (
++      <div className={bodyRowClass(rowIndex)}>
++        <span className="inline-flex min-w-0 items-center gap-1">
++          {node}
++          {showIcon ? (
++            <>
++              {/* Per-field source only; compare grid only — matches OrganisationCard compare variant (Story 11.3). */}
++              <FieldSourceIcon url={pickFieldSourceUrl(fieldSources, k)} fieldLabel={fieldLabel} />
++            </>
++          ) : null}
++        </span>
++      </div>
++    )
++  }
+ 
+   const inner = (
+     <>
+@@ -379,31 +410,27 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
+         </div>
+       </div>
+ 
+-      <div className={bodyRowClass(0)}>{scalarCompareCell(sys.name)}</div>
+-      <div className={bodyRowClass(1)}>{scalarCompareCell(sys.vendor)}</div>
+-      <div className={bodyRowClass(2)}>
+-        <SystemCategoryBadge category={sys.category} />
+-      </div>
+-      <div className={bodyRowClass(3)}>{scalarCompareCell(sys.deploymentModel)}</div>
+-      <div className={bodyRowClass(4)}>{scalarCompareCell(sys.pricingModel)}</div>
+-      <div className={bodyRowClass(5)}>{scalarCompareCell(sys.geographicFocus)}</div>
+-      <div className={bodyRowClass(6)}>
+-        <CapabilityBadge variant="labelled" value={sys.membershipCapability} />
+-      </div>
+-      <div className={bodyRowClass(7)}>
+-        <CapabilityBadge variant="labelled" value={sys.donationCapability} />
+-      </div>
+-      <div className={bodyRowClass(8)}>
+-        <CapabilityBadge variant="labelled" value={sys.reservedSeatingCapability} />
+-      </div>
+-      <div className={bodyRowClass(9)}>
+-        <DescriptionCompareCell text={sys.description} />
+-      </div>
++      {cellWithFieldSource(0, 'Name', scalarCompareCell(sys.name))}
++      {cellWithFieldSource(1, 'Vendor', scalarCompareCell(sys.vendor))}
++      {cellWithFieldSource(2, 'Category', <SystemCategoryBadge category={sys.category} />)}
++      {cellWithFieldSource(3, 'Deployment model', scalarCompareCell(sys.deploymentModel))}
++      {cellWithFieldSource(4, 'Pricing model', scalarCompareCell(sys.pricingModel))}
++      {cellWithFieldSource(5, 'Geographic focus', scalarCompareCell(sys.geographicFocus))}
++      {CAPABILITY_ROWS.map(({ key: capKey, label }, i) => (
++        <Fragment key={capKey}>
++          {cellWithFieldSource(
++            capabilityBlockStartRow + i,
++            label,
++            <CapabilityBadge variant="labelled" value={sys[capKey]} />,
++          )}
++        </Fragment>
++      ))}
++      {cellWithFieldSource(descriptionRowIndex, 'Description', <DescriptionCompareCell text={sys.description} />)}
+ 
+-      <div className={bodyRowClass(10)}>
++      <div className={bodyRowClass(sourceReferenceRowIndex)}>
+         <SourceReferenceDisplay value={sys.sourceReference} emptyLabel="None recorded" />
+       </div>
+-      <div className={bodyRowClass(11)}>
++      <div className={bodyRowClass(lastUpdatedRowIndex)}>
+         <span className="text-xs text-slate-500">{formatLastUpdated(sys.lastUpdated)}</span>
+       </div>
+ 
+diff --git a/frontend/src/lib/system-compare-union-labels.js b/frontend/src/lib/system-compare-union-labels.js
+index a04cbe4..e6dc9fe 100644
+--- a/frontend/src/lib/system-compare-union-labels.js
++++ b/frontend/src/lib/system-compare-union-labels.js
+@@ -1,16 +1,19 @@
+ import { buildUnionCustomAttributeLabels } from './system-compare-custom-attributes.js'
++import { CAPABILITY_ROWS } from './system-capabilities.js'
+ 
+-/** Static compare row labels before custom-attribute union rows (Epic 9.3 order). */
+-export const SYSTEM_COMPARE_ROW_LABEL_PREFIX = [
++const SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX = [
+   'Name',
+   'Vendor',
+   'Category',
+   'Deployment model',
+   'Pricing model',
+   'Geographic focus',
+-  'Membership capability',
+-  'Donation capability',
+-  'Reserved seating capability',
++]
++
++/** Static compare row labels before custom-attribute union rows (Epic 9.3 + Story 12.3 capabilities). */
++export const SYSTEM_COMPARE_ROW_LABEL_PREFIX = [
++  ...SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX,
++  ...CAPABILITY_ROWS.map((r) => r.label),
+   'Description',
+ ]
+ 
+@@ -31,7 +34,8 @@ export function systemCompareSectionDividerRowIndexes(unionLabelCount) {
+   const provenanceStart = SYSTEM_COMPARE_STATIC_PREFIX_ROW_COUNT
+   const unionStart = provenanceStart + PROVENANCE_ROW_LABELS.length
+   const adoptedStart = unionStart + L
+-  const set = new Set([6, 9])
++  const descriptionRowIndex = SYSTEM_COMPARE_PRE_CAPABILITY_PREFIX.length + CAPABILITY_ROWS.length
++  const set = new Set([6, descriptionRowIndex])
+   set.add(provenanceStart)
+   if (L > 0) set.add(unionStart)
+   set.add(adoptedStart)
+diff --git a/frontend/src/lib/system-compare-union-labels.test.js b/frontend/src/lib/system-compare-union-labels.test.js
+index a412eab..367e734 100644
+--- a/frontend/src/lib/system-compare-union-labels.test.js
++++ b/frontend/src/lib/system-compare-union-labels.test.js
+@@ -79,7 +79,8 @@ describe('buildSystemCompareRowLabels', () => {
+     const rows = buildSystemCompareRowLabels(['A', 'B'])
+     expect(rows).toContain('Description')
+     expect(rows).toContain('Deployment model')
+-    expect(rows).toContain('Membership capability')
++    expect(rows).toContain('Membership')
++    expect(rows).toContain('Season subscriptions')
+     const descIdx = rows.indexOf('Description')
+     const srcIdx = rows.indexOf('Source reference')
+     const lastIdx = rows.indexOf('Last updated')
+@@ -99,15 +100,15 @@ describe('systemCompareSectionDividerRowIndexes', () => {
+   it('includes provenance and adopted starts when union is empty', () => {
+     const s = systemCompareSectionDividerRowIndexes(0)
+     expect(s.has(6)).toBe(true)
+-    expect(s.has(9)).toBe(true)
+-    expect(s.has(10)).toBe(true)
+-    expect(s.has(12)).toBe(true)
++    expect(s.has(14)).toBe(true)
++    expect(s.has(15)).toBe(true)
++    expect(s.has(17)).toBe(true)
+   })
+ 
+   it('includes union start when union is non-empty', () => {
+     const s = systemCompareSectionDividerRowIndexes(2)
+-    expect(s.has(10)).toBe(true)
+-    expect(s.has(12)).toBe(true)
+-    expect(s.has(14)).toBe(true)
++    expect(s.has(15)).toBe(true)
++    expect(s.has(17)).toBe(true)
++    expect(s.has(19)).toBe(true)
+   })
+ })
+diff --git a/frontend/src/pages/SystemComparePage.jsx b/frontend/src/pages/SystemComparePage.jsx
+index 64ffa92..105a599 100644
+--- a/frontend/src/pages/SystemComparePage.jsx
++++ b/frontend/src/pages/SystemComparePage.jsx
+@@ -10,6 +10,7 @@ import { MAX_SYSTEM_COMPARE_IDS, parseCompareIds } from '../lib/compare-url-para
+ import { useCompareSystems } from '../hooks/useCompareSystems.js'
+ import { cn } from '../lib/utils.js'
+ 
++/** Data rows per column use `systemCompareRowFieldSourceKey` / `SystemCard` (field-sources mapping matches `SYSTEM_COMPARE_ROW_LABEL_PREFIX`). */
+ export default function SystemComparePage() {
+   const [searchParams, setSearchParams] = useSearchParams()
+   const idsParam = searchParams.get('ids')
+diff --git a/frontend/src/pages/SystemDetailPage.jsx b/frontend/src/pages/SystemDetailPage.jsx
+index 713060a..3a6c290 100644
+--- a/frontend/src/pages/SystemDetailPage.jsx
++++ b/frontend/src/pages/SystemDetailPage.jsx
+@@ -16,6 +16,9 @@ import {
+   DialogTrigger,
+ } from '../components/ui/dialog.jsx'
+ import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
++import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
++import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
++import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
+ 
+ const BANNER_MS = 5000
+ 
+@@ -544,27 +547,68 @@ export default function SystemDetailPage() {
+           <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+             <h2 className="mb-4 text-sm font-semibold text-slate-700">System details</h2>
+             <dl className="space-y-3">
+-              <FactRow label="Vendor">{displayText(data.vendor)}</FactRow>
++              <FactRow label="Vendor">
++                <span className="inline-flex items-center gap-1">
++                  {displayText(data.vendor)}
++                  {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'vendor')}
++                    fieldLabel="Vendor"
++                  />
++                </span>
++              </FactRow>
+               <FactRow label="Category">
+-                <SystemCategoryBadge category={data.category} />
++                <span className="inline-flex items-center gap-1">
++                  <SystemCategoryBadge category={data.category} />
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'category')}
++                    fieldLabel="Category"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Deployment">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.deploymentModel)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'deploymentModel')}
++                    fieldLabel="Deployment"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Pricing model">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.pricingModel)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'pricingModel')}
++                    fieldLabel="Pricing model"
++                  />
++                </span>
++              </FactRow>
++              <FactRow label="Geographic focus">
++                <span className="inline-flex items-center gap-1">
++                  {displayNullable(data.geographicFocus)}
++                  <FieldSourceIcon
++                    url={pickFieldSourceUrl(data.fieldSources, 'geographicFocus')}
++                    fieldLabel="Geographic focus"
++                  />
++                </span>
+               </FactRow>
+-              <FactRow label="Deployment">{displayNullable(data.deploymentModel)}</FactRow>
+-              <FactRow label="Pricing model">{displayNullable(data.pricingModel)}</FactRow>
+-              <FactRow label="Geographic focus">{displayNullable(data.geographicFocus)}</FactRow>
+               {data.description != null && (
+                 <FactRow label="Description">
+                   <span className="text-sm text-slate-700">{data.description}</span>
+                 </FactRow>
+               )}
+-              <FactRow label="Membership">
+-                <CapabilityBadge value={data.membershipCapability} variant="labelled" />
+-              </FactRow>
+-              <FactRow label="Donation">
+-                <CapabilityBadge value={data.donationCapability} variant="labelled" />
+-              </FactRow>
+-              <FactRow label="Reserved seating">
+-                <CapabilityBadge value={data.reservedSeatingCapability} variant="labelled" />
+-              </FactRow>
++              {CAPABILITY_ROWS.map(({ key, label }) => (
++                <FactRow key={key} label={label}>
++                  <span className="inline-flex items-center gap-1">
++                    <CapabilityBadge value={data[key]} variant="labelled" />
++                    <FieldSourceIcon
++                      url={pickFieldSourceUrl(data.fieldSources, key)}
++                      fieldLabel={label}
++                    />
++                  </span>
++                </FactRow>
++              ))}
+               <FactRow label="Source reference">
+                 <SourceReferenceDisplay value={data.sourceReference} />
+               </FactRow>
+diff --git a/frontend/src/pages/SystemFormPage.jsx b/frontend/src/pages/SystemFormPage.jsx
+index 822bafd..dd54c82 100644
+--- a/frontend/src/pages/SystemFormPage.jsx
++++ b/frontend/src/pages/SystemFormPage.jsx
+@@ -1,11 +1,19 @@
+ import { useCallback, useEffect, useMemo, useRef, useState, startTransition } from 'react'
+ import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
+ import { Button } from '../components/ui/button.jsx'
++import FieldWithSource from '../components/FieldWithSource.jsx'
+ import { useCreateSystem } from '../hooks/useCreateSystem.js'
+ import { useUpdateSystem } from '../hooks/useUpdateSystem.js'
+ import { useSystem } from '../hooks/useSystem.js'
+ import { SystemNotFoundError } from '../api/systems.js'
+ import { SYSTEM_GEOGRAPHIC_FOCUS } from '../lib/system-geographic-focus.js'
++import {
++  buildFieldSourcesPayload,
++  mapServerFieldErrorsToSummaryAndSources,
++  normaliseFieldSourcesFromDto,
++} from '../lib/field-sources-form.js'
++import { SOURCE_URL_CLIENT_ERROR, isValidSourceUrl } from '../lib/source-url-validation.js'
++import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
+ 
+ const FIELD_IDS = {
+   name: 'field-sys-name',
+@@ -18,6 +26,11 @@ const FIELD_IDS = {
+   membershipCapability: 'field-sys-membership',
+   donationCapability: 'field-sys-donation',
+   reservedSeatingCapability: 'field-sys-seating',
++  seasonSubscriptionsCapability: 'field-sys-season-subscriptions',
++  dynamicPricingCapability: 'field-sys-dynamic-pricing',
++  multiVenueSupportCapability: 'field-sys-multi-venue',
++  marketingAutomationCapability: 'field-sys-marketing-automation',
++  accessibilityFeaturesCapability: 'field-sys-accessibility',
+   sourceReference: 'field-sys-source',
+ }
+ 
+@@ -29,6 +42,11 @@ const API_ERROR_FIELD_TO_FORM = {
+   membership_capability: 'membershipCapability',
+   donation_capability: 'donationCapability',
+   reserved_seating_capability: 'reservedSeatingCapability',
++  season_subscriptions_capability: 'seasonSubscriptionsCapability',
++  dynamic_pricing_capability: 'dynamicPricingCapability',
++  multi_venue_support_capability: 'multiVenueSupportCapability',
++  marketing_automation_capability: 'marketingAutomationCapability',
++  accessibility_features_capability: 'accessibilityFeaturesCapability',
+   source_reference: 'sourceReference',
+ }
+ 
+@@ -115,6 +133,11 @@ function initialFormState() {
+     membershipCapability: 'UNKNOWN',
+     donationCapability: 'UNKNOWN',
+     reservedSeatingCapability: 'UNKNOWN',
++    seasonSubscriptionsCapability: 'UNKNOWN',
++    dynamicPricingCapability: 'UNKNOWN',
++    multiVenueSupportCapability: 'UNKNOWN',
++    marketingAutomationCapability: 'UNKNOWN',
++    accessibilityFeaturesCapability: 'UNKNOWN',
+     sourceReference: '',
+   }
+ }
+@@ -132,11 +155,16 @@ function dtoToFormState(dto) {
+     membershipCapability: String(dto.membershipCapability ?? 'UNKNOWN').toUpperCase(),
+     donationCapability: String(dto.donationCapability ?? 'UNKNOWN').toUpperCase(),
+     reservedSeatingCapability: String(dto.reservedSeatingCapability ?? 'UNKNOWN').toUpperCase(),
++    seasonSubscriptionsCapability: String(dto.seasonSubscriptionsCapability ?? 'UNKNOWN').toUpperCase(),
++    dynamicPricingCapability: String(dto.dynamicPricingCapability ?? 'UNKNOWN').toUpperCase(),
++    multiVenueSupportCapability: String(dto.multiVenueSupportCapability ?? 'UNKNOWN').toUpperCase(),
++    marketingAutomationCapability: String(dto.marketingAutomationCapability ?? 'UNKNOWN').toUpperCase(),
++    accessibilityFeaturesCapability: String(dto.accessibilityFeaturesCapability ?? 'UNKNOWN').toUpperCase(),
+     sourceReference: dto.sourceReference != null ? String(dto.sourceReference) : '',
+   }
+ }
+ 
+-function buildSubmitBody(form) {
++function buildSubmitBody(form, fieldSources) {
+   const body = {
+     name: form.name.trim(),
+     vendor: form.vendor.trim(),
+@@ -144,6 +172,12 @@ function buildSubmitBody(form) {
+     membershipCapability: form.membershipCapability,
+     donationCapability: form.donationCapability,
+     reservedSeatingCapability: form.reservedSeatingCapability,
++    seasonSubscriptionsCapability: form.seasonSubscriptionsCapability,
++    dynamicPricingCapability: form.dynamicPricingCapability,
++    multiVenueSupportCapability: form.multiVenueSupportCapability,
++    marketingAutomationCapability: form.marketingAutomationCapability,
++    accessibilityFeaturesCapability: form.accessibilityFeaturesCapability,
++    fieldSources: buildFieldSourcesPayload(fieldSources),
+   }
+   if (form.deploymentModel) body.deploymentModel = form.deploymentModel
+   if (form.pricingModel) body.pricingModel = form.pricingModel
+@@ -172,11 +206,19 @@ function SystemFormBody({
+   title,
+   form,
+   setField,
++  fieldSources,
++  onFieldSourceChange,
++  onFieldSourceBlur,
++  sourceErrors,
+   summaryErrors,
+   submitError,
+   mutation,
+   onSubmit,
+ }) {
++  const hasSourceUrlErrors = useMemo(
++    () => Object.values(sourceErrors).some(Boolean),
++    [sourceErrors],
++  )
+   const invalidFields = useMemo(() => new Set(summaryErrors.map((e) => e.field)), [summaryErrors])
+ 
+   const fieldMessages = useMemo(() => {
+@@ -198,12 +240,6 @@ function SystemFormBody({
+     return ids.length > 0 ? ids.join(' ') : undefined
+   }
+ 
+-  const capSel = /** @type {const} */ ([
+-    ['membershipCapability', 'Membership capability', FIELD_IDS.membershipCapability],
+-    ['donationCapability', 'Donation capability', FIELD_IDS.donationCapability],
+-    ['reservedSeatingCapability', 'Reserved seating capability', FIELD_IDS.reservedSeatingCapability],
+-  ])
+-
+   return (
+     <div className="py-8">
+       {backLink}
+@@ -267,140 +303,185 @@ function SystemFormBody({
+           <FieldInlineError id={`${FIELD_IDS.name}-error`} message={fieldMessages.get('name')} />
+         </div>
+ 
+-        <div className="max-w-md">
+-          <label htmlFor={FIELD_IDS.vendor} className="mb-1 block text-sm font-medium text-slate-800">
+-            Vendor
+-          </label>
+-          <p id={`${FIELD_IDS.vendor}-hint`} className="mt-1 text-sm text-slate-600">
+-            The supplier organisation (e.g. &quot;Tessitura Network&quot;).
+-          </p>
+-          <input
+-            id={FIELD_IDS.vendor}
+-            name="vendor"
+-            type="text"
+-            value={form.vendor}
+-            onChange={(e) => setField('vendor', e.target.value)}
+-            aria-invalid={invalidFields.has('vendor')}
+-            aria-describedby={controlDescribedBy(
+-              FIELD_IDS.vendor,
+-              'vendor',
+-              `${FIELD_IDS.vendor}-hint`,
+-            )}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('vendor')}`}
+-          />
+-          <FieldInlineError id={`${FIELD_IDS.vendor}-error`} message={fieldMessages.get('vendor')} />
+-        </div>
+-
+-        <div className="max-w-xs">
+-          <label htmlFor={FIELD_IDS.category} className="mb-1 block text-sm font-medium text-slate-800">
+-            Category
+-          </label>
+-          <select
+-            id={FIELD_IDS.category}
+-            name="category"
+-            value={form.category}
+-            onChange={(e) => setField('category', e.target.value)}
+-            aria-invalid={invalidFields.has('category')}
+-            aria-describedby={controlDescribedBy(FIELD_IDS.category, 'category')}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('category')}`}
+-          >
+-            <option value="">Select a category</option>
+-            {CATEGORY_OPTIONS.map((o) => (
+-              <option key={o.value} value={o.value}>
+-                {o.label}
+-              </option>
+-            ))}
+-          </select>
+-          <FieldInlineError
+-            id={`${FIELD_IDS.category}-error`}
+-            message={fieldMessages.get('category')}
+-          />
+-        </div>
+-
+-        <div className="max-w-xs">
+-          <label
+-            htmlFor={FIELD_IDS.deploymentModel}
+-            className="mb-1 block text-sm font-medium text-slate-800"
+-          >
+-            Deployment model{' '}
+-            <span className="font-normal text-slate-500">(optional)</span>
+-          </label>
+-          <select
+-            id={FIELD_IDS.deploymentModel}
+-            name="deploymentModel"
+-            value={form.deploymentModel}
+-            onChange={(e) => setField('deploymentModel', e.target.value)}
+-            aria-invalid={invalidFields.has('deploymentModel')}
+-            aria-describedby={controlDescribedBy(FIELD_IDS.deploymentModel, 'deploymentModel')}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('deploymentModel')}`}
+-          >
+-            <option value="">Select deployment model (optional)</option>
+-            {DEPLOYMENT_OPTIONS.map((o) => (
+-              <option key={o.value} value={o.value}>
+-                {o.label}
+-              </option>
+-            ))}
+-          </select>
+-          <FieldInlineError
+-            id={`${FIELD_IDS.deploymentModel}-error`}
+-            message={fieldMessages.get('deploymentModel')}
+-          />
+-        </div>
+-
+-        <div className="max-w-xs">
+-          <label htmlFor={FIELD_IDS.pricingModel} className="mb-1 block text-sm font-medium text-slate-800">
+-            Pricing model <span className="font-normal text-slate-500">(optional)</span>
+-          </label>
+-          <select
+-            id={FIELD_IDS.pricingModel}
+-            name="pricingModel"
+-            value={form.pricingModel}
+-            onChange={(e) => setField('pricingModel', e.target.value)}
+-            aria-invalid={invalidFields.has('pricingModel')}
+-            aria-describedby={controlDescribedBy(FIELD_IDS.pricingModel, 'pricingModel')}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('pricingModel')}`}
+-          >
+-            <option value="">—</option>
+-            {PRICING_OPTIONS.map((o) => (
+-              <option key={o.value} value={o.value}>
+-                {o.label}
+-              </option>
+-            ))}
+-          </select>
+-          <FieldInlineError
+-            id={`${FIELD_IDS.pricingModel}-error`}
+-            message={fieldMessages.get('pricingModel')}
+-          />
+-        </div>
+-
+-        <div className="max-w-xs">
+-          <label
+-            htmlFor={FIELD_IDS.geographicFocus}
+-            className="mb-1 block text-sm font-medium text-slate-800"
+-          >
+-            Geographic focus <span className="font-normal text-slate-500">(optional)</span>
+-          </label>
+-          <select
+-            id={FIELD_IDS.geographicFocus}
+-            name="geographicFocus"
+-            value={form.geographicFocus}
+-            onChange={(e) => setField('geographicFocus', e.target.value)}
+-            aria-invalid={invalidFields.has('geographicFocus')}
+-            aria-describedby={controlDescribedBy(FIELD_IDS.geographicFocus, 'geographicFocus')}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('geographicFocus')}`}
+-          >
+-            <option value="">—</option>
+-            {SYSTEM_GEOGRAPHIC_FOCUS.map((g) => (
+-              <option key={g} value={g}>
+-                {g}
+-              </option>
+-            ))}
+-          </select>
+-          <FieldInlineError
+-            id={`${FIELD_IDS.geographicFocus}-error`}
+-            message={fieldMessages.get('geographicFocus')}
+-          />
+-        </div>
++        <FieldWithSource
++          fieldName="vendor"
++          label="Vendor"
++          sourceValue={fieldSources.vendor ?? ''}
++          onSourceChange={onFieldSourceChange}
++          onSourceBlur={onFieldSourceBlur}
++          sourceError={sourceErrors.vendor}
++        >
++          <div className="max-w-md">
++            <label htmlFor={FIELD_IDS.vendor} className="mb-1 block text-sm font-medium text-slate-800">
++              Vendor
++            </label>
++            <p id={`${FIELD_IDS.vendor}-hint`} className="mt-1 text-sm text-slate-600">
++              The supplier organisation (e.g. &quot;Tessitura Network&quot;).
++            </p>
++            <input
++              id={FIELD_IDS.vendor}
++              name="vendor"
++              type="text"
++              value={form.vendor}
++              onChange={(e) => setField('vendor', e.target.value)}
++              aria-invalid={invalidFields.has('vendor')}
++              aria-describedby={controlDescribedBy(
++                FIELD_IDS.vendor,
++                'vendor',
++                `${FIELD_IDS.vendor}-hint`,
++              )}
++              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('vendor')}`}
++            />
++            <FieldInlineError id={`${FIELD_IDS.vendor}-error`} message={fieldMessages.get('vendor')} />
++          </div>
++        </FieldWithSource>
++
++        <FieldWithSource
++          fieldName="category"
++          label="Category"
++          sourceValue={fieldSources.category ?? ''}
++          onSourceChange={onFieldSourceChange}
++          onSourceBlur={onFieldSourceBlur}
++          sourceError={sourceErrors.category}
++        >
++          <div className="max-w-xs">
++            <label htmlFor={FIELD_IDS.category} className="mb-1 block text-sm font-medium text-slate-800">
++              Category
++            </label>
++            <select
++              id={FIELD_IDS.category}
++              name="category"
++              value={form.category}
++              onChange={(e) => setField('category', e.target.value)}
++              aria-invalid={invalidFields.has('category')}
++              aria-describedby={controlDescribedBy(FIELD_IDS.category, 'category')}
++              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('category')}`}
++            >
++              <option value="">Select a category</option>
++              {CATEGORY_OPTIONS.map((o) => (
++                <option key={o.value} value={o.value}>
++                  {o.label}
++                </option>
++              ))}
++            </select>
++            <FieldInlineError
++              id={`${FIELD_IDS.category}-error`}
++              message={fieldMessages.get('category')}
++            />
++          </div>
++        </FieldWithSource>
++
++        <FieldWithSource
++          fieldName="deploymentModel"
++          label="Deployment model"
++          sourceValue={fieldSources.deploymentModel ?? ''}
++          onSourceChange={onFieldSourceChange}
++          onSourceBlur={onFieldSourceBlur}
++          sourceError={sourceErrors.deploymentModel}
++        >
++          <div className="max-w-xs">
++            <label
++              htmlFor={FIELD_IDS.deploymentModel}
++              className="mb-1 block text-sm font-medium text-slate-800"
++            >
++              Deployment model{' '}
++              <span className="font-normal text-slate-500">(optional)</span>
++            </label>
++            <select
++              id={FIELD_IDS.deploymentModel}
++              name="deploymentModel"
++              value={form.deploymentModel}
++              onChange={(e) => setField('deploymentModel', e.target.value)}
++              aria-invalid={invalidFields.has('deploymentModel')}
++              aria-describedby={controlDescribedBy(FIELD_IDS.deploymentModel, 'deploymentModel')}
++              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('deploymentModel')}`}
++            >
++              <option value="">Select deployment model (optional)</option>
++              {DEPLOYMENT_OPTIONS.map((o) => (
++                <option key={o.value} value={o.value}>
++                  {o.label}
++                </option>
++              ))}
++            </select>
++            <FieldInlineError
++              id={`${FIELD_IDS.deploymentModel}-error`}
++              message={fieldMessages.get('deploymentModel')}
++            />
++          </div>
++        </FieldWithSource>
++
++        <FieldWithSource
++          fieldName="pricingModel"
++          label="Pricing model"
++          sourceValue={fieldSources.pricingModel ?? ''}
++          onSourceChange={onFieldSourceChange}
++          onSourceBlur={onFieldSourceBlur}
++          sourceError={sourceErrors.pricingModel}
++        >
++          <div className="max-w-xs">
++            <label htmlFor={FIELD_IDS.pricingModel} className="mb-1 block text-sm font-medium text-slate-800">
++              Pricing model <span className="font-normal text-slate-500">(optional)</span>
++            </label>
++            <select
++              id={FIELD_IDS.pricingModel}
++              name="pricingModel"
++              value={form.pricingModel}
++              onChange={(e) => setField('pricingModel', e.target.value)}
++              aria-invalid={invalidFields.has('pricingModel')}
++              aria-describedby={controlDescribedBy(FIELD_IDS.pricingModel, 'pricingModel')}
++              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('pricingModel')}`}
++            >
++              <option value="">—</option>
++              {PRICING_OPTIONS.map((o) => (
++                <option key={o.value} value={o.value}>
++                  {o.label}
++                </option>
++              ))}
++            </select>
++            <FieldInlineError
++              id={`${FIELD_IDS.pricingModel}-error`}
++              message={fieldMessages.get('pricingModel')}
++            />
++          </div>
++        </FieldWithSource>
++
++        <FieldWithSource
++          fieldName="geographicFocus"
++          label="Geographic focus"
++          sourceValue={fieldSources.geographicFocus ?? ''}
++          onSourceChange={onFieldSourceChange}
++          onSourceBlur={onFieldSourceBlur}
++          sourceError={sourceErrors.geographicFocus}
++        >
++          <div className="max-w-xs">
++            <label
++              htmlFor={FIELD_IDS.geographicFocus}
++              className="mb-1 block text-sm font-medium text-slate-800"
++            >
++              Geographic focus <span className="font-normal text-slate-500">(optional)</span>
++            </label>
++            <select
++              id={FIELD_IDS.geographicFocus}
++              name="geographicFocus"
++              value={form.geographicFocus}
++              onChange={(e) => setField('geographicFocus', e.target.value)}
++              aria-invalid={invalidFields.has('geographicFocus')}
++              aria-describedby={controlDescribedBy(FIELD_IDS.geographicFocus, 'geographicFocus')}
++              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('geographicFocus')}`}
++            >
++              <option value="">—</option>
++              {SYSTEM_GEOGRAPHIC_FOCUS.map((g) => (
++                <option key={g} value={g}>
++                  {g}
++                </option>
++              ))}
++            </select>
++            <FieldInlineError
++              id={`${FIELD_IDS.geographicFocus}-error`}
++              message={fieldMessages.get('geographicFocus')}
++            />
++          </div>
++        </FieldWithSource>
+ 
+         <div className="w-full max-w-none">
+           <label
+@@ -432,27 +513,43 @@ function SystemFormBody({
+           />
+         </div>
+ 
+-        {capSel.map(([key, label, fid]) => (
+-          <div key={fid} className="max-w-xs">
+-            <label htmlFor={fid} className="mb-1 block text-sm font-medium text-slate-800">
+-              {label}
+-            </label>
+-            <select
+-              id={fid}
+-              name={key}
+-              value={form[key]}
+-              onChange={(e) => setField(key, e.target.value)}
+-              aria-invalid={invalidFields.has(key)}
+-              aria-describedby={controlDescribedBy(fid, key)}
+-            className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError(key)}`}
+-            >
+-              <option value="UNKNOWN">Unknown</option>
+-              <option value="YES">Yes</option>
+-              <option value="NO">No</option>
+-            </select>
+-            <FieldInlineError id={`${fid}-error`} message={fieldMessages.get(key)} />
+-          </div>
+-        ))}
++        <div className="space-y-6">
++          <h2 className="text-base font-semibold text-slate-800">Capabilities</h2>
++          {CAPABILITY_ROWS.map(({ key, label }) => {
++            const fid = FIELD_IDS[key]
++            return (
++              <FieldWithSource
++                key={fid}
++                fieldName={key}
++                label={label}
++                sourceValue={fieldSources[key] ?? ''}
++                onSourceChange={onFieldSourceChange}
++                onSourceBlur={onFieldSourceBlur}
++                sourceError={sourceErrors[key]}
++              >
++                <div className="max-w-xs">
++                  <label htmlFor={fid} className="mb-1 block text-sm font-medium text-slate-800">
++                    {label}
++                  </label>
++                  <select
++                    id={fid}
++                    name={key}
++                    value={form[key]}
++                    onChange={(e) => setField(key, e.target.value)}
++                    aria-invalid={invalidFields.has(key)}
++                    aria-describedby={controlDescribedBy(fid, key)}
++                    className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError(key)}`}
++                  >
++                    <option value="UNKNOWN">Unknown</option>
++                    <option value="YES">Yes</option>
++                    <option value="NO">No</option>
++                  </select>
++                  <FieldInlineError id={`${fid}-error`} message={fieldMessages.get(key)} />
++                </div>
++              </FieldWithSource>
++            )
++          })}
++        </div>
+ 
+         <div className="w-full max-w-none">
+           <label
+@@ -490,7 +587,11 @@ function SystemFormBody({
+         </div>
+ 
+         <div className="pt-2">
+-          <Button type="submit" disabled={mutation.isPending} className="bg-blue-600 hover:bg-blue-700">
++          <Button
++            type="submit"
++            disabled={mutation.isPending || hasSourceUrlErrors}
++            className="bg-blue-600 hover:bg-blue-700"
++          >
+             {mutation.isPending ? (
+               <span className="inline-flex items-center gap-2">
+                 <span
+@@ -512,6 +613,8 @@ function SystemFormBody({
+ function SystemCreateForm() {
+   const navigate = useNavigate()
+   const [form, setForm] = useState(initialFormState)
++  const [fieldSources, setFieldSources] = useState({})
++  const [sourceErrors, setSourceErrors] = useState({})
+   const [summaryErrors, setSummaryErrors] = useState([])
+   const [submitError, setSubmitError] = useState(null)
+   const mutation = useCreateSystem()
+@@ -520,6 +623,31 @@ function SystemCreateForm() {
+     setForm((prev) => ({ ...prev, [key]: value }))
+   }, [])
+ 
++  const onFieldSourceChange = useCallback((fieldName, value) => {
++    setFieldSources((prev) => ({ ...prev, [fieldName]: value }))
++    if (isValidSourceUrl(value)) {
++      setSourceErrors((prev) => {
++        if (!(fieldName in prev)) return prev
++        const next = { ...prev }
++        delete next[fieldName]
++        return next
++      })
++    }
++  }, [])
++
++  const onFieldSourceBlur = useCallback((fieldName, value) => {
++    if (isValidSourceUrl(value)) {
++      setSourceErrors((prev) => {
++        if (!(fieldName in prev)) return prev
++        const next = { ...prev }
++        delete next[fieldName]
++        return next
++      })
++    } else {
++      setSourceErrors((prev) => ({ ...prev, [fieldName]: SOURCE_URL_CLIENT_ERROR }))
++    }
++  }, [])
++
+   const handleSubmit = (e) => {
+     e.preventDefault()
+     setSummaryErrors([])
+@@ -531,7 +659,17 @@ function SystemCreateForm() {
+       return
+     }
+ 
+-    const body = buildSubmitBody(form)
++    /** @type {Record<string, string>} */
++    const blurErrs = {}
++    for (const [k, v] of Object.entries(fieldSources)) {
++      if (!isValidSourceUrl(v)) blurErrs[k] = SOURCE_URL_CLIENT_ERROR
++    }
++    if (Object.keys(blurErrs).length > 0) {
++      setSourceErrors((prev) => ({ ...prev, ...blurErrs }))
++      return
++    }
++
++    const body = buildSubmitBody(form, fieldSources)
+ 
+     mutation.mutate(body, {
+       onSuccess: (data) => {
+@@ -542,7 +680,12 @@ function SystemCreateForm() {
+       onError: (err) => {
+         if (Array.isArray(err.fields) && err.fields.length > 0) {
+           setSubmitError(null)
+-          setSummaryErrors(mapServerFieldsToSummary(err.fields))
++          const { summary, sourceErrors: se } = mapServerFieldErrorsToSummaryAndSources(
++            err.fields,
++            mapServerFieldsToSummary,
++          )
++          setSourceErrors(se)
++          setSummaryErrors(summary)
+         } else {
+           setSubmitError(err?.message ?? 'Could not save the system. Try again.')
+         }
+@@ -560,6 +703,10 @@ function SystemCreateForm() {
+       title="Add system"
+       form={form}
+       setField={setField}
++      fieldSources={fieldSources}
++      onFieldSourceChange={onFieldSourceChange}
++      onFieldSourceBlur={onFieldSourceBlur}
++      sourceErrors={sourceErrors}
+       summaryErrors={summaryErrors}
+       submitError={submitError}
+       mutation={mutation}
+@@ -572,6 +719,8 @@ function SystemCreateForm() {
+ function SystemEditForm({ id }) {
+   const navigate = useNavigate()
+   const [form, setForm] = useState(initialFormState)
++  const [fieldSources, setFieldSources] = useState({})
++  const [sourceErrors, setSourceErrors] = useState({})
+   const [summaryErrors, setSummaryErrors] = useState([])
+   const [submitError, setSubmitError] = useState(null)
+ 
+@@ -594,6 +743,8 @@ function SystemEditForm({ id }) {
+     hydratedRef.current = true
+     startTransition(() => {
+       setForm(dtoToFormState(systemDto))
++      setFieldSources(normaliseFieldSourcesFromDto(systemDto.fieldSources))
++      setSourceErrors({})
+     })
+   }, [systemDto])
+ 
+@@ -601,6 +752,31 @@ function SystemEditForm({ id }) {
+     setForm((prev) => ({ ...prev, [key]: value }))
+   }, [])
+ 
++  const onFieldSourceChange = useCallback((fieldName, value) => {
++    setFieldSources((prev) => ({ ...prev, [fieldName]: value }))
++    if (isValidSourceUrl(value)) {
++      setSourceErrors((prev) => {
++        if (!(fieldName in prev)) return prev
++        const next = { ...prev }
++        delete next[fieldName]
++        return next
++      })
++    }
++  }, [])
++
++  const onFieldSourceBlur = useCallback((fieldName, value) => {
++    if (isValidSourceUrl(value)) {
++      setSourceErrors((prev) => {
++        if (!(fieldName in prev)) return prev
++        const next = { ...prev }
++        delete next[fieldName]
++        return next
++      })
++    } else {
++      setSourceErrors((prev) => ({ ...prev, [fieldName]: SOURCE_URL_CLIENT_ERROR }))
++    }
++  }, [])
++
+   const handleSubmit = (e) => {
+     e.preventDefault()
+     if (!id) return
+@@ -613,7 +789,17 @@ function SystemEditForm({ id }) {
+       return
+     }
+ 
+-    const body = buildSubmitBody(form)
++    /** @type {Record<string, string>} */
++    const blurErrs = {}
++    for (const [k, v] of Object.entries(fieldSources)) {
++      if (!isValidSourceUrl(v)) blurErrs[k] = SOURCE_URL_CLIENT_ERROR
++    }
++    if (Object.keys(blurErrs).length > 0) {
++      setSourceErrors((prev) => ({ ...prev, ...blurErrs }))
++      return
++    }
++
++    const body = buildSubmitBody(form, fieldSources)
+ 
+     mutation.mutate(body, {
+       onSuccess: () => {
+@@ -624,7 +810,12 @@ function SystemEditForm({ id }) {
+       onError: (err) => {
+         if (Array.isArray(err.fields) && err.fields.length > 0) {
+           setSubmitError(null)
+-          setSummaryErrors(mapServerFieldsToSummary(err.fields))
++          const { summary, sourceErrors: se } = mapServerFieldErrorsToSummaryAndSources(
++            err.fields,
++            mapServerFieldsToSummary,
++          )
++          setSourceErrors(se)
++          setSummaryErrors(summary)
+         } else {
+           setSubmitError(err?.message ?? 'Could not save the system. Try again.')
+         }
+@@ -714,6 +905,10 @@ function SystemEditForm({ id }) {
+       title="Edit system"
+       form={form}
+       setField={setField}
++      fieldSources={fieldSources}
++      onFieldSourceChange={onFieldSourceChange}
++      onFieldSourceBlur={onFieldSourceBlur}
++      sourceErrors={sourceErrors}
+       summaryErrors={summaryErrors}
+       submitError={submitError}
+       mutation={mutation}
+diff --git a/frontend/src/lib/system-capabilities.js b/frontend/src/lib/system-capabilities.js
+new file mode 100644
+index 0000000..5c3af74
+--- /dev/null
++++ b/frontend/src/lib/system-capabilities.js
+@@ -0,0 +1,14 @@
++/**
++ * Stable capability order for form, detail, compare label column, and SystemCard rows (Story 12.3).
++ * @readonly
++ */
++export const CAPABILITY_ROWS = Object.freeze([
++  { key: 'membershipCapability', label: 'Membership' },
++  { key: 'donationCapability', label: 'Donation' },
++  { key: 'reservedSeatingCapability', label: 'Reserved seating' },
++  { key: 'seasonSubscriptionsCapability', label: 'Season subscriptions' },
++  { key: 'dynamicPricingCapability', label: 'Dynamic pricing' },
++  { key: 'multiVenueSupportCapability', label: 'Multi-venue support' },
++  { key: 'marketingAutomationCapability', label: 'Marketing automation' },
++  { key: 'accessibilityFeaturesCapability', label: 'Accessibility features' },
++])
+diff --git a/frontend/src/pages/SystemDetailPage.test.jsx b/frontend/src/pages/SystemDetailPage.test.jsx
+new file mode 100644
+index 0000000..72883de
+--- /dev/null
++++ b/frontend/src/pages/SystemDetailPage.test.jsx
+@@ -0,0 +1,71 @@
++// @vitest-environment jsdom
++import { describe, expect, it, vi } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import { MemoryRouter, Route, Routes } from 'react-router-dom'
++import SystemDetailPage from './SystemDetailPage.jsx'
++import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
++
++const UNK = 'UNKNOWN'
++
++const SYSTEM_DTO = {
++  id: 'sys-1',
++  name: 'Test System',
++  vendor: 'Vendor Co',
++  category: 'TICKETING',
++  deploymentModel: null,
++  pricingModel: null,
++  geographicFocus: null,
++  description: null,
++  membershipCapability: UNK,
++  donationCapability: UNK,
++  reservedSeatingCapability: UNK,
++  seasonSubscriptionsCapability: UNK,
++  dynamicPricingCapability: UNK,
++  multiVenueSupportCapability: UNK,
++  marketingAutomationCapability: UNK,
++  accessibilityFeaturesCapability: UNK,
++  sourceReference: null,
++  lastUpdated: '2026-01-01T00:00:00.000Z',
++  fieldSources: {},
++  organisations: [],
++  customAttributes: [],
++}
++
++vi.mock('../hooks/useSystem.js', () => ({
++  useSystem: () => ({
++    isLoading: false,
++    isError: false,
++    isSuccess: true,
++    error: null,
++    data: { data: SYSTEM_DTO },
++  }),
++}))
++
++vi.mock('../hooks/useDeleteSystem.js', () => ({
++  useDeleteSystem: () => ({
++    mutate: vi.fn(),
++    isPending: false,
++    isError: false,
++    error: null,
++    reset: vi.fn(),
++  }),
++}))
++
++describe('SystemDetailPage', () => {
++  it('renders eight capability rows in stable order', () => {
++    render(
++      <MemoryRouter initialEntries={['/systems/sys-1']}>
++        <Routes>
++          <Route path="/systems/:id" element={<SystemDetailPage />} />
++        </Routes>
++      </MemoryRouter>,
++    )
++
++    const dts = screen.getAllByRole('term')
++    const labelsInOrder = CAPABILITY_ROWS.map(({ label }) => label)
++    const capabilityTerms = dts.filter((el) => labelsInOrder.includes(el.textContent))
++    expect(capabilityTerms.map((el) => el.textContent)).toEqual(labelsInOrder)
++
++    expect(screen.getAllByLabelText('Not recorded')).toHaveLength(CAPABILITY_ROWS.length)
++  })
++})
+diff --git a/frontend/src/components/SystemCard.test.jsx b/frontend/src/components/SystemCard.test.jsx
+new file mode 100644
+index 0000000..0ff4065
+--- /dev/null
++++ b/frontend/src/components/SystemCard.test.jsx
+@@ -0,0 +1,57 @@
++// @vitest-environment jsdom
++import { describe, expect, it } from 'vitest'
++import { render, screen } from '@testing-library/react'
++import { MemoryRouter } from 'react-router-dom'
++import { SystemCard } from './SystemCard.jsx'
++import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
++
++const UNK = 'UNKNOWN'
++
++const SYSTEM_DTO = {
++  id: 'sys-1',
++  name: 'Test System',
++  vendor: 'Vendor Co',
++  category: 'TICKETING',
++  deploymentModel: null,
++  pricingModel: null,
++  geographicFocus: null,
++  description: null,
++  membershipCapability: UNK,
++  donationCapability: UNK,
++  reservedSeatingCapability: UNK,
++  seasonSubscriptionsCapability: UNK,
++  dynamicPricingCapability: UNK,
++  multiVenueSupportCapability: UNK,
++  marketingAutomationCapability: UNK,
++  accessibilityFeaturesCapability: UNK,
++  sourceReference: null,
++  lastUpdated: '2026-01-01T00:00:00.000Z',
++  fieldSources: {},
++  organisations: [],
++  customAttributes: [],
++}
++
++describe('SystemCard', () => {
++  it('renders eight labelled capability values for compare', () => {
++    const query = {
++      isPending: false,
++      isError: false,
++      isSuccess: true,
++      error: null,
++      data: { data: SYSTEM_DTO },
++    }
++
++    render(
++      <MemoryRouter>
++        <SystemCard
++          systemId="sys-1"
++          query={query}
++          onRemove={() => {}}
++          unionCustomAttributeLabels={[]}
++        />
++      </MemoryRouter>,
++    )
++
++    expect(screen.getAllByLabelText('Not recorded')).toHaveLength(CAPABILITY_ROWS.length)
++  })
++})

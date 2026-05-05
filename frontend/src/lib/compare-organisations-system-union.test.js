@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { deriveCompareOrganisationsSystemUnion } from './compare-organisations-system-union.js'
 
-function successOrg(systems) {
+function successOrg(systems, name = 'Org') {
   return {
     isPending: false,
     isSuccess: true,
-    data: { data: { systems } },
+    data: { name, systems },
   }
 }
 

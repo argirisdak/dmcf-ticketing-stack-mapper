@@ -6,6 +6,8 @@ import { CapabilityBadge } from './CapabilityBadge.jsx'
 import { SourceReferenceDisplay } from './SourceReferenceDisplay.jsx'
 import { OrganisationNotFoundError } from '../api/organisations.js'
 import { CompareColumnShell } from './CompareColumnShell.jsx'
+import FieldSourceIcon from './FieldSourceIcon.jsx'
+import { ORGANISATION_COMPARE_ROW_SOURCE_KEYS, pickFieldSourceUrl } from '../lib/field-source-keys.js'
 
 const ATTR_ROW_CLASS = 'flex min-h-0 items-center px-4 py-3 text-sm'
 
@@ -257,9 +259,38 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
       ? /** @type {{ name?: string }} */ (org.organisationType).name
       : undefined
   const systems = Array.isArray(org.systems) ? org.systems : []
+  const fieldSources = org.fieldSources
 
   const headerCountry =
     org.country != null && org.country !== '' ? String(org.country) : 'Not recorded'
+
+  /**
+   * @param {number} compareRowIndex
+   * @param {string} fieldLabel
+   * @param {'middle' | 'last'} position
+   * @param {import('react').ReactNode} node
+   */
+  const compareDataRow = (compareRowIndex, fieldLabel, position, node) => {
+    const key = ORGANISATION_COMPARE_ROW_SOURCE_KEYS[compareRowIndex]
+    const rowCls =
+      position === 'last'
+        ? ATTR_ROW_CLASS
+        : `${ATTR_ROW_CLASS} border-b border-slate-100`
+    const showIcon = variant === 'compare' && key != null
+    return (
+      <div className={rowCls}>
+        <span className="inline-flex min-w-0 items-center gap-1">
+          {node}
+          {showIcon ? (
+            <>
+              {/* Per-field source only — never row-level sourceReference (Story 11.3). */}
+              <FieldSourceIcon url={pickFieldSourceUrl(fieldSources, key)} fieldLabel={fieldLabel} />
+            </>
+          ) : null}
+        </span>
+      </div>
+    )
+  }
 
   const inner = (
     <>
@@ -283,35 +314,58 @@ export function OrganisationCard({ organisationId, query, onRemove, compareGridC
         </div>
       </div>
 
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>{textCell(org.country)}</div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        {typeName != null && String(typeName).trim() !== '' ? (
+      {compareDataRow(
+        0,
+        'Country',
+        'middle',
+        textCell(org.country),
+      )}
+      {compareDataRow(
+        1,
+        'Type',
+        'middle',
+        typeName != null && String(typeName).trim() !== '' ? (
           <Badge tone="type">{String(typeName)}</Badge>
         ) : (
           textCell(null)
-        )}
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        {variant === 'compare'
-          ? <SystemsCompareList systems={systems} />
-          : <SystemsChipStrip systems={systems} />
-        }
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        <CapabilityBadge variant="labelled" value={org.membershipCapability} />
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        <CapabilityBadge variant="labelled" value={org.donationCapability} />
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        <CapabilityBadge variant="labelled" value={org.reservedSeatingCapability} />
-      </div>
-      <div className={`${ATTR_ROW_CLASS} border-b border-slate-100`}>
-        <SourceReferenceDisplay value={org.sourceReference} />
-      </div>
-      <div className={ATTR_ROW_CLASS}>
-        <span className="text-slate-800">{formatCompareDateTime(org.lastUpdated)}</span>
-      </div>
+        ),
+      )}
+      {compareDataRow(
+        2,
+        'Systems',
+        'middle',
+        variant === 'compare' ? <SystemsCompareList systems={systems} /> : <SystemsChipStrip systems={systems} />,
+      )}
+      {compareDataRow(
+        3,
+        'Membership Capability',
+        'middle',
+        <CapabilityBadge variant="labelled" value={org.membershipCapability} />,
+      )}
+      {compareDataRow(
+        4,
+        'Donation Capability',
+        'middle',
+        <CapabilityBadge variant="labelled" value={org.donationCapability} />,
+      )}
+      {compareDataRow(
+        5,
+        'Reserved Seating Capability',
+        'middle',
+        <CapabilityBadge variant="labelled" value={org.reservedSeatingCapability} />,
+      )}
+      {compareDataRow(
+        6,
+        'Source Reference',
+        'middle',
+        <SourceReferenceDisplay value={org.sourceReference} />,
+      )}
+      {compareDataRow(
+        7,
+        'Last Updated',
+        'last',
+        <span className="text-slate-800">{formatCompareDateTime(org.lastUpdated)}</span>,
+      )}
     </>
   )
 

@@ -32,6 +32,7 @@ function toOrganisationDto(row) {
     sourceReference: row.source_reference ?? null,
     notes: row.notes ?? null,
     capacity: row.capacity ?? null,
+    fieldSources: row.field_sources ?? null,
     lastUpdated: dateTimeToIso(row.last_updated),
     createdAt: dateTimeToIso(row.created_at),
     updatedAt: dateTimeToIso(row.last_updated),

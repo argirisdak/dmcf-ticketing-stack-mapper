@@ -1,0 +1,379 @@
+diff --git a/backend/src/__tests__/system-controller.test.js b/backend/src/__tests__/system-controller.test.js
+index 1bee2ae..f5d88ee 100644
+--- a/backend/src/__tests__/system-controller.test.js
++++ b/backend/src/__tests__/system-controller.test.js
+@@ -36,7 +36,13 @@ const SYSTEM_STUB = {
+   membershipCapability: 'YES',
+   donationCapability: 'YES',
+   reservedSeatingCapability: 'YES',
++  seasonSubscriptionsCapability: 'UNKNOWN',
++  dynamicPricingCapability: 'UNKNOWN',
++  multiVenueSupportCapability: 'UNKNOWN',
++  marketingAutomationCapability: 'UNKNOWN',
++  accessibilityFeaturesCapability: 'UNKNOWN',
+   sourceReference: 'https://www.spektrix.com',
++  fieldSources: null,
+   customAttributes: null,
+   lastUpdated: '2026-04-01T00:00:00.000Z',
+   createdAt: '2026-01-01T00:00:00.000Z',
+@@ -385,6 +391,61 @@ describe('POST /api/systems', () => {
+   });
+ });
+ 
++describe('POST /api/systems — fieldSources', () => {
++  const minimalBody = { name: 'Spektrix', vendor: 'Spektrix Ltd', category: 'INTEGRATED' };
++
++  beforeEach(() => {
++    mockCreateSystem.mockReset();
++    jest.spyOn(console, 'error').mockImplementation(() => {});
++  });
++  afterEach(() => {
++    jest.restoreAllMocks();
++  });
++
++  it('returns 201 and passes validated fieldSources to service (round-trip)', async () => {
++    const stub = { ...SYSTEM_STUB, fieldSources: { vendor: 'https://example.com/doc' } };
++    mockCreateSystem.mockResolvedValue(stub);
++
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'https://example.com/doc' } });
++
++    expect(res.status).toBe(201);
++    expect(res.body.data.fieldSources).toEqual({ vendor: 'https://example.com/doc' });
++    expect(mockCreateSystem).toHaveBeenCalledWith(
++      expect.objectContaining({ fieldSources: { vendor: 'https://example.com/doc' } }),
++    );
++  });
++
++  it('returns 400 for unknown fieldSources key', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { notARealKey: 'https://x.com' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields.some((f) => f.field === 'fieldSources.notARealKey')).toBe(true);
++  });
++
++  it('returns 400 when fieldSources URL does not start with http:// or https://', async () => {
++    const res = await request(app)
++      .post('/api/systems')
++      .send({ ...minimalBody, fieldSources: { vendor: 'ftp://example.com/x' } });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0].field).toBe('fieldSources.vendor');
++    expect(res.body.error.fields[0].message).toBe('Source URL must start with http:// or https://');
++  });
++
++  it('returns 400 when fieldSources is not a plain object', async () => {
++    const res = await request(app).post('/api/systems').send({ ...minimalBody, fieldSources: [] });
++
++    expect(res.status).toBe(400);
++    expect(res.body.error.fields[0]).toEqual(
++      expect.objectContaining({ field: 'fieldSources', message: 'Must be an object.' }),
++    );
++  });
++});
++
+ describe('PUT /api/systems/:id', () => {
+   beforeEach(() => {
+     mockUpdateSystem.mockReset();
+@@ -495,6 +556,29 @@ describe('PUT /api/systems/:id', () => {
+     expect(res.status).toBe(500);
+     expect(res.body.error.message).toBe('An unexpected error occurred');
+   });
++
++  it('passes fieldSources: {} to clear stored sources', async () => {
++    mockUpdateSystem.mockResolvedValue({ ...SYSTEM_STUB, fieldSources: {} });
++
++    const res = await request(app)
++      .put(`/api/systems/${VALID_UUID}`)
++      .send({ fieldSources: {} });
++
++    expect(res.status).toBe(200);
++    expect(mockUpdateSystem).toHaveBeenCalledWith(
++      VALID_UUID,
++      expect.objectContaining({ fieldSources: {} }),
++    );
++  });
++
++  it('omits fieldSources from update payload when key not in body', async () => {
++    mockUpdateSystem.mockResolvedValue(SYSTEM_STUB);
++
++    await request(app).put(`/api/systems/${VALID_UUID}`).send({ name: 'Only Name' });
++
++    const payload = mockUpdateSystem.mock.calls[0][1];
++    expect(payload).not.toHaveProperty('fieldSources');
++  });
+ });
+ 
+ describe('DELETE /api/systems/:id', () => {
+diff --git a/backend/src/__tests__/system-http-stack.test.js b/backend/src/__tests__/system-http-stack.test.js
+index 3972e1d..fd07233 100644
+--- a/backend/src/__tests__/system-http-stack.test.js
++++ b/backend/src/__tests__/system-http-stack.test.js
+@@ -29,6 +29,11 @@ const prismaRows = SYSTEM_SEED_DEFINITIONS.map((def, i) => ({
+   membership_capability: def.membership_capability,
+   donation_capability: def.donation_capability,
+   reserved_seating_capability: def.reserved_seating_capability,
++  season_subscriptions_capability: 'UNKNOWN',
++  dynamic_pricing_capability: 'UNKNOWN',
++  multi_venue_support_capability: 'UNKNOWN',
++  marketing_automation_capability: 'UNKNOWN',
++  accessibility_features_capability: 'UNKNOWN',
+   source_reference: def.source_reference,
+   custom_attributes: def.custom_attributes,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+diff --git a/backend/src/__tests__/system-service.test.js b/backend/src/__tests__/system-service.test.js
+index 9f58142..9f12a7b 100644
+--- a/backend/src/__tests__/system-service.test.js
++++ b/backend/src/__tests__/system-service.test.js
+@@ -32,7 +32,13 @@ describe('toSystemDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'NO',
+     reserved_seating_capability: 'UNKNOWN',
++    season_subscriptions_capability: 'NO',
++    dynamic_pricing_capability: 'YES',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'NO',
++    accessibility_features_capability: 'YES',
+     source_reference: 'https://spektrix.com',
++    field_sources: null,
+     custom_attributes: [{ label: 'Size', value: 'Mid', source_reference: null }],
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -51,7 +57,13 @@ describe('toSystemDto', () => {
+     expect(dto.membershipCapability).toBe('YES');
+     expect(dto.donationCapability).toBe('NO');
+     expect(dto.reservedSeatingCapability).toBe('UNKNOWN');
++    expect(dto.seasonSubscriptionsCapability).toBe('NO');
++    expect(dto.dynamicPricingCapability).toBe('YES');
++    expect(dto.multiVenueSupportCapability).toBe('UNKNOWN');
++    expect(dto.marketingAutomationCapability).toBe('NO');
++    expect(dto.accessibilityFeaturesCapability).toBe('YES');
+     expect(dto.sourceReference).toBe('https://spektrix.com');
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toEqual([{ label: 'Size', value: 'Mid', source_reference: null }]);
+     expect(dto.lastUpdated).toBe('2026-04-01T00:00:00.000Z');
+     expect(dto.createdAt).toBe('2026-01-01T00:00:00.000Z');
+@@ -63,20 +75,36 @@ describe('toSystemDto', () => {
+     expect(dto).not.toHaveProperty('pricing_model');
+     expect(dto).not.toHaveProperty('geographic_focus');
+     expect(dto).not.toHaveProperty('membership_capability');
++    expect(dto).not.toHaveProperty('season_subscriptions_capability');
++    expect(dto).not.toHaveProperty('dynamic_pricing_capability');
++    expect(dto).not.toHaveProperty('multi_venue_support_capability');
++    expect(dto).not.toHaveProperty('marketing_automation_capability');
++    expect(dto).not.toHaveProperty('accessibility_features_capability');
+     expect(dto).not.toHaveProperty('source_reference');
++    expect(dto).not.toHaveProperty('field_sources');
+     expect(dto).not.toHaveProperty('custom_attributes');
+     expect(dto).not.toHaveProperty('last_updated');
+     expect(dto).not.toHaveProperty('created_at');
+   });
+ 
+   it('nulls nullable fields when absent', () => {
+-    const row = { ...baseRow, deployment_model: null, pricing_model: null, geographic_focus: null, description: null, source_reference: null, custom_attributes: null };
++    const row = {
++      ...baseRow,
++      deployment_model: null,
++      pricing_model: null,
++      geographic_focus: null,
++      description: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
++    };
+     const dto = toSystemDto(row);
+     expect(dto.deploymentModel).toBeNull();
+     expect(dto.pricingModel).toBeNull();
+     expect(dto.geographicFocus).toBeNull();
+     expect(dto.description).toBeNull();
+     expect(dto.sourceReference).toBeNull();
++    expect(dto.fieldSources).toBeNull();
+     expect(dto.customAttributes).toBeNull();
+   });
+ 
+@@ -99,7 +127,13 @@ describe('toSystemDetailDto', () => {
+     membership_capability: 'YES',
+     donation_capability: 'YES',
+     reserved_seating_capability: 'YES',
++    season_subscriptions_capability: 'UNKNOWN',
++    dynamic_pricing_capability: 'UNKNOWN',
++    multi_venue_support_capability: 'UNKNOWN',
++    marketing_automation_capability: 'UNKNOWN',
++    accessibility_features_capability: 'UNKNOWN',
+     source_reference: null,
++    field_sources: null,
+     custom_attributes: null,
+     last_updated: new Date('2026-04-01T00:00:00.000Z'),
+     created_at: new Date('2026-01-01T00:00:00.000Z'),
+@@ -331,7 +365,9 @@ describe('getSystemById', () => {
+       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
+       deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
+       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
+-      source_reference: null, custom_attributes: null,
++      source_reference: null,
++      field_sources: null,
++      custom_attributes: null,
+       last_updated: new Date('2026-04-01T00:00:00.000Z'),
+       created_at: new Date('2026-01-01T00:00:00.000Z'),
+       organisation_systems: [],
+@@ -360,6 +396,7 @@ const BASE_ROW = {
+   donation_capability: 'UNKNOWN',
+   reserved_seating_capability: 'UNKNOWN',
+   source_reference: null,
++  field_sources: null,
+   custom_attributes: null,
+   last_updated: new Date('2026-04-01T00:00:00.000Z'),
+   created_at: new Date('2026-04-01T00:00:00.000Z'),
+@@ -410,6 +447,20 @@ describe('createSystem', () => {
+     expect(callData).not.toHaveProperty('custom_attributes');
+   });
+ 
++  it('maps fieldSources to field_sources on create', async () => {
++    prisma.system.create.mockResolvedValue(BASE_ROW);
++
++    await createSystem({
++      name: 'Spektrix',
++      vendor: 'Spektrix Ltd',
++      category: 'INTEGRATED',
++      fieldSources: { vendor: 'https://docs.example.com' },
++    });
++
++    const callData = prisma.system.create.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({ vendor: 'https://docs.example.com' });
++  });
++
+   it('propagates unexpected Prisma errors (e.g. P2002)', async () => {
+     const p2002 = Object.assign(new Error('Unique constraint'), { code: 'P2002' });
+     prisma.system.create.mockRejectedValue(p2002);
+@@ -497,6 +548,15 @@ describe('updateSystem', () => {
+     expect(callData.pricing_model).toBe('SUBSCRIPTION');
+     expect(callData.membership_capability).toBe('YES');
+   });
++
++  it('maps fieldSources to field_sources on update', async () => {
++    prisma.system.update.mockResolvedValue(BASE_ROW);
++
++    await updateSystem('sys-id', { fieldSources: {} });
++
++    const callData = prisma.system.update.mock.calls[0][0].data;
++    expect(callData.field_sources).toEqual({});
++  });
+ });
+ 
+ // ─── deleteSystem Service Tests ───────────────────────────────────────────────
+diff --git a/backend/src/prisma/schema.prisma b/backend/src/prisma/schema.prisma
+index 1044ab8..bd703da 100644
+--- a/backend/src/prisma/schema.prisma
++++ b/backend/src/prisma/schema.prisma
+@@ -52,41 +52,48 @@ model Organisation {
+   source_reference            String?
+   notes                       String?
+   capacity                    Int?
++  field_sources               Json?
+   last_updated                DateTime        @default(now()) @updatedAt
+   created_at                  DateTime        @default(now())
+ 
+-  organisation_type OrganisationType @relation(fields: [organisation_type_id], references: [id])
+-  systems            OrganisationSystem[]
++  organisation_type OrganisationType     @relation(fields: [organisation_type_id], references: [id])
++  systems           OrganisationSystem[]
+ 
+   @@map("organisation")
+ }
+ 
+ model OrganisationType {
+-  id            String @id @default(uuid())
+-  name          String @unique
+-  created_at    DateTime @default(now())
+-  updated_at    DateTime @updatedAt
++  id            String         @id @default(uuid())
++  name          String         @unique
++  created_at    DateTime       @default(now())
++  updated_at    DateTime       @updatedAt
+   organisations Organisation[]
+ 
+   @@map("organisation_type")
+ }
+ 
+ model System {
+-  id                          String             @id @default(uuid())
+-  name                        String             @unique
+-  vendor                      String
+-  category                    SystemCategory
+-  deployment_model            DeploymentModel?
+-  pricing_model               PricingModel?
+-  geographic_focus            String?
+-  description                 String?
+-  membership_capability       CapabilityState    @default(UNKNOWN)
+-  donation_capability         CapabilityState    @default(UNKNOWN)
+-  reserved_seating_capability CapabilityState    @default(UNKNOWN)
+-  source_reference            String?
+-  custom_attributes           Json?
+-  last_updated                DateTime           @default(now()) @updatedAt
+-  created_at                  DateTime           @default(now())
++  id                                String           @id @default(uuid())
++  name                              String           @unique
++  vendor                            String
++  category                          SystemCategory
++  deployment_model                  DeploymentModel?
++  pricing_model                     PricingModel?
++  geographic_focus                  String?
++  description                       String?
++  membership_capability             CapabilityState  @default(UNKNOWN)
++  donation_capability               CapabilityState  @default(UNKNOWN)
++  reserved_seating_capability       CapabilityState  @default(UNKNOWN)
++  season_subscriptions_capability   CapabilityState  @default(UNKNOWN)
++  dynamic_pricing_capability        CapabilityState  @default(UNKNOWN)
++  multi_venue_support_capability    CapabilityState  @default(UNKNOWN)
++  marketing_automation_capability   CapabilityState  @default(UNKNOWN)
++  accessibility_features_capability CapabilityState  @default(UNKNOWN)
++  source_reference                  String?
++  custom_attributes                 Json?
++  field_sources                     Json?
++  last_updated                      DateTime         @default(now()) @updatedAt
++  created_at                        DateTime         @default(now())
+ 
+   organisation_systems OrganisationSystem[]
+ 
+diff --git a/backend/src/services/system-list-dto.js b/backend/src/services/system-list-dto.js
+index dd70e86..53ff15e 100644
+--- a/backend/src/services/system-list-dto.js
++++ b/backend/src/services/system-list-dto.js
+@@ -21,7 +21,13 @@ function toSystemDto(row) {
+     membershipCapability: row.membership_capability,
+     donationCapability: row.donation_capability,
+     reservedSeatingCapability: row.reserved_seating_capability,
++    seasonSubscriptionsCapability: row.season_subscriptions_capability,
++    dynamicPricingCapability: row.dynamic_pricing_capability,
++    multiVenueSupportCapability: row.multi_venue_support_capability,
++    marketingAutomationCapability: row.marketing_automation_capability,
++    accessibilityFeaturesCapability: row.accessibility_features_capability,
+     sourceReference: row.source_reference ?? null,
++    fieldSources: row.field_sources ?? null,
+     customAttributes: row.custom_attributes ?? null,
+     lastUpdated: dateTimeToIso(row.last_updated),
+     createdAt: dateTimeToIso(row.created_at),
+
+diff --git a/backend/src/prisma/migrations/20260503113633_add_system_capabilities_v3/migration.sql b/backend/src/prisma/migrations/20260503113633_add_system_capabilities_v3/migration.sql
+new file mode 100644
+index 0000000..35c128a
+--- /dev/null
++++ b/backend/src/prisma/migrations/20260503113633_add_system_capabilities_v3/migration.sql
+@@ -0,0 +1,14 @@
++-- AlterTable
++ALTER TABLE "system" ADD COLUMN "season_subscriptions_capability" "CapabilityState" NOT NULL DEFAULT 'UNKNOWN';
++
++-- AlterTable
++ALTER TABLE "system" ADD COLUMN "dynamic_pricing_capability" "CapabilityState" NOT NULL DEFAULT 'UNKNOWN';
++
++-- AlterTable
++ALTER TABLE "system" ADD COLUMN "multi_venue_support_capability" "CapabilityState" NOT NULL DEFAULT 'UNKNOWN';
++
++-- AlterTable
++ALTER TABLE "system" ADD COLUMN "marketing_automation_capability" "CapabilityState" NOT NULL DEFAULT 'UNKNOWN';
++
++-- AlterTable
++ALTER TABLE "system" ADD COLUMN "accessibility_features_capability" "CapabilityState" NOT NULL DEFAULT 'UNKNOWN';

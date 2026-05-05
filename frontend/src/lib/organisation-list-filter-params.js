@@ -1,3 +1,5 @@
+import { normaliseOrganisationSortFromUrl } from './sort-options.js'
+
 /** Order matches filter bar and clear-all behaviour. */
 export const LIST_FILTER_PARAM_KEYS = Object.freeze([
   'country',
@@ -35,7 +37,7 @@ export const FILTER_DIMENSION_LABELS = Object.freeze({
 /**
  * @param {URLSearchParams} searchParams
  * @param {number} [limit]
- * @returns {{ page: number; limit: number; q?: string } & Partial<Record<(typeof LIST_FILTER_PARAM_KEYS)[number], string>>}
+ * @returns {{ page: number; limit: number; sort: string; order: 'asc' | 'desc'; q?: string } & Partial<Record<(typeof LIST_FILTER_PARAM_KEYS)[number], string>>}
  */
 export function parseOrganisationListInputsFromSearchParams(searchParams, limit = 20) {
   const pageRaw = searchParams.get('page')
@@ -45,8 +47,13 @@ export function parseOrganisationListInputsFromSearchParams(searchParams, limit 
     if (Number.isInteger(n) && n >= 1) page = n
   }
 
-  /** @type {{ page: number; limit: number; q?: string } & Partial<Record<string, string>>} */
-  const out = { page, limit }
+  const { sort, order } = normaliseOrganisationSortFromUrl(
+    searchParams.get('sort'),
+    searchParams.get('order'),
+  )
+
+  /** @type {{ page: number; limit: number; sort: string; order: 'asc' | 'desc'; q?: string } & Partial<Record<string, string>>} */
+  const out = { page, limit, sort, order }
 
   const qRaw = searchParams.get('q')
   if (qRaw != null && qRaw.trim() !== '') {

@@ -151,6 +151,23 @@ Ensure `frontend/.env` contains `VITE_API_BASE_URL=http://localhost:3001`.
 | **Frontend** | http://localhost:5173       | Vite + React app shell                     |
 | **Database** | *(none on host)*            | PostgreSQL 16 inside Docker network only   |
 
+## Frontend routes
+
+| Path | Description |
+|------|-------------|
+| `/organisations` | Organisation catalogue list (app root `/` redirects here). |
+| `/organisations/new` | Create organisation. |
+| `/organisations/:id` | Organisation detail. |
+| `/organisations/:id/edit` | Edit organisation (includes **Linked systems** editor). |
+| `/systems` | System catalogue list. |
+| `/systems/new` | Create system. |
+| `/systems/:id` | System detail (adoption evidence, **custom attributes** read-only in MVP). |
+| `/systems/:id/edit` | Edit system. |
+| `/compare/systems` | Side-by-side system comparison (`?ids=` comma-separated UUIDs). |
+| `/compare/organisations` | Side-by-side organisation comparison (`?ids=` comma-separated UUIDs). |
+
+**Legacy bookmarks:** `App.jsx` also mounts `/compare/*` via `CompareLegacyPathPage` so old `/compare?ids=...` links are not a dead route; first-class compare URLs are the two paths above.
+
 ## Database seed and reset
 
 Run Prisma CLI commands from **`backend/`** with **`DATABASE_URL`** set. Copy `backend/.env.example` to `backend/.env` and adjust:
@@ -168,7 +185,7 @@ Run Prisma CLI commands from **`backend/`** with **`DATABASE_URL`** set. Copy `b
 
 ### `npx prisma db seed`
 
-Upserts reference lookups and **sample organisations** (fixed UUIDs — see **ADR-014** in `docs/decisions.md`). It **does not** delete organisations you created in the app unless they use the same fixed ids as the sample set (see ADR-014 for the upsert semantics).
+Upserts reference lookups, **11 systems** from the system seed catalog, and **sample organisations** with junction links (fixed UUIDs — see **ADR-014** in `docs/decisions.md`). It **does not** delete organisations you created in the app unless they use the same fixed ids as the sample set (see ADR-014 for the upsert semantics).
 
 **Docker (backend service already running):**
 
@@ -235,27 +252,32 @@ cd backend
 npx prisma migrate reset --force
 ```
 
+### v2 migration sequence and Migration C (forward-only)
+
+The systems model (Epic 6–10) ships as **three** Prisma migrations applied **in this order** (folder names under `backend/src/prisma/migrations/`):
+
+1. `20260429220615_add_system_and_junction` — **additive** (A): `system`, `organisation_system`, enums; legacy lookup tables and organisation FK columns unchanged.
+2. `20260430183000_backfill_systems_and_links` — **backfill** (B): custom SQL from legacy FKs into the new tables.
+3. `20260502180000_drop_legacy_lookups` — **destructive** (C): drops legacy lookup tables and FK columns (`drop_legacy_lookups`).
+
+**Migration C is forward-only.** Before applying it in any **non-throwaway** environment, take a **full database backup**. There is **no SQL inverse** that restores the dropped legacy FK columns and lookup tables once C has run (see **ADR-015** and **ADR-021** in `docs/decisions.md`).
+
 ## Smoke test checklist
 
 Follow these **in order** after the database has been seeded (fresh `docker compose up --build`, or after **`db seed`** / **`migrate reset`** as above). API responses are JSON objects with top-level keys **`data`**, **`error`**, and **`meta`**.
 
 1. **Health** — `GET http://localhost:3001/api/health` returns JSON where `data.status` is `"ok"`.
-2. **Reference data** — These return JSON with **non-empty** `data` arrays:
-   - `GET http://localhost:3001/api/meta/ticketing-providers`
-   - `GET http://localhost:3001/api/meta/crm-platforms`
-   - `GET http://localhost:3001/api/meta/organisation-types`
-3. **Frontend shell** — Open http://localhost:5173; the app should load without errors in the browser developer console.
-4. **Organisations list** — Open http://localhost:5173/organisations (the app root `/` redirects here). You should see **multiple** seeded organisations, not an empty state.
-5. **Filter** — Apply filters that return at least one row, for example open  
-   http://localhost:5173/organisations?country=United+Kingdom&provider=Tessitura  
-   Country and provider names must match **`COUNTRIES`** in `backend/src/lib/countries.js` and seeded ticketing provider names exactly (`United Kingdom`, `Tessitura`).
-6. **Compare** — On the list, tick **two** organisation checkboxes. Use **Compare selected (2) →** in the selection bar. You should land on **`/compare?ids=...`** and see **two** columns with meaningful content (not blank or error).  
-   **Optional deep-link smoke:**  
-   `/compare?ids=5e1a0001-0001-4001-8001-000000000001,5e1a0001-0001-4001-8001-000000000009`  
-   (fixed sample UUIDs from Story 5.1 — useful if you want to verify compare without using the list.)
-7. **Create** — From the organisations list, choose **Add organisation** (or open http://localhost:5173/organisations/new). Submit a **minimal valid** payload (required fields only). Expect a successful save and navigation to **`/organisations/:id`** (detail page).
+2. **Reference data** — `GET http://localhost:3001/api/meta/organisation-types` returns JSON with a **non-empty** `data` array (organisation types). **Do not** rely on removed v1 paths `GET /api/meta/ticketing-providers` or `GET /api/meta/crm-platforms` (removed in Story 10.2); if called, the API returns **JSON 404** with the usual route-not-found envelope, not a 200 with provider lists.
+3. **Organisations list** — Open http://localhost:5173/organisations. You should see **multiple** seeded organisations, not an empty state.
+4. **Systems list** — Open http://localhost:5173/systems. You should see **11** seeded systems (seed invariant).
+5. **Organisation filter by linked system** — In the browser **Network** tab (or via `curl`), call `GET http://localhost:3001/api/organisations` with a filter that includes **`system=<uuid>`**, where `<uuid>` is a real system id from seeded data (pick one from the Systems UI, or `GET http://localhost:3001/api/systems?limit=100` and copy an `id`). Expect a **non-empty** `data` array for at least one valid seeded system id.
+6. **Compare systems** — Open  
+   `http://localhost:5173/compare/systems?ids=<uuid-a>,<uuid-b>`  
+   with two distinct system ids from the seeded catalogue. Expect **two** columns with meaningful content (not blank or error).
+7. **Create system** — Open http://localhost:5173/systems/new, submit a **minimal valid** system. Expect a successful save and redirect to **`/systems/:id`** (detail).
+8. **Link system on organisation** — On http://localhost:5173/organisations/:id/edit, add or confirm a link to a system and save. Open the organisation **detail** page and confirm the link appears under **Linked systems**.
 
-You can use `curl`, your browser, or any HTTP client for the API checks.
+You can use `curl`, your browser, or any HTTP client for the API checks. For organisation compare (not required in this ordered list but available), use **`/compare/organisations`** and the list selection bar, or deep-link with `?ids=` the same way as systems compare.
 
 ## Threat model and deployment posture
 
@@ -271,6 +293,28 @@ This application **has no authentication or authorisation**. Anyone who can reac
 - **Desktop-optimised UI** for the MVP — there is no dedicated mobile layout.
 - **No CSV export** — out of scope for the MVP; treat as post-MVP if needed.
 - **No external API integrations** — data is entered manually through the application.
+- **System `custom_attributes`** — displayed on system detail but **read-only** in the MVP; full editing is a Growth-phase item.
+- **Mode B (organisation-filtered system compare)** — not in the MVP; planned for Growth.
+
+## After v2 and v3 changes ship (implementation readiness)
+
+Before applying the **`organisation_composite_unique`** migration (`20260505120000_organisation_composite_unique`) in any environment, run this pre-flight query against that database and resolve any duplicate groups before migrating:
+
+```sql
+SELECT name, city, country, count(*) AS c
+FROM organisation
+GROUP BY name, city, country
+HAVING count(*) > 1;
+```
+
+Re-run **`bmad-check-implementation-readiness`** (or your team’s equivalent checklist) against the updated planning artifacts so the readiness report reflects the **v2 and v3** stack and supersedes any v1 report dated **2026-04-02**. Use these paths **from the repository root**:
+
+- `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/planning-artifacts/prd-v2-delta.md`
+- `_bmad-output/planning-artifacts/architecture-v2-delta.md`
+- `_bmad-output/planning-artifacts/prd-v3-delta.md`
+- `_bmad-output/planning-artifacts/architecture-v3-delta.md`
+- `_bmad-output/planning-artifacts/ux-design-specification.md`
 
 ## Local development without Docker (optional)
 

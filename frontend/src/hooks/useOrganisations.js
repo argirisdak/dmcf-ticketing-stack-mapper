@@ -14,12 +14,16 @@ import { fetchOrganisations } from '../api/organisations.js'
  *   membership?: string
  *   donation?: string
  *   seating?: string
+ *   sort?: string
+ *   order?: string
  * }} params
  */
 export function useOrganisations(params = {}) {
   const keyPart = {
     page: params.page ?? 1,
     limit: params.limit ?? 20,
+    sort: params.sort ?? 'name',
+    order: params.order ?? 'asc',
   }
   if (params.q !== undefined) keyPart.q = params.q
   for (const k of LIST_FILTER_PARAM_KEYS) {

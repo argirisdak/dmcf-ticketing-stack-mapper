@@ -5,6 +5,9 @@ function CompareSelectionBarImpl({ entityLabel, useSelectionHook }) {
   const navigate = useNavigate()
   const { selectedIds, clearSelection } = useSelectionHook()
   const n = selectedIds.length
+
+  if (n === 0) return null
+
   const tooMany = n >= 5
   const canCompare = n >= 1 && n <= 4
   const entitySingular = entityLabel.slice(0, -1)
