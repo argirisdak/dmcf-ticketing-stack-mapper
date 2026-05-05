@@ -1,5 +1,0 @@
-1. Implement sorting (e.g alphabetically)
-2. Prohibit duplicate entries with same core attributes
-3. Close the source reference gap with curation work
-4. Model the rest system capabilities (think if necessary)
-5. Custom attributes (dynamic type?)
