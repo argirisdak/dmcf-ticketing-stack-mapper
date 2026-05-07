@@ -416,13 +416,27 @@ export function SystemCard({ systemId, query, onRemove, compareGridColumn, union
       {cellWithFieldSource(2, 'Category', <SystemCategoryBadge category={sys.category} />)}
       {cellWithFieldSource(3, 'Deployment model', scalarCompareCell(sys.deploymentModel))}
       {cellWithFieldSource(4, 'Pricing model', scalarCompareCell(sys.pricingModel))}
-      {cellWithFieldSource(5, 'Geographic focus', scalarCompareCell(sys.geographicFocus))}
-      {CAPABILITY_ROWS.map(({ key: capKey, label }, i) => (
+      {cellWithFieldSource(
+        5,
+        'Geographic focus',
+        Array.isArray(sys.geographicFocus) && sys.geographicFocus.length > 0 ? (
+          <span className="text-slate-800">{sys.geographicFocus.join(', ')}</span>
+        ) : (
+          <span className="text-slate-300">—</span>
+        ),
+      )}
+      {CAPABILITY_ROWS.map(({ key: capKey, label, ticketingOnly }, i) => (
         <Fragment key={capKey}>
-          {cellWithFieldSource(
-            capabilityBlockStartRow + i,
-            label,
-            <CapabilityBadge variant="labelled" value={sys[capKey]} />,
+          {ticketingOnly && sys.category === 'AUDIENCE_MANAGEMENT' ? (
+            <div className={bodyRowClass(capabilityBlockStartRow + i)}>
+              <span className="text-xs text-slate-400 italic">N/A</span>
+            </div>
+          ) : (
+            cellWithFieldSource(
+              capabilityBlockStartRow + i,
+              label,
+              <CapabilityBadge variant="labelled" value={sys[capKey]} />,
+            )
           )}
         </Fragment>
       ))}

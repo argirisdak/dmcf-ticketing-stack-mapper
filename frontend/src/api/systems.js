@@ -44,7 +44,7 @@ function assertListResponse(body) {
  *   categories?: string[]
  *   deployment_model?: string
  *   pricing_model?: string
- *   geographic_focus?: string
+ *   geographic_focus?: string[]
  *   membership?: string
  *   donation?: string
  *   seating?: string
@@ -66,7 +66,7 @@ export async function fetchSystems(params = {}) {
     categories = [],
     deployment_model,
     pricing_model,
-    geographic_focus,
+    geographic_focus = [],
     membership,
     donation,
     seating,
@@ -90,7 +90,9 @@ export async function fetchSystems(params = {}) {
 
   if (deployment_model) qs.set('deployment_model', deployment_model)
   if (pricing_model) qs.set('pricing_model', pricing_model)
-  if (geographic_focus) qs.set('geographic_focus', geographic_focus)
+  for (const focus of geographic_focus) {
+    qs.append('geographic_focus', focus)
+  }
   if (membership) qs.set('membership', membership)
   if (donation) qs.set('donation', donation)
   if (seating) qs.set('seating', seating)

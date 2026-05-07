@@ -200,6 +200,23 @@ function SystemListFilterSection() {
     [setSearchParams]
   )
 
+  const toggleGeographicFocus = useCallback(
+    (value) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('geographic_focus')
+        const current = prev.getAll('geographic_focus')
+        const updated = current.includes(value)
+          ? current.filter((v) => v !== value)
+          : [...current, value]
+        updated.forEach((v) => next.append('geographic_focus', v))
+        next.set('page', '1')
+        return next
+      })
+    },
+    [setSearchParams]
+  )
+
   const updateParam = (key, rawValue) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
@@ -218,7 +235,7 @@ function SystemListFilterSection() {
 
   const deploymentVal = searchParams.get('deployment_model') ?? ''
   const pricingVal = searchParams.get('pricing_model') ?? ''
-  const geographicVal = searchParams.get('geographic_focus') ?? ''
+  const activeGeographicFocus = searchParams.getAll('geographic_focus')
   const membershipVal = searchParams.get('membership') ?? ''
   const donationVal = searchParams.get('donation') ?? ''
   const seatingVal = searchParams.get('seating') ?? ''
@@ -319,23 +336,28 @@ function SystemListFilterSection() {
           </select>
         </div>
 
-        <div className="flex min-w-[140px] flex-1 flex-col gap-1 sm:max-w-[200px]">
-          <label htmlFor="filter-geographic" className="text-sm font-medium text-slate-700">
-            Geographic focus
-          </label>
-          <select
-            id="filter-geographic"
-            className={selectClass}
-            value={geographicVal}
-            onChange={(e) => updateParam('geographic_focus', e.target.value)}
-          >
-            <option value="">All regions</option>
-            {SYSTEM_GEOGRAPHIC_FOCUS.map((f) => (
-              <option key={f} value={f}>
-                {f}
-              </option>
-            ))}
-          </select>
+        <div className="flex min-w-[140px] flex-col gap-1">
+          <span className="text-sm font-medium text-slate-700">Geographic focus</span>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {SYSTEM_GEOGRAPHIC_FOCUS.map((f) => {
+              const isActive = activeGeographicFocus.includes(f)
+              return (
+                <button
+                  key={f}
+                  type="button"
+                  onClick={() => toggleGeographicFocus(f)}
+                  className={
+                    isActive
+                      ? 'rounded-full px-3 py-1.5 text-sm font-medium border border-transparent bg-blue-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1'
+                      : 'rounded-full px-3 py-1.5 text-sm font-medium border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1'
+                  }
+                  aria-pressed={isActive}
+                >
+                  {f}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         <div className="flex min-w-[140px] flex-1 flex-col gap-1 sm:max-w-[180px]">

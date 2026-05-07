@@ -132,14 +132,16 @@ const listSystems = async (req, res) => {
     }
   }
 
-  const geographicFocusRaw = asQueryString(req.query.geographic_focus);
+  // geographic_focus — multi-value; OR semantics across array values
+  const geographicFocusRaw = asQueryArray(req.query.geographic_focus);
   let geographicFocus;
   if (geographicFocusRaw !== undefined) {
-    const v = geographicFocusRaw.trim();
-    if (!GEOGRAPHIC_FOCUS_SET.has(v)) {
+    const normalised = geographicFocusRaw.map(v => v.trim());
+    const invalid = normalised.find(v => !GEOGRAPHIC_FOCUS_SET.has(v));
+    if (invalid !== undefined) {
       fields.push({ field: 'geographic_focus', message: 'Invalid geographic_focus value' });
     } else {
-      geographicFocus = v;
+      geographicFocus = normalised;
     }
   }
 
@@ -338,12 +340,32 @@ function parseSystemWritePayload(raw, { requireAll = true } = {}) {
   const rawGeo = 'geographic_focus' in raw ? raw.geographic_focus : raw.geographicFocus;
   let geographicFocus;
   if ('geographic_focus' in raw || 'geographicFocus' in raw) {
-    if (rawGeo === null || rawGeo === undefined || rawGeo === '') {
-      geographicFocus = null;
+    if (rawGeo === null || rawGeo === undefined) {
+      geographicFocus = [];
+    } else if (!Array.isArray(rawGeo)) {
+      fields.push({ field: 'geographic_focus', message: 'Must be an array of regions' });
     } else {
-      const v = String(rawGeo).trim();
-      if (!GEOGRAPHIC_FOCUS_SET.has(v)) fields.push({ field: 'geographic_focus', message: 'Select a valid region' });
-      else geographicFocus = v;
+      const normalised = [];
+      const seen = new Set();
+      let bad = false;
+      for (const entry of rawGeo) {
+        if (typeof entry !== 'string' || entry.trim() === '') {
+          fields.push({ field: 'geographic_focus', message: 'Each region must be a non-empty string' });
+          bad = true;
+          break;
+        }
+        const v = entry.trim();
+        if (!GEOGRAPHIC_FOCUS_SET.has(v)) {
+          fields.push({ field: 'geographic_focus', message: 'Select valid region(s)' });
+          bad = true;
+          break;
+        }
+        if (!seen.has(v)) {
+          seen.add(v);
+          normalised.push(v);
+        }
+      }
+      if (!bad) geographicFocus = normalised;
     }
   }
 

@@ -14,7 +14,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'INTEGRATED',
     deployment_model: 'SAAS',
     pricing_model: 'LICENCE',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'Integrated ticketing and CRM stack for arts and culture; strong in mid-sized to flagship venues and regional touring networks.',
     membership_capability: 'YES',
@@ -58,7 +58,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'INTEGRATED',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'UK',
+    geographic_focus: ['UK', 'North America'],
     description:
       'Cloud-native combined box office and CRM focused on theatres and arts centres; widely adopted in the UK and Ireland.',
     membership_capability: 'YES',
@@ -99,7 +99,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'INTEGRATED',
     deployment_model: 'SAAS',
     pricing_model: 'HYBRID',
-    geographic_focus: 'North America',
+    geographic_focus: ['North America', 'UK', 'Europe'],
     description:
       'Integrated ticketing and fundraising platform with a North American footprint; common with universities and mid-size presenters.',
     membership_capability: 'YES',
@@ -131,7 +131,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'TICKETING',
     deployment_model: 'SAAS',
     pricing_model: 'TRANSACTION_FEE',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'High-volume primary and resale ticketing; dominant at arenas and major commercial tours worldwide.',
     membership_capability: 'NO',
@@ -166,7 +166,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'TICKETING',
     deployment_model: 'SAAS',
     pricing_model: 'LICENCE',
-    geographic_focus: 'UK',
+    geographic_focus: ['UK', 'Other'],
     description:
       'Regional UK and European box-office product aimed at theatres and small-to-mid venues.',
     membership_capability: 'UNKNOWN',
@@ -197,7 +197,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'TICKETING',
     deployment_model: 'SAAS',
     pricing_model: 'TRANSACTION_FEE',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'Self-serve ticketing with a tilt toward festivals, discovery-led events, and community programming.',
     membership_capability: 'NO',
@@ -230,7 +230,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'TICKETING',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'UK',
+    geographic_focus: ['UK', 'Europe'],
     description:
       'Theatre- and arts-centre–oriented UK ticketing with lighter-weight operations than full enterprise stacks.',
     membership_capability: 'UNKNOWN',
@@ -259,7 +259,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'TICKETING',
     deployment_model: 'SAAS',
     pricing_model: 'TRANSACTION_FEE',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'Event discovery and ticketing layer often paired with other Live Nation–family tools; used for selective runs.',
     membership_capability: 'NO',
@@ -290,7 +290,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'AUDIENCE_MANAGEMENT',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'General-purpose CRM adopted by larger cultural institutions for fundraising, stewardship, and marketing automation.',
     membership_capability: 'YES',
@@ -330,7 +330,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'AUDIENCE_MANAGEMENT',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description:
       'Inbound marketing and lightweight CRM popular with festivals and mid-size organisations building digital audiences.',
     membership_capability: 'UNKNOWN',
@@ -360,7 +360,7 @@ const SYSTEM_SEED_DEFINITIONS = [
     category: 'AUDIENCE_MANAGEMENT',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'UK',
+    geographic_focus: ['UK'],
     description:
       'Charity-sector CRM with a UK heritage; common for donor management adjacent to Spektrix or PatronBase.',
     membership_capability: 'UNKNOWN',
@@ -389,10 +389,17 @@ const SYSTEM_SEED_DEFINITIONS = [
 function assertGeographicFocusInCatalog() {
   const allowed = new Set(SYSTEM_GEOGRAPHIC_FOCUS);
   for (const row of SYSTEM_SEED_DEFINITIONS) {
-    if (!allowed.has(row.geographic_focus)) {
+    if (!Array.isArray(row.geographic_focus)) {
       throw new Error(
-        `SYSTEM_SEED_DEFINITIONS: "${row.name}" geographic_focus "${row.geographic_focus}" not in SYSTEM_GEOGRAPHIC_FOCUS`,
+        `SYSTEM_SEED_DEFINITIONS: "${row.name}" geographic_focus must be an array`,
       );
+    }
+    for (const v of row.geographic_focus) {
+      if (!allowed.has(v)) {
+        throw new Error(
+          `SYSTEM_SEED_DEFINITIONS: "${row.name}" geographic_focus "${v}" not in SYSTEM_GEOGRAPHIC_FOCUS`,
+        );
+      }
     }
   }
 }

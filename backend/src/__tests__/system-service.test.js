@@ -35,7 +35,7 @@ describe('toSystemDto', () => {
     category: 'INTEGRATED',
     deployment_model: 'SAAS',
     pricing_model: 'SUBSCRIPTION',
-    geographic_focus: 'UK',
+    geographic_focus: ['UK'],
     description: 'Integrated platform',
     membership_capability: 'YES',
     donation_capability: 'NO',
@@ -60,7 +60,7 @@ describe('toSystemDto', () => {
     expect(dto.category).toBe('INTEGRATED');
     expect(dto.deploymentModel).toBe('SAAS');
     expect(dto.pricingModel).toBe('SUBSCRIPTION');
-    expect(dto.geographicFocus).toBe('UK');
+    expect(dto.geographicFocus).toEqual(['UK']);
     expect(dto.description).toBe('Integrated platform');
     expect(dto.membershipCapability).toBe('YES');
     expect(dto.donationCapability).toBe('NO');
@@ -100,7 +100,7 @@ describe('toSystemDto', () => {
       ...baseRow,
       deployment_model: null,
       pricing_model: null,
-      geographic_focus: null,
+      geographic_focus: [],
       description: null,
       source_reference: null,
       field_sources: null,
@@ -109,7 +109,7 @@ describe('toSystemDto', () => {
     const dto = toSystemDto(row);
     expect(dto.deploymentModel).toBeNull();
     expect(dto.pricingModel).toBeNull();
-    expect(dto.geographicFocus).toBeNull();
+    expect(dto.geographicFocus).toEqual([]);
     expect(dto.description).toBeNull();
     expect(dto.sourceReference).toBeNull();
     expect(dto.fieldSources).toBeNull();
@@ -130,7 +130,7 @@ describe('toSystemDetailDto', () => {
     category: 'INTEGRATED',
     deployment_model: null,
     pricing_model: null,
-    geographic_focus: 'Global',
+    geographic_focus: ['Global'],
     description: null,
     membership_capability: 'YES',
     donation_capability: 'YES',
@@ -259,9 +259,14 @@ describe('buildSystemListWhere', () => {
     expect(where.pricing_model).toBe('SUBSCRIPTION');
   });
 
-  it('builds geographic_focus clause', () => {
-    const where = buildSystemListWhere({ geographicFocus: 'UK' });
-    expect(where.geographic_focus).toBe('UK');
+  it('builds geographic_focus clause as hasSome over array values', () => {
+    const where = buildSystemListWhere({ geographicFocus: ['UK', 'Europe'] });
+    expect(where.geographic_focus).toEqual({ hasSome: ['UK', 'Europe'] });
+  });
+
+  it('omits geographic_focus clause when array empty or undefined', () => {
+    expect(buildSystemListWhere({ geographicFocus: [] }).geographic_focus).toBeUndefined();
+    expect(buildSystemListWhere({}).geographic_focus).toBeUndefined();
   });
 
   it('builds capability clauses', () => {
@@ -325,7 +330,6 @@ describe('buildSystemListOrderBy', () => {
     ['vendor', 'desc', { vendor: 'desc' }],
     ['category', 'asc', { category: 'asc' }],
     ['lastUpdated', 'desc', { last_updated: 'desc' }],
-    ['geographicFocus', 'asc', { geographic_focus: 'asc' }],
   ])('maps %s + %s', (sortKey, order, expected) => {
     expect(buildSystemListOrderBy(sortKey, order)).toEqual(expected);
   });
@@ -367,7 +371,7 @@ describe('listSystems', () => {
   it('maps rows through toSystemDto', async () => {
     const row = {
       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
-      deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
+      deployment_model: null, pricing_model: null, geographic_focus: [], description: null,
       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
       source_reference: null, custom_attributes: null,
       last_updated: new Date('2026-04-01T00:00:00.000Z'),
@@ -463,7 +467,7 @@ describe('getSystemById', () => {
   it('returns toSystemDetailDto shape with organisations array', async () => {
     const row = {
       id: 's1', name: 'Tessitura', vendor: 'Tessitura Network', category: 'INTEGRATED',
-      deployment_model: null, pricing_model: null, geographic_focus: null, description: null,
+      deployment_model: null, pricing_model: null, geographic_focus: [], description: null,
       membership_capability: 'YES', donation_capability: 'YES', reserved_seating_capability: 'YES',
       source_reference: null,
       field_sources: null,
@@ -490,7 +494,7 @@ const BASE_ROW = {
   category: 'INTEGRATED',
   deployment_model: null,
   pricing_model: null,
-  geographic_focus: null,
+  geographic_focus: [],
   description: null,
   membership_capability: 'UNKNOWN',
   donation_capability: 'UNKNOWN',

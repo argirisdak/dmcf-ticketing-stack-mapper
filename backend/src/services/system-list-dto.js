@@ -16,7 +16,7 @@ function toSystemDto(row) {
     category: row.category,
     deploymentModel: row.deployment_model ?? null,
     pricingModel: row.pricing_model ?? null,
-    geographicFocus: row.geographic_focus ?? null,
+    geographicFocus: Array.isArray(row.geographic_focus) ? row.geographic_focus : [],
     description: row.description ?? null,
     membershipCapability: row.membership_capability,
     donationCapability: row.donation_capability,

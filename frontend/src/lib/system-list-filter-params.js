@@ -32,6 +32,11 @@ export const SYSTEM_CAPABILITY_FILTER_PARAM_KEYS = new Set([
   ...SYSTEM_EXTENDED_CAPABILITY_URL_PARAM_KEYS,
 ])
 
+/** Filter params that accept multiple repeated URL values (`?key=A&key=B`). */
+export const SYSTEM_MULTI_VALUE_FILTER_PARAM_KEYS = new Set(['geographic_focus'])
+
+export const SYSTEM_GEOGRAPHIC_FOCUS_PARAM_KEY = 'geographic_focus'
+
 export const SYSTEM_CATEGORY_PARAM_KEY = 'category'
 
 export const VALID_SYSTEM_CATEGORIES = Object.freeze(['INTEGRATED', 'TICKETING', 'AUDIENCE_MANAGEMENT'])
@@ -120,6 +125,11 @@ export function parseSystemListInputsFromSearchParams(searchParams, limit = 20) 
   if (cats.length > 0) out.categories = cats
 
   for (const key of SYSTEM_LIST_FILTER_PARAM_KEYS) {
+    if (SYSTEM_MULTI_VALUE_FILTER_PARAM_KEYS.has(key)) {
+      const all = searchParams.getAll(key).map((v) => v.trim()).filter((v) => v !== '')
+      if (all.length > 0) out[key] = Array.from(new Set(all))
+      continue
+    }
     const raw = searchParams.get(key)
     if (raw == null || raw === '') continue
     if (SYSTEM_CAPABILITY_FILTER_PARAM_KEYS.has(key)) {
@@ -140,6 +150,10 @@ export function hasActiveSystemListFilters(searchParams) {
   if (searchParams.getAll(SYSTEM_CATEGORY_PARAM_KEY).some((v) => VALID_SYSTEM_CATEGORIES.includes(v)))
     return true
   for (const key of SYSTEM_LIST_FILTER_PARAM_KEYS) {
+    if (SYSTEM_MULTI_VALUE_FILTER_PARAM_KEYS.has(key)) {
+      if (searchParams.getAll(key).some((v) => v.trim() !== '')) return true
+      continue
+    }
     const raw = searchParams.get(key)
     if (raw == null || raw === '') continue
     if (SYSTEM_CAPABILITY_FILTER_PARAM_KEYS.has(key)) {

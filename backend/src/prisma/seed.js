@@ -56,6 +56,18 @@ async function seedOrganisationTypes() {
 }
 
 async function seedSystems() {
+  const catalogNames = new Set(SYSTEM_SEED_DEFINITIONS.map((d) => d.name));
+  const allSystems = await prisma.system.findMany({ select: { id: true, name: true } });
+  for (const sys of allSystems) {
+    if (!catalogNames.has(sys.name)) {
+      const linkCount = await prisma.organisationSystem.count({ where: { system_id: sys.id } });
+      if (linkCount === 0) {
+        await prisma.system.delete({ where: { id: sys.id } });
+        console.log(`Seed cleanup: removed stale system "${sys.name}" (no organisation links).`);
+      }
+    }
+  }
+
   for (const def of SYSTEM_SEED_DEFINITIONS) {
     await prisma.system.upsert({
       where: { name: def.name },

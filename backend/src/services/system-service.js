@@ -46,7 +46,10 @@ function buildSystemListWhere({
   if (categories?.length) parts.push({ category: { in: categories } });
   if (deploymentModel)    parts.push({ deployment_model: deploymentModel });
   if (pricingModel)       parts.push({ pricing_model: pricingModel });
-  if (geographicFocus)    parts.push({ geographic_focus: geographicFocus });
+  if (Array.isArray(geographicFocus) && geographicFocus.length > 0) {
+    // OR semantics: match systems whose geographic_focus array contains any of the requested values
+    parts.push({ geographic_focus: { hasSome: geographicFocus } });
+  }
   if (membership)         parts.push({ membership_capability: membership });
   if (donation)           parts.push({ donation_capability: donation });
   if (seating)            parts.push({ reserved_seating_capability: seating });
@@ -76,8 +79,6 @@ function buildSystemListOrderBy(sortKey, orderDir) {
       return { category: orderDir };
     case 'lastUpdated':
       return { last_updated: orderDir };
-    case 'geographicFocus':
-      return { geographic_focus: orderDir };
     default:
       return { name: 'asc' };
   }
@@ -154,7 +155,7 @@ async function createSystem(payload) {
       category: payload.category,
       deployment_model: payload.deploymentModel ?? undefined,
       pricing_model: payload.pricingModel ?? undefined,
-      geographic_focus: payload.geographicFocus ?? undefined,
+      ...(payload.geographicFocus !== undefined ? { geographic_focus: payload.geographicFocus } : {}),
       description: payload.description ?? undefined,
       membership_capability: payload.membershipCapability ?? undefined,
       donation_capability: payload.donationCapability ?? undefined,

@@ -173,7 +173,16 @@ describe('GET /api/systems', () => {
 
     await request(app).get('/api/systems?geographic_focus=UK');
     expect(mockListSystems).toHaveBeenCalledWith(
-      expect.objectContaining({ geographicFocus: 'UK' })
+      expect.objectContaining({ geographicFocus: ['UK'] })
+    );
+  });
+
+  it('accepts repeated geographic_focus values as array', async () => {
+    mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
+
+    await request(app).get('/api/systems?geographic_focus=UK&geographic_focus=Europe');
+    expect(mockListSystems).toHaveBeenCalledWith(
+      expect.objectContaining({ geographicFocus: ['UK', 'Europe'] })
     );
   });
 
@@ -259,10 +268,10 @@ describe('GET /api/systems', () => {
 
   it('forwards validated sort and order with filters to the service', async () => {
     mockListSystems.mockResolvedValue({ data: [], total: 0, totalPages: 0 });
-    const res = await request(app).get('/api/systems?geographic_focus=UK&sort=geographicFocus&order=desc');
+    const res = await request(app).get('/api/systems?geographic_focus=UK&sort=lastUpdated&order=desc');
     expect(res.status).toBe(200);
     expect(mockListSystems).toHaveBeenCalledWith(
-      expect.objectContaining({ geographicFocus: 'UK', sort: 'geographicFocus', order: 'desc' }),
+      expect.objectContaining({ geographicFocus: ['UK'], sort: 'lastUpdated', order: 'desc' }),
     );
   });
 

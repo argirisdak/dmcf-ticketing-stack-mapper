@@ -69,7 +69,6 @@ function matchesWhere(row, where) {
   const eqFields = [
     'deployment_model',
     'pricing_model',
-    'geographic_focus',
     'membership_capability',
     'donation_capability',
     'reserved_seating_capability',
@@ -83,6 +82,13 @@ function matchesWhere(row, where) {
     if (where[f] !== undefined) {
       checks.push(() => row[f] === where[f]);
     }
+  }
+
+  // geographic_focus is an array column; service uses { hasSome: [...] } semantics.
+  if (where.geographic_focus?.hasSome) {
+    const wanted = where.geographic_focus.hasSome;
+    const have = Array.isArray(row.geographic_focus) ? row.geographic_focus : [];
+    checks.push(() => wanted.some((w) => have.includes(w)));
   }
 
   if (checks.length === 0) return true;

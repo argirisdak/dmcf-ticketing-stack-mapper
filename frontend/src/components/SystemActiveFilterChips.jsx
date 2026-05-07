@@ -2,6 +2,7 @@ import {
   SYSTEM_LIST_FILTER_PARAM_KEYS,
   SYSTEM_FILTER_DIMENSION_LABELS,
   SYSTEM_CAPABILITY_FILTER_PARAM_KEYS,
+  SYSTEM_MULTI_VALUE_FILTER_PARAM_KEYS,
   SYSTEM_CATEGORY_LABELS,
   normaliseCapabilityParam,
   clearAllSystemListFiltersInSearchParams,
@@ -29,18 +30,31 @@ export function SystemActiveFilterChips({ searchParams, setSearchParams }) {
       ? [{ key: 'q', type: 'q', value: qRaw.trim(), text: `Search: ${qRaw.trim()}` }]
       : []
 
-  const filterChips = SYSTEM_LIST_FILTER_PARAM_KEYS.map((key) => {
+  const filterChips = SYSTEM_LIST_FILTER_PARAM_KEYS.flatMap((key) => {
+    const dim = SYSTEM_FILTER_DIMENSION_LABELS[key]
+    if (SYSTEM_MULTI_VALUE_FILTER_PARAM_KEYS.has(key)) {
+      return searchParams
+        .getAll(key)
+        .map((v) => v.trim())
+        .filter((v) => v !== '')
+        .map((value) => ({
+          key: `${key}:${value}`,
+          type: 'multiValue',
+          paramKey: key,
+          value,
+          text: `${dim}: ${value}`,
+        }))
+    }
     const raw = searchParams.get(key)
-    if (raw == null || raw === '') return null
+    if (raw == null || raw === '') return []
     let display = raw
     if (SYSTEM_CAPABILITY_FILTER_PARAM_KEYS.has(key)) {
       const n = normaliseCapabilityParam(raw)
-      if (!n) return null
+      if (!n) return []
       display = n.charAt(0) + n.slice(1).toLowerCase()
     }
-    const dim = SYSTEM_FILTER_DIMENSION_LABELS[key]
-    return { key, type: 'filter', value: raw, text: `${dim}: ${display}` }
-  }).filter(Boolean)
+    return [{ key, type: 'filter', value: raw, text: `${dim}: ${display}` }]
+  })
 
   const chips = [...catChips, ...qChip, ...filterChips]
 
@@ -65,6 +79,16 @@ export function SystemActiveFilterChips({ searchParams, setSearchParams }) {
     })
   }
 
+  const removeMultiValue = (paramKey, value) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev)
+      next.delete(paramKey)
+      prev.getAll(paramKey).filter((v) => v !== value).forEach((v) => next.append(paramKey, v))
+      next.set('page', '1')
+      return next
+    })
+  }
+
   const clearAll = () => {
     setSearchParams((prev) => clearAllSystemListFiltersInSearchParams(prev))
   }
@@ -81,6 +105,7 @@ export function SystemActiveFilterChips({ searchParams, setSearchParams }) {
               aria-label={`Remove ${chip.text} filter`}
               onClick={() => {
                 if (chip.type === 'category') removeCategory(chip.value)
+                else if (chip.type === 'multiValue') removeMultiValue(chip.paramKey, chip.value)
                 else removeFilter(chip.key)
               }}
             >

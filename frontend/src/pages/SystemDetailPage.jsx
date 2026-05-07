@@ -18,7 +18,7 @@ import {
 import { formatLastUpdated, isHttpOrHttpsUrl } from '../lib/format-and-url-helpers.js'
 import { pickFieldSourceUrl } from '../lib/field-source-keys.js'
 import FieldSourceIcon from '../components/FieldSourceIcon.jsx'
-import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
+import { getVisibleCapabilityRows } from '../lib/system-capabilities.js'
 
 const BANNER_MS = 5000
 
@@ -566,15 +566,17 @@ export default function SystemDetailPage() {
                   />
                 </span>
               </FactRow>
-              <FactRow label="Deployment">
-                <span className="inline-flex items-center gap-1">
-                  {displayNullable(data.deploymentModel)}
-                  <FieldSourceIcon
-                    url={pickFieldSourceUrl(data.fieldSources, 'deploymentModel')}
-                    fieldLabel="Deployment"
-                  />
-                </span>
-              </FactRow>
+              {data.deploymentModel != null && data.deploymentModel !== 'SAAS' && (
+                <FactRow label="Deployment">
+                  <span className="inline-flex items-center gap-1">
+                    {displayNullable(data.deploymentModel)}
+                    <FieldSourceIcon
+                      url={pickFieldSourceUrl(data.fieldSources, 'deploymentModel')}
+                      fieldLabel="Deployment"
+                    />
+                  </span>
+                </FactRow>
+              )}
               <FactRow label="Pricing model">
                 <span className="inline-flex items-center gap-1">
                   {displayNullable(data.pricingModel)}
@@ -586,7 +588,11 @@ export default function SystemDetailPage() {
               </FactRow>
               <FactRow label="Geographic focus">
                 <span className="inline-flex items-center gap-1">
-                  {displayNullable(data.geographicFocus)}
+                  {Array.isArray(data.geographicFocus) && data.geographicFocus.length > 0 ? (
+                    data.geographicFocus.join(', ')
+                  ) : (
+                    <span className="text-slate-400">Not recorded</span>
+                  )}
                   <FieldSourceIcon
                     url={pickFieldSourceUrl(data.fieldSources, 'geographicFocus')}
                     fieldLabel="Geographic focus"
@@ -598,7 +604,7 @@ export default function SystemDetailPage() {
                   <span className="text-sm text-slate-700">{data.description}</span>
                 </FactRow>
               )}
-              {CAPABILITY_ROWS.map(({ key, label }) => (
+              {getVisibleCapabilityRows(data.category).map(({ key, label }) => (
                 <FactRow key={key} label={label}>
                   <span className="inline-flex items-center gap-1">
                     <CapabilityBadge value={data[key]} variant="labelled" />

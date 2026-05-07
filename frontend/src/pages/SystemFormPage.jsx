@@ -13,7 +13,7 @@ import {
   normaliseFieldSourcesFromDto,
 } from '../lib/field-sources-form.js'
 import { SOURCE_URL_CLIENT_ERROR, isValidSourceUrl } from '../lib/source-url-validation.js'
-import { CAPABILITY_ROWS } from '../lib/system-capabilities.js'
+import { getVisibleCapabilityRows } from '../lib/system-capabilities.js'
 import CustomAttributeEditor from '../components/CustomAttributeEditor.jsx'
 import { buildCustomAttributesPayload } from '../lib/custom-attributes-form.js'
 
@@ -130,7 +130,7 @@ function initialFormState() {
     category: '',
     deploymentModel: '',
     pricingModel: '',
-    geographicFocus: '',
+    geographicFocus: /** @type {string[]} */ ([]),
     description: '',
     membershipCapability: 'UNKNOWN',
     donationCapability: 'UNKNOWN',
@@ -187,7 +187,7 @@ function dtoToFormState(dto) {
     category: dto.category != null ? String(dto.category) : '',
     deploymentModel: dto.deploymentModel != null ? String(dto.deploymentModel) : '',
     pricingModel: dto.pricingModel != null ? String(dto.pricingModel) : '',
-    geographicFocus: dto.geographicFocus != null ? String(dto.geographicFocus) : '',
+    geographicFocus: Array.isArray(dto.geographicFocus) ? dto.geographicFocus.map(String) : [],
     description: dto.description != null ? String(dto.description) : '',
     membershipCapability: normaliseCapabilityState(dto.membershipCapability),
     donationCapability: normaliseCapabilityState(dto.donationCapability),
@@ -218,7 +218,7 @@ function buildSubmitBody(form, fieldSources, customAttributeRows) {
   }
   if (form.deploymentModel) body.deploymentModel = form.deploymentModel
   if (form.pricingModel) body.pricingModel = form.pricingModel
-  if (form.geographicFocus) body.geographicFocus = form.geographicFocus
+  body.geographicFocus = Array.isArray(form.geographicFocus) ? form.geographicFocus : []
   const desc = form.description.trim()
   if (desc) body.description = desc
   const sr = form.sourceReference.trim()
@@ -496,34 +496,48 @@ function SystemFormBody({
           onSourceBlur={onFieldSourceBlur}
           sourceError={sourceErrors.geographicFocus}
         >
-          <div className="max-w-xs">
-            <label
-              htmlFor={FIELD_IDS.geographicFocus}
+          <fieldset className="max-w-md">
+            <legend
+              id={FIELD_IDS.geographicFocus}
               className="mb-1 block text-sm font-medium text-slate-800"
             >
-              Geographic focus <span className="font-normal text-slate-500">(optional)</span>
-            </label>
-            <select
-              id={FIELD_IDS.geographicFocus}
-              name="geographicFocus"
-              value={form.geographicFocus}
-              onChange={(e) => setField('geographicFocus', e.target.value)}
+              Geographic focus <span className="font-normal text-slate-500">(optional, choose any)</span>
+            </legend>
+            <div
+              role="group"
+              aria-labelledby={FIELD_IDS.geographicFocus}
               aria-invalid={invalidFields.has('geographicFocus')}
               aria-describedby={controlDescribedBy(FIELD_IDS.geographicFocus, 'geographicFocus')}
-              className={`mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${inputError('geographicFocus')}`}
+              className="mt-2 flex flex-wrap gap-x-4 gap-y-2"
             >
-              <option value="">—</option>
-              {SYSTEM_GEOGRAPHIC_FOCUS.map((g) => (
-                <option key={g} value={g}>
-                  {g}
-                </option>
-              ))}
-            </select>
+              {SYSTEM_GEOGRAPHIC_FOCUS.map((g) => {
+                const checked = Array.isArray(form.geographicFocus) && form.geographicFocus.includes(g)
+                return (
+                  <label key={g} className="inline-flex items-center gap-2 text-sm text-slate-800">
+                    <input
+                      type="checkbox"
+                      name="geographicFocus"
+                      value={g}
+                      checked={checked}
+                      onChange={(e) => {
+                        const current = Array.isArray(form.geographicFocus) ? form.geographicFocus : []
+                        const next = e.target.checked
+                          ? (current.includes(g) ? current : [...current, g])
+                          : current.filter((v) => v !== g)
+                        setField('geographicFocus', next)
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{g}</span>
+                  </label>
+                )
+              })}
+            </div>
             <FieldInlineError
               id={`${FIELD_IDS.geographicFocus}-error`}
               message={fieldMessages.get('geographicFocus')}
             />
-          </div>
+          </fieldset>
         </FieldWithSource>
 
         <div className="w-full max-w-none">
@@ -558,7 +572,7 @@ function SystemFormBody({
 
         <div className="space-y-6">
           <h2 className="text-lg font-semibold text-slate-800">Capabilities</h2>
-          {CAPABILITY_ROWS.map(({ key, label }) => {
+          {getVisibleCapabilityRows(form.category).map(({ key, label }) => {
             const fid = FIELD_IDS[key]
             return (
               <FieldWithSource

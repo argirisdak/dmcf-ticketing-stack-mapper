@@ -80,7 +80,7 @@ model System {
   category                          SystemCategory
   deployment_model                  DeploymentModel?
   pricing_model                     PricingModel?
-  geographic_focus                  String?
+  geographic_focus                  String[]         @default([])
   description                       String?
   membership_capability             CapabilityState  @default(UNKNOWN)
   donation_capability               CapabilityState  @default(UNKNOWN)

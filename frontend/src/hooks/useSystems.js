@@ -9,7 +9,7 @@ import { fetchSystems } from '../api/systems.js'
  *   categories?: string[]
  *   deployment_model?: string
  *   pricing_model?: string
- *   geographic_focus?: string
+ *   geographic_focus?: string[]
  *   membership?: string
  *   donation?: string
  *   seating?: string
@@ -38,7 +38,9 @@ export function useSystems(params = {}) {
 
   if (params.deployment_model !== undefined) keyPart.deployment_model = params.deployment_model
   if (params.pricing_model !== undefined) keyPart.pricing_model = params.pricing_model
-  if (params.geographic_focus !== undefined) keyPart.geographic_focus = params.geographic_focus
+  if (params.geographic_focus?.length) {
+    keyPart.geographic_focus = [...params.geographic_focus].sort()
+  }
   if (params.membership !== undefined) keyPart.membership = params.membership
   if (params.donation !== undefined) keyPart.donation = params.donation
   if (params.seating !== undefined) keyPart.seating = params.seating
